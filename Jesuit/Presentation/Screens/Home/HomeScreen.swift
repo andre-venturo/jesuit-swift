@@ -31,6 +31,7 @@ struct HomeScreen: View {
                 .padding(.top, 20)
                 .padding(.bottom, 32)
             }
+            .refreshable { await presenter.refresh() }
         }
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

@@ -19,12 +19,41 @@ struct Contact: Identifiable, Sendable {
     let kind: Kind
     let balance: Double
 
-    init(id: String = UUID().uuidString, name: String, company: String, kind: Kind, balance: Double) {
+    // Editable fields carried from the list DTO, for the edit form.
+    let categoryId: String?
+    let email: String?
+    let phone: String?
+    let address: String?
+    let picName: String?
+    let picPosition: String?
+    let isActive: Bool
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        company: String,
+        kind: Kind,
+        balance: Double,
+        categoryId: String? = nil,
+        email: String? = nil,
+        phone: String? = nil,
+        address: String? = nil,
+        picName: String? = nil,
+        picPosition: String? = nil,
+        isActive: Bool = true
+    ) {
         self.id = id
         self.name = name
         self.company = company
         self.kind = kind
         self.balance = balance
+        self.categoryId = categoryId
+        self.email = email
+        self.phone = phone
+        self.address = address
+        self.picName = picName
+        self.picPosition = picPosition
+        self.isActive = isActive
     }
 
     /// Outstanding amount the contact owes (positive balance).
@@ -54,7 +83,14 @@ extension Contact {
             name: dto.name,
             company: dto.companyName ?? dto.email ?? "",
             kind: isVendor ? .vendor : .customer,
-            balance: dto.balance ?? 0
+            balance: dto.balance ?? 0,
+            categoryId: dto.categoryId,
+            email: dto.email,
+            phone: dto.phone,
+            address: dto.address,
+            picName: dto.picName,
+            picPosition: dto.picPosition,
+            isActive: dto.isActive ?? true
         )
     }
 }

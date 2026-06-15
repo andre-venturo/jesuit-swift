@@ -225,6 +225,147 @@ nonisolated struct BranchDTO: Codable, Sendable, Identifiable {
     }
 }
 
+// MARK: - Detail (GET /finance/v1/cash-transactions/{id})
+
+/// One journal line in a cash-transaction detail.
+nonisolated struct CashTransactionLineDTO: Codable, Sendable, Identifiable {
+    let id: String
+    let lineNumber: Int?
+    let accountId: String?
+    let description: String?
+    let amount: Double?
+    let isPinned: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, description, amount
+        case lineNumber = "line_number"
+        case accountId = "account_id"
+        case isPinned = "is_pinned"
+    }
+}
+
+/// Full cash-transaction detail returned by the `{id}` GET / approve / reject /
+/// update endpoints. Names (account, branch, creator) are resolved client-side
+/// from the accounts/branches lists and the session.
+nonisolated struct CashTransactionDetailDTO: Codable, Sendable, Identifiable {
+    let id: String
+    let transactionNo: String?
+    let transactionType: String?
+    let transactionDate: Date?
+    let description: String?
+    let cashAccountId: String?
+    let branchId: String?
+    let currencyCode: String?
+    let totalAmount: Double?
+    let status: String?
+    let currentApprovalLevel: Int?
+    let totalApprovalLevels: Int?
+    let journalEntryId: String?
+    let createdAt: Date?
+    let createdBy: String?
+    let updatedAt: Date?
+    let lines: [CashTransactionLineDTO]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, description, status, lines
+        case transactionNo = "transaction_no"
+        case transactionType = "transaction_type"
+        case transactionDate = "transaction_date"
+        case cashAccountId = "cash_account_id"
+        case branchId = "branch_id"
+        case currencyCode = "currency_code"
+        case totalAmount = "total_amount"
+        case currentApprovalLevel = "current_approval_level"
+        case totalApprovalLevels = "total_approval_levels"
+        case journalEntryId = "journal_entry_id"
+        case createdAt = "created_at"
+        case createdBy = "created_by"
+        case updatedAt = "updated_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        transactionNo = try? c.decode(String.self, forKey: .transactionNo)
+        transactionType = try? c.decode(String.self, forKey: .transactionType)
+        description = try? c.decode(String.self, forKey: .description)
+        status = try? c.decode(String.self, forKey: .status)
+        cashAccountId = try? c.decode(String.self, forKey: .cashAccountId)
+        branchId = try? c.decode(String.self, forKey: .branchId)
+        currencyCode = try? c.decode(String.self, forKey: .currencyCode)
+        journalEntryId = try? c.decode(String.self, forKey: .journalEntryId)
+        createdBy = try? c.decode(String.self, forKey: .createdBy)
+        currentApprovalLevel = try? c.decode(Int.self, forKey: .currentApprovalLevel)
+        totalApprovalLevels = try? c.decode(Int.self, forKey: .totalApprovalLevels)
+        totalAmount = (try? c.decode(Double.self, forKey: .totalAmount))
+            ?? (try? c.decode(String.self, forKey: .totalAmount)).flatMap(Double.init)
+        lines = try? c.decode([CashTransactionLineDTO].self, forKey: .lines)
+
+        func date(_ key: CodingKeys) -> Date? {
+            guard let str = try? c.decode(String.self, forKey: key), !str.isEmpty else { return nil }
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = iso.date(from: str) { return d }
+            iso.formatOptions = [.withInternetDateTime]
+            if let d = iso.date(from: str) { return d }
+            let ymd = DateFormatter(); ymd.locale = Locale(identifier: "en_US_POSIX"); ymd.dateFormat = "yyyy-MM-dd"
+            return ymd.date(from: str)
+        }
+        transactionDate = date(.transactionDate)
+        createdAt = date(.createdAt)
+        updatedAt = date(.updatedAt)
+    }
+}
+
+nonisolated struct CashTransactionDetailResponse: Codable, Sendable {
+    let data: CashTransactionDetailDTO?
+    let message: String?
+}
+
+/// One line in the detail's "Detail Lines" table (names resolved client-side).
+struct CashReceiptLine: Identifiable, Sendable {
+    let id: String
+    let lineNumber: Int
+    let accountId: String?
+    let accountName: String
+    let description: String
+    let amount: Double
+    let isPinned: Bool
+}
+
+/// Full cash-receipt detail for the detail sheet.
+struct CashReceiptDetail: Sendable {
+    let id: String
+    let number: String
+    let date: Date
+    let description: String
+    let cashAccountId: String?
+    let cashAccountName: String
+    let branchName: String
+    let total: Double
+    let status: ReceiptStatus
+    /// Raw API status (e.g. "draft", "waiting", "posted", "rejected"), used for
+    /// action gating so unmapped values don't fall back to a permissive default.
+    let rawStatus: String
+    let approvalLevel: Int?
+    let totalApprovalLevels: Int?
+    let hasJournal: Bool
+    let createdAt: Date
+    let createdById: String?
+    let updatedAt: Date
+    let lines: [CashReceiptLine]
+}
+
+// MARK: - Approve / reject request bodies
+
+nonisolated struct ApproveRequest: Codable, Sendable {
+    let comment: String
+}
+
+nonisolated struct RejectRequest: Codable, Sendable {
+    let reason: String
+}
+
 // MARK: - DTOs (GET /finance/v1/cash-transactions?transaction_type=receipt)
 
 /// Per-status counts returned in `meta.counts` for the cash-transactions list.

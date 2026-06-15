@@ -66,4 +66,20 @@ struct ContactRepository: ContactRepositoryProtocol {
         guard let dto = response.data else { throw NetworkError.noData }
         return Contact(dto: dto)
     }
+
+    @discardableResult
+    func updateContact(id: String, request: CreateContactRequest) async throws -> Contact {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.contact(id),
+            method: .put
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: request,
+            responseType: CreateContactResponse.self
+        )
+        guard let dto = response.data else { throw NetworkError.noData }
+        return Contact(dto: dto)
+    }
 }

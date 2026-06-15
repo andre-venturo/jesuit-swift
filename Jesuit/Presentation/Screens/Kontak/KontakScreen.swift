@@ -11,6 +11,7 @@ import SwiftUI
 struct KontakScreen: View {
     @State private var presenter = AppDI.shared.resolver(ContactPresenter.self)
     @State private var showCreate = false
+    @State private var editingContact: Contact?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -40,6 +41,9 @@ struct KontakScreen: View {
         .sheet(isPresented: $showCreate) {
             CreateContactSheet(presenter: presenter, onCreated: {})
         }
+        .sheet(item: $editingContact) { contact in
+            CreateContactSheet(editing: contact, onCreated: { Task { await presenter.load() } })
+        }
         .hotReloadable()
     }
 
@@ -59,8 +63,12 @@ struct KontakScreen: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(presenter.filtered.enumerated()), id: \.element.id) { index, contact in
-                        ContactRow(contact: contact)
-                            .padding(.horizontal, ListMetrics.horizontalInset)
+                        Button { editingContact = contact } label: {
+                            ContactRow(contact: contact)
+                                .padding(.horizontal, ListMetrics.horizontalInset)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         RowDivider(index: index, count: presenter.filtered.count)
                     }
                 }

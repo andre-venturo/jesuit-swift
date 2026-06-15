@@ -42,4 +42,23 @@ protocol CashReceiptRepositoryProtocol: Sendable {
 
     /// Active company branches, for the create-transaction branch picker.
     func fetchBranches() async throws -> [BranchDTO]
+
+    /// Loads one transaction's full detail (`GET /cash-transactions/{id}`).
+    func fetchDetail(id: String) async throws -> CashTransactionDetailDTO
+
+    /// Approves the transaction (`POST .../{id}/approve`). `comment` may be empty.
+    @discardableResult
+    func approve(id: String, comment: String) async throws -> CashTransactionDetailDTO
+
+    /// Rejects the transaction (`POST .../{id}/reject`) with a required reason.
+    @discardableResult
+    func reject(id: String, reason: String) async throws -> CashTransactionDetailDTO
+
+    /// Deletes the transaction (`DELETE /cash-transactions/{id}`).
+    func delete(id: String) async throws
+
+    /// Updates a transaction (`PUT /cash-transactions/{id}`) — same body as
+    /// create minus `transaction_type`.
+    @discardableResult
+    func update(id: String, request: CashTransactionRequest) async throws -> CashReceipt
 }

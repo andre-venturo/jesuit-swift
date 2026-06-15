@@ -43,6 +43,15 @@ final class HomePresenter {
         session.clear()
     }
 
+    /// Pull-to-refresh: reloads the dashboard's data in parallel (profile, cash
+    /// flow and cash accounts).
+    func refresh() async {
+        async let profile: Void = refreshProfile()
+        async let cashFlow: Void = loadCashFlow()
+        async let cashAccounts: Void = loadCashAccounts()
+        _ = await (profile, cashFlow, cashAccounts)
+    }
+
     /// Loads the latest profile from `/auth/me` (e.g. on dashboard appear).
     func refreshProfile() async {
         if let me = try? await authRepository.fetchMe() {

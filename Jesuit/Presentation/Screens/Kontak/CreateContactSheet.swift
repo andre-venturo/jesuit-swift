@@ -11,8 +11,26 @@ import SwiftUI
 struct CreateContactSheet: View {
     let presenter: ContactPresenter
     let onCreated: () -> Void
+    /// When non-nil the sheet edits this contact (PUT) instead of creating.
+    private let editTarget: Contact?
 
     @Environment(\.dismiss) private var dismiss
+
+    /// Create mode (shared list presenter; its form is reset on appear).
+    init(presenter: ContactPresenter, onCreated: @escaping () -> Void) {
+        self.presenter = presenter
+        self.onCreated = onCreated
+        self.editTarget = nil
+    }
+
+    /// Edit mode (own presenter; seeds the form from `editing`).
+    init(editing contact: Contact, onCreated: @escaping () -> Void) {
+        self.presenter = AppDI.shared.resolver(ContactPresenter.self)
+        self.onCreated = onCreated
+        self.editTarget = contact
+    }
+
+    private var isEditing: Bool { editTarget != nil }
 
     private var form: ContactPresenter.CreateForm { presenter.form }
 
@@ -46,7 +64,7 @@ struct CreateContactSheet: View {
                 .padding(20)
             }
             .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Kontak Baru")
+            .navigationTitle(isEditing ? "Ubah Kontak" : "Kontak Baru")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -55,7 +73,14 @@ struct CreateContactSheet: View {
                 }
             }
         }
-        .task { await presenter.loadCategories() }
+        .task {
+            if let editTarget {
+                presenter.startEditing(editTarget)
+            } else {
+                presenter.startCreate()
+            }
+            await presenter.loadCategories()
+        }
     }
 
     // MARK: - Category
@@ -90,7 +115,7 @@ struct CreateContactSheet: View {
     private var saveButton: some View {
         Button {
             Task {
-                if await presenter.createContact() {
+                if await presenter.saveContact() {
                     onCreated()
                     dismiss()
                 }
@@ -100,7 +125,7 @@ struct CreateContactSheet: View {
                 if presenter.isSaving {
                     ProgressView().tint(.white)
                 } else {
-                    Text("Simpan")
+                    Text(isEditing ? "Simpan Perubahan" : "Simpan")
                         .customFont(.semibold, 16)
                         .foregroundStyle(.white)
                 }

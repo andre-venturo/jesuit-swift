@@ -99,22 +99,30 @@ nonisolated struct ContactDTO: Codable, Sendable, Identifiable {
     let companyName: String?
     let email: String?
     let phone: String?
+    let address: String?
+    let picName: String?
+    let picPosition: String?
+    let isActive: Bool?
     let categoryId: String?
     let categoryName: String?
     let categoryCode: String?
     let balance: Double?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, email, phone, balance, category
+        case id, name, email, phone, balance, category, address
         case companyName = "company_name"
-        case categoryId = "contact_category_id"
+        case categoryId = "category_id"
+        case categoryIdAlt = "contact_category_id"
         case categoryNameSnake = "category_name"
         case categoryCodeSnake = "category_code"
+        case picName = "pic_name"
+        case picPosition = "pic_position"
+        case isActive = "is_active"
     }
 
-    /// Nested `{ category: { name, code } }` object, when present.
+    /// Nested `{ category: { id, name, code } }` object, when present.
     private enum CategoryKeys: String, CodingKey {
-        case name, code
+        case id, name, code
     }
 
     init(from decoder: Decoder) throws {
@@ -124,15 +132,22 @@ nonisolated struct ContactDTO: Codable, Sendable, Identifiable {
         companyName = try? c.decode(String.self, forKey: .companyName)
         email = try? c.decode(String.self, forKey: .email)
         phone = try? c.decode(String.self, forKey: .phone)
-        categoryId = try? c.decode(String.self, forKey: .categoryId)
+        address = try? c.decode(String.self, forKey: .address)
+        picName = try? c.decode(String.self, forKey: .picName)
+        picPosition = try? c.decode(String.self, forKey: .picPosition)
+        isActive = try? c.decode(Bool.self, forKey: .isActive)
         balance = ContactDTO.decodeFlexibleDouble(c, forKey: .balance)
 
-        // Category may arrive flat (category_name/category_code) or nested
-        // under a `category` object.
+        // Category may arrive flat (category_id/_name/_code) or nested under a
+        // `category` object. Prefer the flat id, then the nested object's id.
+        let flatId = (try? c.decode(String.self, forKey: .categoryId))
+            ?? (try? c.decode(String.self, forKey: .categoryIdAlt))
         if let nested = try? c.nestedContainer(keyedBy: CategoryKeys.self, forKey: .category) {
+            categoryId = flatId ?? (try? nested.decode(String.self, forKey: .id))
             categoryName = try? nested.decode(String.self, forKey: .name)
             categoryCode = try? nested.decode(String.self, forKey: .code)
         } else {
+            categoryId = flatId
             categoryName = try? c.decode(String.self, forKey: .categoryNameSnake)
             categoryCode = try? c.decode(String.self, forKey: .categoryCodeSnake)
         }
@@ -145,6 +160,10 @@ nonisolated struct ContactDTO: Codable, Sendable, Identifiable {
         try c.encodeIfPresent(companyName, forKey: .companyName)
         try c.encodeIfPresent(email, forKey: .email)
         try c.encodeIfPresent(phone, forKey: .phone)
+        try c.encodeIfPresent(address, forKey: .address)
+        try c.encodeIfPresent(picName, forKey: .picName)
+        try c.encodeIfPresent(picPosition, forKey: .picPosition)
+        try c.encodeIfPresent(isActive, forKey: .isActive)
         try c.encodeIfPresent(categoryId, forKey: .categoryId)
         try c.encodeIfPresent(balance, forKey: .balance)
     }

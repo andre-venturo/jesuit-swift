@@ -13,9 +13,27 @@ import SwiftUI
 struct CreateReceiptSheet: View {
     let presenter: PenerimaanPresenter
     let onCreated: () -> Void
+    /// When non-nil the sheet edits this transaction (PUT) instead of creating.
+    private let editTarget: CashReceiptDetail?
 
     @Environment(\.dismiss) private var dismiss
     @State private var editing: LineEdit?
+
+    /// Create mode: caller supplies the shared presenter (its `form` is reset).
+    init(presenter: PenerimaanPresenter, onCreated: @escaping () -> Void) {
+        self.presenter = presenter
+        self.onCreated = onCreated
+        self.editTarget = nil
+    }
+
+    /// Edit mode: builds its own presenter and seeds the form from `editing`.
+    init(editing detail: CashReceiptDetail, onCreated: @escaping () -> Void) {
+        self.presenter = AppDI.shared.resolver(PenerimaanPresenter.self)
+        self.onCreated = onCreated
+        self.editTarget = detail
+    }
+
+    private var isEditing: Bool { editTarget != nil }
 
     private var form: PenerimaanPresenter.CreateForm { presenter.form }
 
@@ -45,7 +63,7 @@ struct CreateReceiptSheet: View {
                 .padding(20)
             }
             .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Penerimaan Kas Baru")
+            .navigationTitle(isEditing ? "Ubah Penerimaan Kas" : "Penerimaan Kas Baru")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -54,7 +72,14 @@ struct CreateReceiptSheet: View {
                 }
             }
         }
-        .task { await presenter.loadFormOptions() }
+        .task {
+            if let editTarget {
+                presenter.startEditing(editTarget)
+            } else {
+                presenter.startCreate()
+            }
+            await presenter.loadFormOptions()
+        }
         .sheet(item: $editing) { edit in
             EditReceiptLineSheet(
                 draft: edit.draft,
@@ -179,21 +204,30 @@ struct CreateReceiptSheet: View {
 
     // MARK: - Actions
 
+    @ViewBuilder
     private var actions: some View {
-        HStack(spacing: 12) {
-            Button { save(submit: false) } label: {
-                actionLabel("Simpan Draft", filled: false)
-            }
+        if isEditing {
             Button { save(submit: true) } label: {
-                actionLabel("Simpan & Submit", filled: true)
+                actionLabel("Simpan Perubahan", filled: true)
             }
+            .disabled(!form.canSave)
+            .opacity(form.canSave ? 1 : 0.5)
+            .overlay { if form.isSaving { ProgressView().tint(.accent) } }
+            .padding(.top, 8)
+        } else {
+            HStack(spacing: 12) {
+                Button { save(submit: false) } label: {
+                    actionLabel("Simpan Draft", filled: false)
+                }
+                Button { save(submit: true) } label: {
+                    actionLabel("Simpan & Submit", filled: true)
+                }
+            }
+            .disabled(!form.canSave)
+            .opacity(form.canSave ? 1 : 0.5)
+            .overlay { if form.isSaving { ProgressView().tint(.accent) } }
+            .padding(.top, 8)
         }
-        .disabled(!form.canSave)
-        .opacity(form.canSave ? 1 : 0.5)
-        .overlay {
-            if form.isSaving { ProgressView().tint(.accent) }
-        }
-        .padding(.top, 8)
     }
 
     private func save(submit: Bool) {

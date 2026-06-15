@@ -95,6 +95,17 @@ class AppDI {
     }
 
     func resolver<T>(_ type: T.Type) -> T { container.resolve(type)! }
+
+    /// Builds a cash-receipt detail presenter for a specific transaction id
+    /// (the id is per-instance, so it can't be a plain container registration).
+    @MainActor
+    func cashReceiptDetailPresenter(id: String) -> CashReceiptDetailPresenter {
+        CashReceiptDetailPresenter(
+            id: id,
+            repository: container.resolve(CashReceiptRepositoryProtocol.self)!,
+            session: container.resolve(AuthSession.self)!
+        )
+    }
 }
 
 // usage

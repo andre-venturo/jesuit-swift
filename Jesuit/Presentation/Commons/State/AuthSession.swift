@@ -14,19 +14,30 @@ import Observation
 final class AuthSession {
     var user: AuthUser?
     var company: AuthCompany?
+    var roles: [String] = []
 
     var isAuthenticated: Bool { user != nil }
 
     var displayName: String { user?.fullName ?? "Guest" }
     var organization: String { company?.name ?? "-" }
 
+    /// Signed-in user's id, for "created by me" / approver checks.
+    var userId: String? { user?.id }
+
+    /// True when the signed-in user can approve/reject/manage transactions.
+    var isAdministrator: Bool {
+        roles.contains { $0.lowercased() == "administrator" }
+    }
+
     func update(with me: AuthMe) {
         user = me.user
         company = me.company
+        roles = me.roles ?? []
     }
 
     func clear() {
         user = nil
         company = nil
+        roles = []
     }
 }

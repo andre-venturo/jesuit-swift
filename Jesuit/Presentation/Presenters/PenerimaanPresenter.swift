@@ -164,9 +164,14 @@ final class PenerimaanPresenter {
         var cashAccountId: String?          // Akun Kas/Bank (header)
         var lines: [LineDraft] = []
 
+        /// Non-nil when editing an existing transaction (PUT instead of create).
+        private(set) var editId: String?
+
         private(set) var accounts: [AccountDTO] = []
         private var defaultBranchId: String?
         private(set) var saveState: AppState<CashReceipt> = .idle
+
+        var isEditing: Bool { editId != nil }
 
         var total: Double { lines.reduce(0) { $0 + $1.amount } }
 
@@ -204,8 +209,20 @@ final class PenerimaanPresenter {
 
     var form = CreateForm()
 
+    /// Resets the form for a brand-new transaction (clears any prior edit).
+    func startCreate() {
+        form = CreateForm()
+    }
+
+    /// Seeds the form from an existing transaction for editing (PUT on save).
+    func startEditing(_ detail: CashReceiptDetail) {
+        let f = CreateForm()
+        f.seed(from: detail)
+        form = f
+    }
+
     /// Loads the cash-account picker (and default branch) for the create sheet,
-    /// preselecting the first cash account.
+    /// preselecting the first cash account (kept when editing).
     func loadFormOptions() async {
         async let accountsResult = try? repository.fetchCashAccounts()
         async let branchesResult = try? repository.fetchBranches()
@@ -215,8 +232,9 @@ final class PenerimaanPresenter {
         form.setOptions(accounts: accounts, branches: branches)
     }
 
-    /// Saves the create form, either as a draft or submitted. On success resets
-    /// the form, reloads the list and returns `true` so the caller can dismiss.
+    /// Saves the form. When editing, PUTs the update; otherwise creates as draft
+    /// or submitted. On success resets the form, reloads the list and returns
+    /// `true` so the caller can dismiss.
     func save(submit: Bool) async -> Bool {
         guard form.canSave, let cashAccountId = form.cashAccountId,
               let branchId = form.branchId else { return false }
@@ -236,10 +254,15 @@ final class PenerimaanPresenter {
             }
         )
         do {
-            let created = submit
-                ? try await repository.submit(request)
-                : try await repository.saveDraft(request)
-            form.finishSave(created)
+            let saved: CashReceipt
+            if let editId = form.editId {
+                saved = try await repository.update(id: editId, request: request)
+            } else {
+                saved = submit
+                    ? try await repository.submit(request)
+                    : try await repository.saveDraft(request)
+            }
+            form.finishSave(saved)
             form = CreateForm()
             await load()
             return true
@@ -255,6 +278,20 @@ extension PenerimaanPresenter.CreateForm {
         self.accounts = accounts
         self.defaultBranchId = (branches.first { $0.isDefault == true } ?? branches.first)?.id
         if cashAccountId == nil { cashAccountId = accounts.first?.id }
+    }
+
+    /// Seeds the form from an existing transaction's detail for editing.
+    func seed(from detail: CashReceiptDetail) {
+        editId = detail.id
+        date = detail.date
+        cashAccountId = detail.cashAccountId
+        lines = detail.lines.map { line in
+            PenerimaanPresenter.LineDraft(
+                accountId: line.accountId,
+                description: line.description,
+                amountText: String(Int(line.amount))
+            )
+        }
     }
 
     /// A new detached line for the "Tambah Baris" sheet, prefilled with the

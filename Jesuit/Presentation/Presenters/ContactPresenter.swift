@@ -102,8 +102,13 @@ final class ContactPresenter {
         var picPosition = ""
         var isActive = true
 
+        /// Non-nil when editing an existing contact (PUT instead of create).
+        var editId: String?
+
         var categories: [ContactCategoryDTO] = []
         var errorMessage: String?
+
+        var isEditing: Bool { editId != nil }
 
         /// Display name of the picked category for the menu label.
         var categoryName: String {
@@ -117,6 +122,20 @@ final class ContactPresenter {
         func reset() {
             name = ""; categoryId = ""; email = ""; phone = ""
             address = ""; picName = ""; picPosition = ""; isActive = true
+            editId = nil; errorMessage = nil
+        }
+
+        /// Seeds the form from an existing contact for editing.
+        func seed(from contact: Contact) {
+            editId = contact.id
+            name = contact.name
+            categoryId = contact.categoryId ?? ""
+            email = contact.email ?? ""
+            phone = contact.phone ?? ""
+            address = contact.address ?? ""
+            picName = contact.picName ?? ""
+            picPosition = contact.picPosition ?? ""
+            isActive = contact.isActive
             errorMessage = nil
         }
 
@@ -147,9 +166,19 @@ final class ContactPresenter {
         return false
     }
 
-    /// Loads category options for the create form (defaults to the first one).
+    /// Resets the form for a brand-new contact (clears any prior edit).
+    func startCreate() {
+        form.reset()
+    }
+
+    /// Seeds the form from an existing contact for editing (PUT on save).
+    func startEditing(_ contact: Contact) {
+        form.seed(from: contact)
+    }
+
+    /// Loads category options for the form. Defaults the selection to the first
+    /// category only when creating (an edit keeps the seeded category).
     func loadCategories() async {
-        guard form.categories.isEmpty else { return }
         if let categories = try? await contactRepository.fetchCategories() {
             form.categories = categories
             if form.categoryId.isEmpty {
@@ -159,9 +188,9 @@ final class ContactPresenter {
         }
     }
 
-    /// Submits the create form. Returns `true` on success (caller dismisses +
-    /// reloads the list).
-    func createContact() async -> Bool {
+    /// Submits the form: PUT when editing, POST otherwise. Returns `true` on
+    /// success (caller dismisses + reloads the list).
+    func saveContact() async -> Bool {
         form.errorMessage = nil
         guard form.isValid else {
             form.errorMessage = "Nama dan kategori wajib diisi."
@@ -169,7 +198,12 @@ final class ContactPresenter {
         }
         saveState = .loading
         do {
-            let contact = try await contactRepository.createContact(form.makeRequest())
+            let contact: Contact
+            if let editId = form.editId {
+                contact = try await contactRepository.updateContact(id: editId, request: form.makeRequest())
+            } else {
+                contact = try await contactRepository.createContact(form.makeRequest())
+            }
             saveState = .success(contact)
             form.reset()
             await load()

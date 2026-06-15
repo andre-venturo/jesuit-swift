@@ -25,4 +25,8 @@ protocol ContactRepositoryProtocol: Sendable {
     /// the UI entity.
     @discardableResult
     func createContact(_ request: CreateContactRequest) async throws -> Contact
+
+    /// Updates a contact (`PUT /finance/v1/contacts/{id}`) — same body as create.
+    @discardableResult
+    func updateContact(id: String, request: CreateContactRequest) async throws -> Contact
 }

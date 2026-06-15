@@ -141,4 +141,83 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
         )
         return response.data ?? []
     }
+
+    // MARK: - Detail / approval / delete / update
+
+    func fetchDetail(id: String) async throws -> CashTransactionDetailDTO {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransaction(id),
+            method: .get
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: CashTransactionDetailResponse.self
+        )
+        guard let dto = response.data else { throw NetworkError.noData }
+        return dto
+    }
+
+    @discardableResult
+    func approve(id: String, comment: String) async throws -> CashTransactionDetailDTO {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransactionApprove(id),
+            method: .post
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: ApproveRequest(comment: comment),
+            responseType: CashTransactionDetailResponse.self
+        )
+        guard let dto = response.data else { throw NetworkError.noData }
+        return dto
+    }
+
+    @discardableResult
+    func reject(id: String, reason: String) async throws -> CashTransactionDetailDTO {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransactionReject(id),
+            method: .post
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: RejectRequest(reason: reason),
+            responseType: CashTransactionDetailResponse.self
+        )
+        guard let dto = response.data else { throw NetworkError.noData }
+        return dto
+    }
+
+    func delete(id: String) async throws {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransaction(id),
+            method: .delete
+        )
+        // Response is `{ data: null, message }`; SubmitResponse tolerates null data.
+        _ = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: SubmitResponse.self
+        )
+    }
+
+    @discardableResult
+    func update(id: String, request: CashTransactionRequest) async throws -> CashReceipt {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransaction(id),
+            method: .put
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: request,
+            responseType: SubmitResponse.self
+        )
+        guard let dto = response.data else { throw NetworkError.noData }
+        return CashReceipt(dto: dto)
+    }
 }
