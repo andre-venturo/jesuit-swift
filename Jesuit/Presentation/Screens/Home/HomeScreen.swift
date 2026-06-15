@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeScreen: View {
     @Injected private var navigation: NavigationService
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
+    @State private var showCustomRange = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -304,7 +305,11 @@ struct HomeScreen: View {
                 periodMenu
             }
 
-            periodStepper
+            if presenter.hasCustomRange {
+                customRangeLabel
+            } else {
+                periodStepper
+            }
 
             if presenter.isCashFlowLoading {
                 ProgressView()
@@ -313,6 +318,7 @@ struct HomeScreen: View {
             } else {
                 CashFlowChartCard(
                     series: presenter.cashFlowSeries,
+                    granularity: presenter.cashFlowGranularity,
                     profitLoss: presenter.profitLoss,
                     cashMovement: presenter.cashMovement
                 )
@@ -356,11 +362,21 @@ struct HomeScreen: View {
                 Button {
                     presenter.cashFlowPeriod = period
                 } label: {
-                    if presenter.cashFlowPeriod == period {
+                    if !presenter.hasCustomRange && presenter.cashFlowPeriod == period {
                         Label(period.rawValue, systemImage: "checkmark")
                     } else {
                         Text(period.rawValue)
                     }
+                }
+            }
+            Divider()
+            Button {
+                showCustomRange = true
+            } label: {
+                if presenter.hasCustomRange {
+                    Label("Rentang Khusus…", systemImage: "checkmark")
+                } else {
+                    Text("Rentang Khusus…")
                 }
             }
         } label: {
@@ -374,5 +390,22 @@ struct HomeScreen: View {
                     .foregroundStyle(.subtitle)
             }
         }
+        .sheet(isPresented: $showCustomRange) {
+            CashFlowRangeSheet(
+                initialRange: presenter.cashFlowSummaryRange,
+                onApply: { start, end in presenter.applyCustomRange(start: start, end: end) }
+            )
+        }
+    }
+
+    /// Centered label for an active custom range (replaces the stepper).
+    private var customRangeLabel: some View {
+        Text(presenter.cashFlowSteppedLabel)
+            .customFont(.semibold, 17)
+            .foregroundStyle(.title)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
     }
 }

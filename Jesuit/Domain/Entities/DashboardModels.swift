@@ -146,11 +146,19 @@ enum CashFlowPeriod: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// One point on the cumulative cash-balance line (the running cash position at
-/// the end of `label`'s bucket).
+/// the end of `date`'s bucket). `date` is the bucket anchor — a day for daily
+/// granularity, the first of the month for monthly — and drives a real Date
+/// x-axis so the chart auto-spaces and thins its labels.
 struct CashFlowSeriesPoint: Identifiable, Sendable {
     let id = UUID()
-    let label: String    // axis label, e.g. "Jun" or "5"
+    let date: Date        // bucket anchor (day, or 1st-of-month)
     let balance: Double   // cumulative cash on hand
+}
+
+/// Bucket size of the cash-flow chart series, which drives the x-axis date
+/// format (daily → `1 Jun`, monthly → `Jun`).
+enum CashFlowGranularity: Sendable {
+    case daily, monthly
 }
 
 /// Profit & loss panel (Laba Rugi): revenue, expenses, net profit + trend.

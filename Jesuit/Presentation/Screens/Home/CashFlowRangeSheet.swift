@@ -27,17 +27,15 @@ struct CashFlowRangeSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    field("Start date") {
+                    field("Tanggal Mulai") {
                         DatePicker("", selection: $start, displayedComponents: .date)
                             .labelsHidden()
                             .tint(.accent)
                             .onChange(of: start) { _, newStart in
-                                // Keep the end picker in the start's month: clamp
-                                // it into [start, end-of-that-month].
-                                end = clampEnd(end, toMonthOf: newStart)
+                                if end < newStart { end = newStart }
                             }
                     }
-                    field("End date") {
+                    field("Tanggal Akhir") {
                         DatePicker("", selection: $end, in: start..., displayedComponents: .date)
                             .labelsHidden()
                             .tint(.accent)
@@ -47,7 +45,7 @@ struct CashFlowRangeSheet: View {
                         onApply(start, end)
                         dismiss()
                     } label: {
-                        Text("Apply")
+                        Text("Terapkan")
                             .customFont(.medium, 18)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -60,25 +58,14 @@ struct CashFlowRangeSheet: View {
                 .padding(20)
             }
             .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Custom Range")
+            .navigationTitle("Rentang Khusus")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }.foregroundStyle(.subtitle)
+                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
                 }
             }
         }
-    }
-
-    /// Snaps `date` into the calendar month of `reference`: if it falls outside
-    /// that month it is moved to the reference day, otherwise kept as-is. Keeps
-    /// the end picker showing the start's month after a start change.
-    private func clampEnd(_ date: Date, toMonthOf reference: Date) -> Date {
-        let cal = Calendar.current
-        if cal.isDate(date, equalTo: reference, toGranularity: .month), date >= reference {
-            return date
-        }
-        return reference
     }
 
     private func field<Content: View>(

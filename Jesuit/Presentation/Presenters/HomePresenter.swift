@@ -200,11 +200,12 @@ final class HomePresenter {
 
     // MARK: - Cash Flow card
 
-    /// Selected preset for the dashboard Cash Flow card. Changing it resets the
-    /// stepper offset and reloads from the finance dashboard endpoints.
+    /// Selected preset for the dashboard Cash Flow card. Changing it clears any
+    /// custom range, resets the stepper offset and reloads.
     var cashFlowPeriod: CashFlowPeriod = .bulanIni {
         didSet {
             guard cashFlowPeriod != oldValue else { return }
+            customRange = nil
             periodOffset = 0
             Task { await loadCashFlow() }
         }
@@ -214,22 +215,45 @@ final class HomePresenter {
     /// from the preset's default position. Negative = past, positive = future.
     private(set) var periodOffset = 0
 
-    /// The active range driving the card: the preset shifted by `periodOffset`.
+    /// User-picked `[start, end]` that overrides `cashFlowPeriod` when set.
+    private(set) var customRange: (start: Date, end: Date)?
+
+    var hasCustomRange: Bool { customRange != nil }
+
+    /// The active range driving the card: the custom range if set, else the
+    /// preset shifted by `periodOffset`.
     private var effectiveRange: (start: Date, end: Date) {
-        cashFlowPeriod.dateRange(offset: periodOffset)
+        customRange ?? cashFlowPeriod.dateRange(offset: periodOffset)
     }
 
-    /// Center label for the stepper, e.g. `Januari 2026`.
+    /// Current active range, for seeding the custom-range picker.
+    var cashFlowSummaryRange: (start: Date, end: Date) { effectiveRange }
+
+    /// Center label for the stepper / custom range, e.g. `Januari 2026` or
+    /// `1 Jan – 20 Jan 2026`.
     var cashFlowSteppedLabel: String {
-        cashFlowPeriod.steppedLabel(offset: periodOffset)
+        if let range = customRange {
+            let f = DateFormatter(); f.locale = Locale(identifier: "id_ID"); f.dateFormat = "d MMM"
+            let endF = DateFormatter(); endF.locale = Locale(identifier: "id_ID"); endF.dateFormat = "d MMM yyyy"
+            return "\(f.string(from: range.start)) – \(endF.string(from: range.end))"
+        }
+        return cashFlowPeriod.steppedLabel(offset: periodOffset)
     }
 
-    /// Dropdown label: the preset name.
-    var cashFlowRangeLabel: String { cashFlowPeriod.rawValue }
+    /// Dropdown label: the preset name, or "Custom" when a custom range is set.
+    var cashFlowRangeLabel: String { hasCustomRange ? "Custom" : cashFlowPeriod.rawValue }
 
-    /// Steps the active range one unit back / forward and reloads.
+    /// Steps the active range one unit back / forward and reloads. No-op while a
+    /// custom range is active (the stepper is hidden then).
     func stepPeriod(by delta: Int) {
+        guard !hasCustomRange else { return }
         periodOffset += delta
+        Task { await loadCashFlow() }
+    }
+
+    /// Applies a custom date range (normalising order) and reloads.
+    func applyCustomRange(start: Date, end: Date) {
+        customRange = start <= end ? (start, end) : (end, start)
         Task { await loadCashFlow() }
     }
 
@@ -244,6 +268,12 @@ final class HomePresenter {
     var cashFlowSeries: [CashFlowSeriesPoint] {
         if case .success(let data) = cashFlowState { return data.series }
         return []
+    }
+
+    /// Bucket size of the loaded series, for the chart's x-axis date format.
+    var cashFlowGranularity: CashFlowGranularity {
+        if case .success(let data) = cashFlowState { return data.granularity }
+        return .daily
     }
 
     /// Laba Rugi (profit/loss) panel for the selected period.

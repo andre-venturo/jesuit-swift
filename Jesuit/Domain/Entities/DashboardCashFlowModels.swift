@@ -140,4 +140,6 @@ struct DashboardCashFlow: Sendable {
     let series: [CashFlowSeriesPoint]
     let profitLoss: ProfitLossSummary
     let cashFlow: CashFlowMovement
+    /// Bucket size of `series`, for the chart's x-axis date format.
+    let granularity: CashFlowGranularity
 }

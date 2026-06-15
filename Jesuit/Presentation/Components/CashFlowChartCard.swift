@@ -12,6 +12,7 @@ import Charts
 
 struct CashFlowChartCard: View {
     let series: [CashFlowSeriesPoint]
+    let granularity: CashFlowGranularity
     let profitLoss: ProfitLossSummary?
     let cashMovement: CashFlowMovement?
 
@@ -51,7 +52,7 @@ struct CashFlowChartCard: View {
         Chart {
             ForEach(series) { point in
                 AreaMark(
-                    x: .value("Period", point.label),
+                    x: .value("Period", point.date),
                     y: .value("Balance", point.balance)
                 )
                 .interpolationMethod(.monotone)
@@ -64,7 +65,7 @@ struct CashFlowChartCard: View {
                 )
 
                 LineMark(
-                    x: .value("Period", point.label),
+                    x: .value("Period", point.date),
                     y: .value("Balance", point.balance)
                 )
                 .interpolationMethod(.monotone)
@@ -85,10 +86,12 @@ struct CashFlowChartCard: View {
             }
         }
         .chartXAxis {
-            AxisMarks { value in
+            AxisMarks(values: .automatic(desiredCount: 5)) { value in
                 AxisValueLabel {
-                    if let label = value.as(String.self) {
-                        Text(label)
+                    if let date = value.as(Date.self) {
+                        Text(date, format: granularity == .monthly
+                            ? .dateTime.month(.abbreviated)
+                            : .dateTime.day().month(.abbreviated))
                             .customFont(.regular, 10)
                             .foregroundStyle(.subtitle)
                             .multilineTextAlignment(.center)
@@ -96,6 +99,7 @@ struct CashFlowChartCard: View {
                 }
             }
         }
+        .environment(\.locale, Locale(identifier: "id_ID"))
         .frame(height: 200)
     }
 

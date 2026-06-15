@@ -114,8 +114,7 @@ struct DashboardRepository: DashboardRepositoryProtocol {
             .sorted { $0.anchor < $1.anchor }
             .map { bucket in
                 running += bucket.net
-                let label = byMonth ? monthLabel(bucket.anchor) : dayLabel(bucket.anchor)
-                return CashFlowSeriesPoint(label: label, balance: running)
+                return CashFlowSeriesPoint(date: bucket.anchor, balance: running)
             }
 
         let pl = summary?.profitLoss
@@ -135,7 +134,12 @@ struct DashboardRepository: DashboardRepositoryProtocol {
             trend: cf?.trend ?? "flat"
         )
 
-        return DashboardCashFlow(series: points, profitLoss: profitLoss, cashFlow: cashFlow)
+        return DashboardCashFlow(
+            series: points,
+            profitLoss: profitLoss,
+            cashFlow: cashFlow,
+            granularity: byMonth ? .monthly : .daily
+        )
     }
 
     // MARK: - Date helpers
@@ -144,20 +148,6 @@ struct DashboardRepository: DashboardRepositoryProtocol {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
-        return f.string(from: date)
-    }
-
-    /// Short x-axis label for a month bucket, e.g. `Jan`.
-    private static func monthLabel(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "MMM"
-        return f.string(from: date)
-    }
-
-    /// Short x-axis label for a day bucket, e.g. `5`.
-    private static func dayLabel(_ date: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "d"
         return f.string(from: date)
     }
 }
