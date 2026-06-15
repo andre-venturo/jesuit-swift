@@ -1,0 +1,113 @@
+//
+//  MoreScreen.swift
+//  Jesuit
+//
+//  More tab: profile summary, settings entries, logout.
+//
+
+import SwiftUI
+
+struct MoreScreen: View {
+    @Injected private var navigation: NavigationService
+    @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
+    @State private var isLoggingOut = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                CardContainer {
+                    HStack(spacing: 16) {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.15))
+                            .frame(width: 60, height: 60)
+                            .overlay(
+                                Text(initials)
+                                    .customFont(.bold, 20)
+                                    .foregroundStyle(.accent)
+                            )
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(presenter.userName)
+                                .customFont(.semibold, 17)
+                                .foregroundStyle(.title)
+                            Text(presenter.organization)
+                                .customFont(.regular, 14)
+                                .foregroundStyle(.subtitle)
+                        }
+                        Spacer()
+                    }
+                }
+
+                ListCard {
+                    MoreRow(icon: "building.2", title: "Organisasi", value: presenter.organization)
+                    Divider().padding(.leading, 52)
+                    MoreRow(icon: "creditcard", title: "Langganan", value: "Pro")
+                    Divider().padding(.leading, 52)
+                    MoreRow(icon: "gearshape", title: "Pengaturan", value: "")
+                    Divider().padding(.leading, 52)
+                    MoreRow(icon: "questionmark.circle", title: "Bantuan", value: "")
+                }
+
+                Button {
+                    guard !isLoggingOut else { return }
+                    isLoggingOut = true
+                    Task {
+                        await presenter.logout()
+                        isLoggingOut = false
+                        navigation.popTo(root: .login)
+                    }
+                } label: {
+                    Group {
+                        if isLoggingOut {
+                            ProgressView().tint(.expense)
+                        } else {
+                            Text("Keluar")
+                                .customFont(.semibold, 17)
+                                .foregroundStyle(.expense)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .disabled(isLoggingOut)
+            }
+            .padding(16)
+        }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle("More")
+        .hotReloadable()
+    }
+
+    private var initials: String {
+        presenter.userName.split(separator: " ").prefix(2)
+            .compactMap { $0.first }.map(String.init).joined().uppercased()
+    }
+}
+
+struct MoreRow: View {
+    let icon: String
+    let title: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .foregroundStyle(.accent)
+                .frame(width: 24)
+            Text(title)
+                .customFont(.medium, 15)
+                .foregroundStyle(.title)
+            Spacer()
+            if !value.isEmpty {
+                Text(value)
+                    .customFont(.regular, 14)
+                    .foregroundStyle(.subtitle)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundStyle(.subtitle)
+        }
+        .padding(16)
+    }
+}

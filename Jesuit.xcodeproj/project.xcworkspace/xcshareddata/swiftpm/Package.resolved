@@ -1,0 +1,42 @@
+{
+  "originHash" : "e505b313c24b7ef9f813f195de4825d9ab33a9dff05fe0a7b5c8d80d4c36420e",
+  "pins" : [
+    {
+      "identity" : "inject",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/krzysztofzablocki/Inject.git",
+      "state" : {
+        "revision" : "f53380e986a8b056e37d7ce9ca68de610b8415ef",
+        "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "oslogviewer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/0xWDG/OSLogViewer.git",
+      "state" : {
+        "revision" : "e45ebc517b5266a3b7fdb41e938f82fbb93039fc",
+        "version" : "1.1.3"
+      }
+    },
+    {
+      "identity" : "swinject",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Swinject/Swinject.git",
+      "state" : {
+        "revision" : "b685b549fe4d8ae265fc7a2f27d0789720425d69",
+        "version" : "2.10.0"
+      }
+    },
+    {
+      "identity" : "uipilot",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/canopas/UIPilot.git",
+      "state" : {
+        "revision" : "33b8123dd1e68d861d0cfce27879d5ff1755fd21",
+        "version" : "2.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
