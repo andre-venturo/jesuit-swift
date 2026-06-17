@@ -20,6 +20,7 @@ struct CashReceiptDetailSheet: View {
     @State private var showReject = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
+    @State private var selectedLine: CashReceiptLine?
 
     init(id: String, onChanged: @escaping () -> Void) {
         self.id = id
@@ -58,6 +59,9 @@ struct CashReceiptDetailSheet: View {
                     Task { await presenter.load() }
                 })
             }
+        }
+        .sheet(item: $selectedLine) { line in
+            CashReceiptLineDetailSheet(line: line)
         }
         .alert("Setujui transaksi?", isPresented: $showApprove) {
             Button("Batal", role: .cancel) {}
@@ -176,7 +180,10 @@ struct CashReceiptDetailSheet: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(detail.lines.enumerated()), id: \.element.id) { index, line in
-                    lineRow(line)
+                    Button { selectedLine = line } label: {
+                        lineRow(line).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                     if index < detail.lines.count - 1 {
                         Divider().opacity(0.4).padding(.leading, 14)
                     }
@@ -221,6 +228,10 @@ struct CashReceiptDetailSheet: View {
                     .customFont(.semibold, 15)
                     .foregroundStyle(.title)
                     .fixedSize(horizontal: true, vertical: false)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.subtitle)
+                    .padding(.top, 2)
             }
 
             if !line.attachments.isEmpty {
