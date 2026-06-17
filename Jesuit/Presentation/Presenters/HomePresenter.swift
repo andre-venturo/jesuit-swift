@@ -49,7 +49,8 @@ final class HomePresenter {
         async let profile: Void = refreshProfile()
         async let cashFlow: Void = loadCashFlow()
         async let cashAccounts: Void = loadCashAccounts()
-        _ = await (profile, cashFlow, cashAccounts)
+        async let balanceSheet: Void = loadBalanceSheet()
+        _ = await (profile, cashFlow, cashAccounts, balanceSheet)
     }
 
     /// Loads the latest profile from `/auth/me` (e.g. on dashboard appear).
@@ -94,6 +95,7 @@ final class HomePresenter {
             session.update(with: me)
             await loadCashFlow()
             await loadCashAccounts()
+            await loadBalanceSheet()
             return true
         } catch {
             return false
@@ -238,12 +240,30 @@ final class HomePresenter {
         }
     }
 
-    // MARK: - Dashboard summary
+    // MARK: - Dashboard summary (Neraca / balance sheet)
 
-    var totalReceivables: Double = 0
-    var totalPayables: Double = 0
-    var overdueInvoices: Int = 0
-    var overdueBills: Int = 0
+    private(set) var balanceSheetState: AppState<BalanceSheetSummary> = .idle
+
+    var isBalanceSheetLoading: Bool {
+        if case .loading = balanceSheetState { return true }
+        return false
+    }
+
+    var balanceSheet: BalanceSheetSummary? {
+        if case .success(let data) = balanceSheetState { return data }
+        return nil
+    }
+
+    /// Loads the Neraca card (assets / liabilities / equity) as of today.
+    func loadBalanceSheet() async {
+        balanceSheetState = .loading
+        do {
+            let data = try await dashboardRepository.fetchBalanceSheet(asOf: .now)
+            balanceSheetState = .success(data)
+        } catch {
+            balanceSheetState = .error(error)
+        }
+    }
 
     /// Shortcuts to the app's real, creatable features (the tab bar destinations).
     let quickActions: [QuickAction] = [

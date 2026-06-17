@@ -50,6 +50,26 @@ nonisolated struct SwitchCompanyRequest: Encodable, Sendable {
     }
 }
 
+nonisolated struct ChangePasswordRequest: Encodable, Sendable {
+    let currentPassword: String
+    let newPassword: String
+
+    enum CodingKeys: String, CodingKey {
+        case currentPassword = "current_password"
+        case newPassword = "new_password"
+    }
+}
+
+nonisolated struct UpdateProfileRequest: Encodable, Sendable {
+    let fullName: String
+    let phone: String
+
+    enum CodingKeys: String, CodingKey {
+        case fullName = "full_name"
+        case phone
+    }
+}
+
 // MARK: - Companies (GET /auth/companies, POST /auth/switch-company)
 
 /// One company the signed-in user can act under. The header switcher lists these
@@ -185,9 +205,11 @@ nonisolated struct AuthUser: Codable, Sendable {
     let email: String
     let username: String
     let fullName: String
+    /// Optional — present on `/users/me` but not always on the signin payload.
+    let phone: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, email, username
+        case id, email, username, phone
         case fullName = "full_name"
     }
 }

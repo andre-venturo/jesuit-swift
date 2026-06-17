@@ -150,6 +150,25 @@ struct AuthRepository: AuthRepositoryProtocol {
         return try await establishSession(from: response?.data)
     }
 
+    func changePassword(current: String, new: String) async throws {
+        _ = try await network.request(
+            endpoint: Endpoint(path: AppURLConstants.Auth.changePassword, method: .put),
+            body: ChangePasswordRequest(currentPassword: current, newPassword: new),
+            responseType: EmptyResponse.self
+        )
+    }
+
+    @discardableResult
+    func updateProfile(fullName: String, phone: String) async throws -> AuthMe {
+        _ = try await network.request(
+            endpoint: Endpoint(path: AppURLConstants.Auth.updateProfile, method: .put),
+            body: UpdateProfileRequest(fullName: fullName, phone: phone),
+            responseType: EmptyResponse.self
+        )
+        // Re-fetch the canonical profile so the session reflects the new values.
+        return try await fetchMe()
+    }
+
     func restoreSession() async -> AuthMe? {
         // No stored tokens — nothing to restore. (`try?` flattens the throwing
         // optional, so the bind fails when the keychain is empty or errors.)

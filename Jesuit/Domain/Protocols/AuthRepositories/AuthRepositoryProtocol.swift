@@ -48,4 +48,13 @@ protocol AuthRepositoryProtocol: Sendable {
     /// returns the updated profile.
     @discardableResult
     func switchCompany(to companyId: String) async throws -> AuthMe
+
+    /// Changes the signed-in user's password. Throws `NetworkError.serverError`
+    /// with the backend message on a wrong current password / weak new one.
+    func changePassword(current: String, new: String) async throws
+
+    /// Updates the signed-in user's profile (full name + phone) and returns the
+    /// refreshed profile.
+    @discardableResult
+    func updateProfile(fullName: String, phone: String) async throws -> AuthMe
 }

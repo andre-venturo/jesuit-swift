@@ -67,6 +67,27 @@ struct DashboardRepository: DashboardRepositoryProtocol {
         return CashAccounts(totalBalance: response.data?.totalBalance ?? 0, accounts: accounts)
     }
 
+    func fetchBalanceSheet(asOf date: Date) async throws -> BalanceSheetSummary {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.dashboardBalanceSheet,
+            method: .get,
+            parameters: ["date": Self.apiDate(date)]
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: BalanceSheetResponse.self
+        )
+        let data = response.data
+        return BalanceSheetSummary(
+            asOfDate: data?.asOfDate.flatMap(Self.parseDate) ?? date,
+            assets: data?.assets ?? 0,
+            liabilities: data?.liabilities ?? 0,
+            equity: data?.equity ?? 0
+        )
+    }
+
     private func fetchProfitLossCashFlow(start: String, end: String) async throws -> ProfitLossCashFlowResponse.Payload? {
         let endpoint = Endpoint(
             baseURL: AppURLConstants.financeBaseURL,
@@ -149,5 +170,13 @@ struct DashboardRepository: DashboardRepositoryProtocol {
         f.locale = Locale(identifier: "en_US_POSIX")
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: date)
+    }
+
+    /// Parses the API's `yyyy-MM-dd` `as_of_date` back into a `Date`.
+    private static func parseDate(_ string: String) -> Date? {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: string)
     }
 }

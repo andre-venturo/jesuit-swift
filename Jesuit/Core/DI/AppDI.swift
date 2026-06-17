@@ -69,6 +69,17 @@ class AppDI {
         }
         container.register(ForgotPasswordPresenter.self) { _ in ForgotPasswordPresenter() }
         container.register(ResetPasswordPresenter.self) { _ in ResetPasswordPresenter() }
+        container.register(ChangePasswordPresenter.self) { resolver in
+            ChangePasswordPresenter(
+                authRepository: resolver.resolve(AuthRepositoryProtocol.self)!
+            )
+        }
+        container.register(EditProfilePresenter.self) { resolver in
+            EditProfilePresenter(
+                authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
+                session: resolver.resolve(AuthSession.self)!
+            )
+        }
         container.register(HomePresenter.self) { resolver in
             HomePresenter(
                 authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,

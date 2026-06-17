@@ -40,6 +40,7 @@ struct HomeScreen: View {
             await presenter.loadCompanies()
             await presenter.loadCashFlow()
             await presenter.loadCashAccounts()
+            await presenter.loadBalanceSheet()
         }
         .hotReloadable()
     }
@@ -101,35 +102,50 @@ struct HomeScreen: View {
         .padding(.bottom, 16)
     }
 
-    // MARK: - Summary
+    // MARK: - Summary (Neraca / balance sheet)
 
     private var summarySection: some View {
-        HStack(alignment: .top, spacing: 12) {
-            balanceCard
-            VStack(spacing: 12) {
-                overdueCard(
-                    count: presenter.overdueInvoices,
-                    title: "Overdue Invoices",
-                    tint: .expense
-                )
-                overdueCard(
-                    count: presenter.overdueBills,
-                    title: "Overdue Bills",
-                    tint: .orange
-                )
-            }
-            .frame(maxWidth: .infinity)
-        }
+        balanceSheetCard
     }
 
-    private var balanceCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            balanceRow(title: "Total Receivables", amount: presenter.totalReceivables)
-            Spacer(minLength: 28)
-            balanceRow(title: "Total Payables", amount: presenter.totalPayables)
+    private var balanceSheetCard: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Neraca")
+                    .customFont(.semibold, 20)
+                    .foregroundStyle(.white)
+                Spacer()
+                Text(balanceSheetAsOf)
+                    .customFont(.regular, 14)
+                    .foregroundStyle(Color.white.opacity(0.7))
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                balanceSheetMetric(
+                    title: "Harta",
+                    amount: presenter.balanceSheet?.assets ?? 0,
+                    systemImage: "building.columns.fill"
+                )
+                Divider()
+                    .frame(height: 44)
+                    .overlay(Color.white.opacity(0.18))
+                balanceSheetMetric(
+                    title: "Kewajiban",
+                    amount: presenter.balanceSheet?.liabilities ?? 0,
+                    systemImage: "creditcard.fill"
+                )
+                Divider()
+                    .frame(height: 44)
+                    .overlay(Color.white.opacity(0.18))
+                balanceSheetMetric(
+                    title: "Modal",
+                    amount: presenter.balanceSheet?.equity ?? 0,
+                    systemImage: "chart.pie.fill"
+                )
+            }
         }
         .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 220, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(
             LinearGradient(
                 colors: [Color(red: 0.13, green: 0.27, blue: 0.49),
@@ -139,44 +155,41 @@ struct HomeScreen: View {
             )
         )
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(alignment: .topTrailing) {
+            if presenter.isBalanceSheetLoading {
+                ProgressView()
+                    .tint(.white)
+                    .padding(18)
+            }
+        }
     }
 
-    private func balanceRow(title: String, amount: Double) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .customFont(.regular, 16)
-                .foregroundStyle(Color.white.opacity(0.7))
+    /// "Per 17 Juni 2026" — the snapshot date, localised to Indonesian.
+    private var balanceSheetAsOf: String {
+        let date = presenter.balanceSheet?.asOfDate ?? .now
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "id_ID")
+        f.dateFormat = "d MMMM yyyy"
+        return "Per \(f.string(from: date))"
+    }
+
+    private func balanceSheetMetric(title: String, amount: Double, systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Text(amount.asIDR)
-                    .customFont(.bold, 24)
-                    .foregroundStyle(.white)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.6))
+                Text(title)
+                    .customFont(.regular, 14)
                     .foregroundStyle(Color.white.opacity(0.7))
             }
+            Text(amount.asIDR)
+                .customFont(.bold, 18)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
-    }
-
-    private func overdueCard(count: Int, title: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                Text("\(count)")
-                    .customFont(.bold, 24)
-                    .foregroundStyle(.title)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.subtitle)
-            }
-            Text(title)
-                .customFont(.regular, 16)
-                .foregroundStyle(.subtitle)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
-        .background(tint.opacity(0.14))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Quick Create

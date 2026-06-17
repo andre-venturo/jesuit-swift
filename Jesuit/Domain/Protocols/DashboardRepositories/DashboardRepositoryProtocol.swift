@@ -16,4 +16,8 @@ protocol DashboardRepositoryProtocol: Sendable {
 
     /// Loads the "Rekening Kas & Bank" card: per-account balances and the total.
     func fetchCashAccounts() async throws -> CashAccounts
+
+    /// Loads the "Neraca" (balance sheet) card as of `date`: assets (Harta),
+    /// liabilities (Kewajiban) and equity (Modal).
+    func fetchBalanceSheet(asOf date: Date) async throws -> BalanceSheetSummary
 }

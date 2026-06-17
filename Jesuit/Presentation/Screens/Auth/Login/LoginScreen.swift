@@ -52,13 +52,6 @@ struct LoginScreen: View {
             )
             .focused($focusedField, equals: .password)
 
-            Button("Forgot Password?") {
-                navigation.navigate(to: .forgotPassword)
-            }
-            .font(.customFont(.medium, 16))
-            .foregroundStyle(.mySecondary)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-
             if let error = presenter.errorMessage {
                 Text(error)
                     .customFont(.medium, 14)

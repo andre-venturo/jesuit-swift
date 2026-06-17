@@ -18,6 +18,10 @@ enum AppURLConstants {
         static let me = "/auth/me"
         static let companies = "/auth/companies"
         static let switchCompany = "/auth/switch-company"
+        /// `PUT /users/me/password` — change the signed-in user's password.
+        static let changePassword = "/users/me/password"
+        /// `PUT /users/me` — update the signed-in user's profile (name, phone).
+        static let updateProfile = "/users/me"
     }
 
     enum Finance {
@@ -32,6 +36,7 @@ enum AppURLConstants {
         static let dashboardDailyRevenue = "/dashboard/daily-revenue"
         static let dashboardProfitLossCashFlow = "/dashboard/profit-loss-cash-flow"
         static let dashboardCashAccounts = "/dashboard/cash-accounts"
+        static let dashboardBalanceSheet = "/dashboard/balance-sheet-summary"
 
         /// `/cash-transactions/{id}` — GET detail, PUT update, DELETE.
         static func cashTransaction(_ id: String) -> String { "/cash-transactions/\(id)" }

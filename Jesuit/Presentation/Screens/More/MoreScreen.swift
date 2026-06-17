@@ -11,6 +11,10 @@ struct MoreScreen: View {
     @Injected private var navigation: NavigationService
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var isLoggingOut = false
+    @State private var showEditProfile = false
+    @State private var showProfileSaved = false
+    @State private var showChangePassword = false
+    @State private var showPasswordChanged = false
 
     var body: some View {
         ScrollView {
@@ -38,13 +42,19 @@ struct MoreScreen: View {
                 }
 
                 ListCard {
-                    MoreRow(icon: "building.2", title: "Organisasi", value: presenter.organization)
+                    Button {
+                        showEditProfile = true
+                    } label: {
+                        MoreRow(icon: "person.crop.circle", title: "Ubah Profil", value: "")
+                    }
+                    .buttonStyle(.plain)
                     Divider().padding(.leading, 52)
-                    MoreRow(icon: "creditcard", title: "Langganan", value: "Pro")
-                    Divider().padding(.leading, 52)
-                    MoreRow(icon: "gearshape", title: "Pengaturan", value: "")
-                    Divider().padding(.leading, 52)
-                    MoreRow(icon: "questionmark.circle", title: "Bantuan", value: "")
+                    Button {
+                        showChangePassword = true
+                    } label: {
+                        MoreRow(icon: "lock", title: "Ubah Password", value: "")
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Button {
@@ -76,6 +86,18 @@ struct MoreScreen: View {
         }
         .background(Color.background1.ignoresSafeArea())
         .navigationTitle("More")
+        .sheet(isPresented: $showEditProfile) {
+            EditProfileSheet(onSuccess: { showProfileSaved = true })
+        }
+        .sheet(isPresented: $showChangePassword) {
+            ChangePasswordSheet(onSuccess: { showPasswordChanged = true })
+        }
+        .alert("Profil berhasil diperbarui", isPresented: $showProfileSaved) {
+            Button("OK", role: .cancel) {}
+        }
+        .alert("Kata sandi berhasil diubah", isPresented: $showPasswordChanged) {
+            Button("OK", role: .cancel) {}
+        }
         .hotReloadable()
     }
 

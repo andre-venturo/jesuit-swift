@@ -131,6 +131,33 @@ struct CashAccounts: Sendable {
     let accounts: [CashAccount]
 }
 
+// MARK: - Balance sheet summary (Neraca)
+
+/// Response for `GET /dashboard/balance-sheet-summary?date=…` — the Neraca card.
+nonisolated struct BalanceSheetResponse: Codable, Sendable {
+    let data: Payload?
+    nonisolated struct Payload: Codable, Sendable {
+        let asOfDate: String?
+        let assets: Double?
+        let liabilities: Double?
+        let equity: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case asOfDate = "as_of_date"
+            case assets, liabilities, equity
+        }
+    }
+}
+
+/// The dashboard Neraca (balance sheet) snapshot: assets (Harta), liabilities
+/// (Kewajiban) and equity (Modal) as of `asOfDate`.
+struct BalanceSheetSummary: Sendable {
+    let asOfDate: Date
+    let assets: Double
+    let liabilities: Double
+    let equity: Double
+}
+
 // MARK: - UI aggregate
 
 /// Everything the dashboard Cash Flow card needs for one period: the cumulative
