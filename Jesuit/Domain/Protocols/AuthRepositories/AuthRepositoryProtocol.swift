@@ -33,6 +33,17 @@ protocol AuthRepositoryProtocol: Sendable {
     /// subsidiaries), for the header company switcher.
     func fetchCompanies() async throws -> [CompanyDTO]
 
+    /// Creates a company (holding or subsidiary) and returns the created record.
+    @discardableResult
+    func createCompany(_ request: CreateCompanyRequest) async throws -> CompanyDTO?
+
+    /// Updates a company's name/type/parent and returns the updated record.
+    @discardableResult
+    func updateCompany(id: String, request: CreateCompanyRequest) async throws -> CompanyDTO?
+
+    /// Deletes a company.
+    func deleteCompany(id: String) async throws
+
     /// Switches the active company, persisting the freshly-issued tokens, and
     /// returns the updated profile.
     @discardableResult

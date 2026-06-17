@@ -112,6 +112,35 @@ struct AuthRepository: AuthRepositoryProtocol {
     }
 
     @discardableResult
+    func createCompany(_ request: CreateCompanyRequest) async throws -> CompanyDTO? {
+        let response = try await network.requestDecoded(
+            endpoint: Endpoint(path: AppURLConstants.Core.companies, method: .post),
+            body: request,
+            responseType: CreateCompanyResponse.self
+        )
+        return response.data
+    }
+
+    @discardableResult
+    func updateCompany(id: String, request: CreateCompanyRequest) async throws -> CompanyDTO? {
+        let response = try await network.requestDecoded(
+            endpoint: Endpoint(path: AppURLConstants.Core.company(id), method: .put),
+            body: request,
+            responseType: CreateCompanyResponse.self
+        )
+        return response.data
+    }
+
+    func deleteCompany(id: String) async throws {
+        // Response is `{ data: null, message }`; CreateCompanyResponse tolerates null data.
+        _ = try await network.requestDecoded(
+            endpoint: Endpoint(path: AppURLConstants.Core.company(id), method: .delete),
+            body: Optional<EmptyResponse>.none,
+            responseType: CreateCompanyResponse.self
+        )
+    }
+
+    @discardableResult
     func switchCompany(to companyId: String) async throws -> AuthMe {
         let response = try await network.request(
             endpoint: Endpoint(path: AppURLConstants.Auth.switchCompany, method: .post),

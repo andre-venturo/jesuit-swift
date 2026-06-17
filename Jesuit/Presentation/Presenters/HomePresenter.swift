@@ -100,6 +100,144 @@ final class HomePresenter {
         }
     }
 
+    // MARK: - Create / edit company
+
+    /// Editable form backing the "Perusahaan Baru" create/edit sheet.
+    @Observable
+    @MainActor
+    final class CreateCompanyForm {
+        var name = ""
+        var type: CompanyType = .holding
+        /// Parent holding for a subsidiary; ignored when `type == .holding`.
+        var parentId = ""
+        var errorMessage: String?
+
+        /// Non-nil when editing an existing company (PUT instead of create).
+        var editId: String?
+
+        /// Holdings the user owns, offered as parents for a subsidiary.
+        var parentOptions: [CompanyDTO] = []
+
+        var isEditing: Bool { editId != nil }
+
+        /// Display name of the picked parent for the menu label.
+        var parentName: String {
+            parentOptions.first { $0.id == parentId }?.name ?? "Pilih induk"
+        }
+
+        var isValid: Bool {
+            let hasName = !name.trimmingCharacters(in: .whitespaces).isEmpty
+            switch type {
+            case .holding: return hasName
+            case .subsidiary: return hasName && !parentId.isEmpty
+            }
+        }
+
+        func reset(parents: [CompanyDTO]) {
+            name = ""; type = .holding; parentId = ""; errorMessage = nil
+            editId = nil
+            parentOptions = parents
+        }
+
+        /// Resets to a new subsidiary with `parent` preselected. The parent is
+        /// guaranteed present in the options even if it isn't a holding.
+        func resetAsSubsidiary(parent: CompanyDTO, parents: [CompanyDTO]) {
+            name = ""; type = .subsidiary; parentId = parent.id; errorMessage = nil
+            editId = nil
+            parentOptions = parents.contains { $0.id == parent.id } ? parents : [parent] + parents
+        }
+
+        /// Seeds the form from an existing company for editing. A company can't
+        /// be its own parent, so it's excluded from the holding options.
+        func seed(from company: CompanyDTO, parents: [CompanyDTO]) {
+            editId = company.id
+            name = company.name
+            type = company.isHolding ? .holding : .subsidiary
+            parentId = company.parentId ?? ""
+            errorMessage = nil
+            parentOptions = parents.filter { $0.id != company.id }
+        }
+
+        func makeRequest() -> CreateCompanyRequest {
+            CreateCompanyRequest(
+                name: name.trimmingCharacters(in: .whitespaces),
+                type: type.rawValue,
+                parentId: type == .subsidiary ? parentId : nil
+            )
+        }
+    }
+
+    let companyForm = CreateCompanyForm()
+    private(set) var isCreatingCompany = false
+    /// Id of the company currently being deleted (drives a per-row spinner).
+    private(set) var deletingCompanyId: String?
+
+    /// Holdings the user owns, offered as parents for a subsidiary.
+    private var holdingOptions: [CompanyDTO] { companies.filter { $0.isHolding } }
+
+    /// Resets the form for a brand-new company, seeding holdings as parents.
+    func startCreateCompany() {
+        companyForm.reset(parents: holdingOptions)
+    }
+
+    /// Resets the form for a new subsidiary preset under `parent` (the menu's
+    /// "Anak Perusahaan" action).
+    func startCreateSubsidiary(under parent: CompanyDTO) {
+        companyForm.resetAsSubsidiary(parent: parent, parents: holdingOptions)
+    }
+
+    /// Seeds the form from an existing company for editing (PUT on save).
+    func startEditCompany(_ company: CompanyDTO) {
+        companyForm.seed(from: company, parents: holdingOptions)
+    }
+
+    /// Creates or updates a company (PUT when the form is in edit mode), reloads
+    /// the switcher list, and returns `true` on success.
+    @discardableResult
+    func createCompany() async -> Bool {
+        guard companyForm.isValid, !isCreatingCompany else { return false }
+        isCreatingCompany = true
+        companyForm.errorMessage = nil
+        defer { isCreatingCompany = false }
+        do {
+            if let editId = companyForm.editId {
+                _ = try await authRepository.updateCompany(id: editId, request: companyForm.makeRequest())
+            } else {
+                _ = try await authRepository.createCompany(companyForm.makeRequest())
+            }
+            await loadCompanies()
+            await refreshProfile()
+            return true
+        } catch let error as NetworkError {
+            // Prefer the backend's message; fall back to a generic Indonesian copy.
+            if case let .serverError(_, message?) = error, !message.isEmpty {
+                companyForm.errorMessage = message
+            } else {
+                companyForm.errorMessage = "Gagal menyimpan perusahaan."
+            }
+            return false
+        } catch {
+            companyForm.errorMessage = "Gagal menyimpan perusahaan."
+            return false
+        }
+    }
+
+    /// Deletes a company and reloads the switcher list. Returns `true` on
+    /// success. The active company can't be deleted (guarded by the caller).
+    @discardableResult
+    func deleteCompany(id: String) async -> Bool {
+        guard deletingCompanyId == nil else { return false }
+        deletingCompanyId = id
+        defer { deletingCompanyId = nil }
+        do {
+            try await authRepository.deleteCompany(id: id)
+            await loadCompanies()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     // MARK: - Dashboard summary
 
     var totalReceivables: Double = 0

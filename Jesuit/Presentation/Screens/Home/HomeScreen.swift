@@ -11,6 +11,7 @@ struct HomeScreen: View {
     @Injected private var navigation: NavigationService
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var showCustomRange = false
+    @State private var showOrgSwitcher = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -46,18 +47,8 @@ struct HomeScreen: View {
     // MARK: - Header
 
     private var companySwitcher: some View {
-        Menu {
-            ForEach(presenter.companies) { company in
-                Button {
-                    Task { await presenter.switchCompany(to: company.id) }
-                } label: {
-                    if company.id == presenter.activeCompanyId {
-                        Label(company.name, systemImage: "checkmark")
-                    } else {
-                        Text(company.name)
-                    }
-                }
-            }
+        Button {
+            showOrgSwitcher = true
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "building.2")
@@ -80,7 +71,14 @@ struct HomeScreen: View {
                 }
             }
         }
+        .buttonStyle(.plain)
         .disabled(presenter.companies.isEmpty || presenter.isSwitchingCompany)
+        .sheet(isPresented: $showOrgSwitcher) {
+            OrganizationSwitcherSheet(
+                presenter: presenter,
+                onSelect: { await presenter.switchCompany(to: $0) }
+            )
+        }
     }
 
     private var header: some View {

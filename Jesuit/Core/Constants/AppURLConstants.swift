@@ -41,5 +41,9 @@ enum AppURLConstants {
 
     enum Core {
         static let branches = "/branches"
+        /// `POST /companies` — create a company (holding or subsidiary).
+        static let companies = "/companies"
+        /// `/companies/{id}` — PUT update, DELETE.
+        static func company(_ id: String) -> String { "/companies/\(id)" }
     }
 }

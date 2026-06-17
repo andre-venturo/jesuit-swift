@@ -73,10 +73,61 @@ nonisolated struct CompanyDTO: Codable, Sendable, Identifiable {
 
     /// True for the top-level holding company (no parent).
     var isHolding: Bool { (parentId ?? "").isEmpty }
+
+    /// Localised label for the company `type` (e.g. `Holding`, `Anak Perusahaan`).
+    var typeLabel: String {
+        switch (type ?? "").lowercased() {
+        case "holding": return "Holding"
+        case "subsidiary": return "Anak Perusahaan"
+        default: return type?.capitalized ?? "Perusahaan"
+        }
+    }
+
+    /// Switcher row subtitle: `Type • Role`, dropping the role when absent.
+    var subtitle: String {
+        if let role = roleName, !role.isEmpty {
+            return "\(typeLabel) • \(role)"
+        }
+        return typeLabel
+    }
 }
 
 nonisolated struct CompaniesResponse: Codable, Sendable {
     let data: [CompanyDTO]?
+}
+
+/// Company kind for the create form's "Tipe" picker. A `holding` sits at the
+/// top with no parent; a `subsidiary` must reference a holding via `parent_id`.
+nonisolated enum CompanyType: String, CaseIterable, Identifiable, Sendable {
+    case holding
+    case subsidiary
+
+    var id: String { rawValue }
+
+    /// Localised label for the picker (e.g. `Holding`, `Anak Perusahaan`).
+    var label: String {
+        switch self {
+        case .holding: return "Holding"
+        case .subsidiary: return "Anak Perusahaan"
+        }
+    }
+}
+
+/// `POST /companies` body. `parentId` is required for a subsidiary and must be
+/// `nil` for a holding.
+nonisolated struct CreateCompanyRequest: Encodable, Sendable {
+    let name: String
+    let type: String
+    let parentId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, type
+        case parentId = "parent_id"
+    }
+}
+
+nonisolated struct CreateCompanyResponse: Codable, Sendable {
+    let data: CompanyDTO?
 }
 
 // MARK: - Token payload
