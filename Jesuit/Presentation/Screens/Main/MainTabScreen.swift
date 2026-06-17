@@ -14,7 +14,7 @@ struct MainTabScreen: View {
     var body: some View {
         TabView(selection: $router.selection) {
             HomeScreen()
-                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tabItem { Label("Beranda", systemImage: "house.fill") }
                 .tag(MainTab.home)
 
             KontakScreen()
@@ -30,7 +30,7 @@ struct MainTabScreen: View {
                 .tag(MainTab.pengeluaran)
 
             MoreScreen()
-                .tabItem { Label("More", systemImage: "ellipsis") }
+                .tabItem { Label("Lainnya", systemImage: "ellipsis") }
                 .tag(MainTab.more)
         }
         .tint(.accent)

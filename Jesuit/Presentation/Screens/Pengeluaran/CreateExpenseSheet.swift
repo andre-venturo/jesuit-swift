@@ -312,6 +312,11 @@ private struct EditLineSheet: View {
                         .lineLimit(3, reservesSpace: true)
                         .coreTextFieldStyle()
                     }
+
+                    AttachmentsField(attachments: Binding(
+                        get: { draft.attachments },
+                        set: { draft.attachments = $0 }
+                    ))
                 }
                 .padding(20)
             }

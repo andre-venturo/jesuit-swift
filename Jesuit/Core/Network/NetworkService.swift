@@ -90,6 +90,92 @@ actor NetworkService: NetworkServiceProtocol {
         }
     }
 
+    /// Sends a `multipart/form-data` request and decodes the body into `T`.
+    /// Mirrors `requestDecoded`'s status handling but builds the body from
+    /// `textFields` + `files` rather than a JSON-encoded payload.
+    func requestMultipartDecoded<T: Codable & Sendable>(
+        endpoint: Endpoint,
+        textFields: [MultipartTextField],
+        files: [MultipartFile],
+        responseType: T.Type
+    ) async throws -> T {
+        let tokens = try? await TokenKeychainActor.shared.getTokens()
+        let accessToken = tokens?.access
+
+        let urlRequest = try buildMultipartRequest(
+            from: endpoint,
+            textFields: textFields,
+            files: files,
+            accessToken: accessToken
+        )
+
+        let (data, response) = try await session.data(for: urlRequest)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetworkError.unknown
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            do {
+                return try decoder.decode(T.self, from: data)
+            } catch {
+                throw NetworkError.decodingError(error.localizedDescription)
+            }
+        case 401:
+            throw NetworkError.unauthorized
+        case 400...499:
+            let message = try? decoder.decode(APIResponse<EmptyResponse>?.self, from: data)?.message
+            throw NetworkError.serverError(httpResponse.statusCode, message)
+        case 500...599:
+            throw NetworkError.serverError(httpResponse.statusCode, "Server error")
+        default:
+            throw NetworkError.unknown
+        }
+    }
+
+    private func buildMultipartRequest(
+        from endpoint: Endpoint,
+        textFields: [MultipartTextField],
+        files: [MultipartFile],
+        accessToken: String?
+    ) throws -> URLRequest {
+        guard let url = URL(string: endpoint.url) else { throw NetworkError.invalidURL }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.method.rawValue
+
+        if let token = accessToken, endpoint.requiresAuth {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        let boundary = "Boundary-\(UUID().uuidString)"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+        let crlf = "\r\n"
+        func append(_ string: String) { body.append(Data(string.utf8)) }
+
+        for field in textFields {
+            append("--\(boundary)\(crlf)")
+            append("Content-Disposition: form-data; name=\"\(field.name)\"\(crlf)\(crlf)")
+            append(field.value)
+            append(crlf)
+        }
+
+        for file in files {
+            append("--\(boundary)\(crlf)")
+            append("Content-Disposition: form-data; name=\"\(file.field)\"; filename=\"\(file.filename)\"\(crlf)")
+            append("Content-Type: \(file.mimeType)\(crlf)\(crlf)")
+            body.append(file.data)
+            append(crlf)
+        }
+
+        append("--\(boundary)--\(crlf)")
+        request.httpBody = body
+
+        return request
+    }
+
     private func buildRequest<Body: Encodable & Sendable>(
         from endpoint: Endpoint,
         body: Body?,

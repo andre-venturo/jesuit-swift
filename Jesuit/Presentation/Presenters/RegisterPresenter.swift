@@ -17,7 +17,6 @@ final class RegisterPresenter {
     var phoneText: String = ""
     var companyText: String = ""
     var passText: String = ""
-    var confirmText: String = ""
     var errorMessage: String?
     var isLoading: Bool = false
 
@@ -29,35 +28,28 @@ final class RegisterPresenter {
         self.session = session
     }
 
-    /// Validates the form. Returns true when registration may proceed.
+    /// Validates the form. Returns true when registration may proceed. Mirrors
+    /// the web signup: phone is optional, no confirm-password field.
     func validate() -> Bool {
         guard !nameText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            errorMessage = "Please enter your name."
-            return false
-        }
-        guard !usernameText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            errorMessage = "Please choose a username."
+            errorMessage = "Masukkan nama lengkap Anda."
             return false
         }
         let email = emailText.trimmingCharacters(in: .whitespaces)
         guard email.contains("@"), email.contains(".") else {
-            errorMessage = "Please enter a valid email address."
+            errorMessage = "Masukkan alamat email yang valid."
             return false
         }
-        guard !phoneText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            errorMessage = "Please enter your phone number."
+        guard !usernameText.trimmingCharacters(in: .whitespaces).isEmpty else {
+            errorMessage = "Pilih sebuah username."
             return false
         }
         guard !companyText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            errorMessage = "Please enter your company name."
+            errorMessage = "Masukkan nama perusahaan."
             return false
         }
         guard passText.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters."
-            return false
-        }
-        guard passText == confirmText else {
-            errorMessage = "Passwords do not match."
+            errorMessage = "Kata sandi minimal 6 karakter."
             return false
         }
         errorMessage = nil
@@ -91,7 +83,7 @@ final class RegisterPresenter {
 
     private static func registerMessage(for error: Error) -> String {
         if case NetworkError.serverError(409, _) = error {
-            return "An account with this email or username already exists."
+            return "Akun dengan email atau username ini sudah terdaftar."
         }
         return LoginPresenter.message(for: error)
     }

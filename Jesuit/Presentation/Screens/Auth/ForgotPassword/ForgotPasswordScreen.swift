@@ -12,12 +12,12 @@ struct ForgotPasswordScreen: View {
     @State var presenter = AppDI.shared.resolver(LoginPresenter.self)
     @FocusState private var focusedField: AppField?
 
-    var text = "Enter the email address associated with your account "
-    var text1 = "and we'll send you a link to reset your password."
+    var text = "Masukkan alamat email yang terhubung dengan akun Anda "
+    var text1 = "dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Forgot Password")
+            Text("Lupa Kata Sandi")
                 .customFont(.bold, 25)
                 .foregroundStyle(.title)
                 .padding(.top, 19)
@@ -29,8 +29,8 @@ struct ForgotPasswordScreen: View {
                 
             PrimaryTextField(
                 text: $presenter.emailText,
-                title: "Email Address",
-                hint: "Enter your email",
+                title: "Alamat Email",
+                hint: "Masukkan email Anda",
                 keyboard: .emailAddress,
                 isSecure: false
             )
@@ -41,7 +41,7 @@ struct ForgotPasswordScreen: View {
             Button(
                 action: { navigation.popTo(root: .home) },
                 label: {
-                    Text("Send Reset Link")
+                    Text("Kirim Tautan Reset")
                         .font(.customFont(.medium, 20))
                         .foregroundStyle(.white)
                 }
@@ -51,7 +51,7 @@ struct ForgotPasswordScreen: View {
             .background(.accent)
             .cornerRadius(12)
 
-            Button("Back To Login") {
+            Button("Kembali ke Masuk") {
                 navigation.pop()
             }
             .font(.customFont(.medium, 16))

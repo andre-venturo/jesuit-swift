@@ -27,9 +27,9 @@ struct ContactRow: View {
                     .foregroundStyle(.title)
 
                 HStack(alignment: .top, spacing: 0) {
-                    amountColumn(title: "Receivables", value: contact.receivables)
+                    amountColumn(title: "Piutang", value: contact.receivables)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    amountColumn(title: "Credits", value: contact.credits)
+                    amountColumn(title: "Kredit", value: contact.credits)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

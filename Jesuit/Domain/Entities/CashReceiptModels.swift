@@ -188,6 +188,22 @@ extension CashTransactionRequest {
     }
 }
 
+// MARK: - Attachment
+
+/// A file picked for a cash transaction's `Lampiran`, uploaded as an
+/// `attachments_n` part in the multipart `submit`/draft request.
+struct CashAttachment: Identifiable, Sendable {
+    let id = UUID()
+    let filename: String
+    let mimeType: String
+    let data: Data
+
+    /// Human-readable size for the thumbnail badge (e.g. "803 KB").
+    var sizeLabel: String {
+        ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file)
+    }
+}
+
 // MARK: - Supporting pickers
 
 /// A finance chart-of-accounts entry. The expense form's cash-account picker

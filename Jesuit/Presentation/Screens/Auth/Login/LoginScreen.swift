@@ -22,18 +22,18 @@ struct LoginScreen: View {
                 .animation(.smooth, value: focusedField)
                 .opacity(focusedField != nil ? 0.0 : 1.0)
 
-            Text("Welcome Back!")
+            Text("Selamat Datang!")
                 .customFont(.bold, 30)
                 .foregroundStyle(.title)
 
-            Text("Log in to continue")
+            Text("Masuk untuk melanjutkan")
                 .customFont(.medium, 18)
                 .foregroundStyle(.subtitle)
 
             PrimaryTextField(
                 text: $presenter.emailText,
-                title: "Email or Username",
-                hint: "Enter your email or username",
+                title: "Email atau Username",
+                hint: "Masukkan email atau username",
                 keyboard: .emailAddress,
                 isSecure: false
             )
@@ -45,8 +45,8 @@ struct LoginScreen: View {
 
             PrimaryTextField(
                 text: $presenter.passText,
-                title: "Password",
-                hint: "Enter your password",
+                title: "Kata Sandi",
+                hint: "Masukkan kata sandi",
                 keyboard: .asciiCapable,
                 isSecure: true
             )
@@ -73,7 +73,7 @@ struct LoginScreen: View {
                         if presenter.isLoading {
                             ProgressView().tint(.white)
                         } else {
-                            Text("Login")
+                            Text("Masuk")
                                 .font(.customFont(.medium, 20))
                                 .foregroundStyle(.white)
                         }
@@ -88,11 +88,11 @@ struct LoginScreen: View {
             .padding(.vertical, 20)
 
             HStack {
-                Text("Don't have an account?")
+                Text("Belum punya akun?")
                     .customFont(.medium, 16)
                     .foregroundStyle(.subtitle)
 
-                Button("Register") {
+                Button("Daftar") {
                     navigation.navigate(to: .register)
                 }
                 .font(.customFont(.medium, 16))

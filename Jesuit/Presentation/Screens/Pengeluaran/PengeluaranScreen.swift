@@ -17,7 +17,7 @@ struct PengeluaranScreen: View {
             VStack(spacing: 0) {
                 ListTopBar(
                     title: "Pengeluaran",
-                    searchPlaceholder: "Search expenses",
+                    searchPlaceholder: "Cari pengeluaran",
                     searchText: $presenter.searchText,
                     chips: PengeluaranPresenter.Filter.allCases.map(\.rawValue),
                     selectedChip: presenter.filter.rawValue,

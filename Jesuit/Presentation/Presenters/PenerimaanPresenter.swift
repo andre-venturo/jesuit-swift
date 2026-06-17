@@ -126,11 +126,18 @@ final class PenerimaanPresenter {
         var accountId: String?   // Akun Lawan
         var description: String   // Deskripsi
         var amountText: String    // Jumlah (digits only)
+        var attachments: [CashAttachment]   // Lampiran
 
-        init(accountId: String? = nil, description: String = "", amountText: String = "") {
+        init(
+            accountId: String? = nil,
+            description: String = "",
+            amountText: String = "",
+            attachments: [CashAttachment] = []
+        ) {
             self.accountId = accountId
             self.description = description
             self.amountText = amountText
+            self.attachments = attachments
         }
 
         var amount: Double { Double(amountText) ?? 0 }
@@ -143,7 +150,7 @@ final class PenerimaanPresenter {
 
         /// Detached copy for editing; changes only land via `CreateForm.commit`.
         func copy() -> LineDraft {
-            LineDraft(accountId: accountId, description: description, amountText: amountText)
+            LineDraft(accountId: accountId, description: description, amountText: amountText, attachments: attachments)
         }
 
         /// Overwrites fields from an edited copy (commit on "Tambah").
@@ -151,6 +158,7 @@ final class PenerimaanPresenter {
             accountId = other.accountId
             description = other.description
             amountText = other.amountText
+            attachments = other.attachments
         }
     }
 
@@ -253,14 +261,15 @@ final class PenerimaanPresenter {
                 )
             }
         )
+        let attachments = form.lines.flatMap(\.attachments)
         do {
             let saved: CashReceipt
             if let editId = form.editId {
                 saved = try await repository.update(id: editId, request: request)
             } else {
                 saved = submit
-                    ? try await repository.submit(request)
-                    : try await repository.saveDraft(request)
+                    ? try await repository.submit(request, attachments: attachments)
+                    : try await repository.saveDraft(request, attachments: attachments)
             }
             form.finishSave(saved)
             form = CreateForm()

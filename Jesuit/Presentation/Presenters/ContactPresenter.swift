@@ -15,9 +15,9 @@ final class ContactPresenter {
 
     /// Top filter chip selection.
     enum Filter: String, CaseIterable, Identifiable, Sendable {
-        case active = "Active"
-        case unpaid = "Unpaid"
-        case all = "All"
+        case active = "Aktif"
+        case unpaid = "Belum Lunas"
+        case all = "Semua"
         var id: String { rawValue }
     }
 
@@ -210,6 +210,27 @@ final class ContactPresenter {
             return true
         } catch {
             saveState = .error(error)
+            form.errorMessage = LoginPresenter.message(for: error)
+            return false
+        }
+    }
+
+    // MARK: - Delete contact
+
+    /// Id of the contact currently being deleted, for per-row progress.
+    private(set) var deletingId: String?
+
+    /// Deletes a contact and reloads the list. Returns `true` on success.
+    @discardableResult
+    func deleteContact(id: String) async -> Bool {
+        guard deletingId == nil else { return false }
+        deletingId = id
+        defer { deletingId = nil }
+        do {
+            try await contactRepository.deleteContact(id: id)
+            await load()
+            return true
+        } catch {
             form.errorMessage = LoginPresenter.message(for: error)
             return false
         }

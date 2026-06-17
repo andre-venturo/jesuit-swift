@@ -12,11 +12,11 @@ struct ResetPasswordScreen: View {
     @State var presenter = AppDI.shared.resolver(ResetPasswordPresenter.self)
     @FocusState private var focusedField: AppField?
 
-    var text = "Your new password must be at least 8 characters long."
+    var text = "Kata sandi baru Anda minimal 8 karakter."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Update Your Password")
+            Text("Perbarui Kata Sandi")
                 .customFont(.bold, 25)
                 .foregroundStyle(.title)
                 .padding(.top, 19)
@@ -29,8 +29,8 @@ struct ResetPasswordScreen: View {
 
             PrimaryTextField(
                 text: $presenter.oldText,
-                title: "Old Password",
-                hint: "Enter your old password",
+                title: "Kata Sandi Lama",
+                hint: "Masukkan kata sandi lama",
                 keyboard: .asciiCapable,
                 isSecure: true
             )
@@ -42,8 +42,8 @@ struct ResetPasswordScreen: View {
 
             PrimaryTextField(
                 text: $presenter.newText,
-                title: "New Password",
-                hint: "Enter your new password",
+                title: "Kata Sandi Baru",
+                hint: "Masukkan kata sandi baru",
                 keyboard: .asciiCapable,
                 isSecure: true
             )
@@ -55,8 +55,8 @@ struct ResetPasswordScreen: View {
 
             PrimaryTextField(
                 text: $presenter.confirmText,
-                title: "Confirm New Password",
-                hint: "Confirm your new password",
+                title: "Konfirmasi Kata Sandi Baru",
+                hint: "Ulangi kata sandi baru",
                 keyboard: .asciiCapable,
                 isSecure: true
             )
@@ -65,7 +65,7 @@ struct ResetPasswordScreen: View {
             Button(
                 action: { navigation.pop() },
                 label: {
-                    Text("Update Password")
+                    Text("Perbarui Kata Sandi")
                         .font(.customFont(.medium, 20))
                         .foregroundStyle(.white)
                 }

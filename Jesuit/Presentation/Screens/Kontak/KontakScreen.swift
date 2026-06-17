@@ -17,8 +17,8 @@ struct KontakScreen: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
                 ListTopBar(
-                    title: "Customers",
-                    searchPlaceholder: "Search customers",
+                    title: "Kontak",
+                    searchPlaceholder: "Cari kontak",
                     searchText: $presenter.searchText,
                     chips: ContactPresenter.Filter.allCases.map(\.rawValue),
                     selectedChip: presenter.filter.rawValue,
@@ -58,7 +58,7 @@ struct KontakScreen: View {
         } else if let error = presenter.errorMessage {
             stateMessage(error, systemImage: "exclamationmark.triangle")
         } else if presenter.filtered.isEmpty {
-            stateMessage("No customers found.", systemImage: "person.2")
+            stateMessage("Kontak tidak ditemukan.", systemImage: "person.2")
         } else {
             ScrollView {
                 LazyVStack(spacing: 0) {

@@ -29,4 +29,7 @@ protocol ContactRepositoryProtocol: Sendable {
     /// Updates a contact (`PUT /finance/v1/contacts/{id}`) — same body as create.
     @discardableResult
     func updateContact(id: String, request: CreateContactRequest) async throws -> Contact
+
+    /// Deletes a contact (`DELETE /finance/v1/contacts/{id}`).
+    func deleteContact(id: String) async throws
 }

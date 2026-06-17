@@ -76,28 +76,57 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
     }
 
     @discardableResult
-    func submit(_ request: CashTransactionRequest) async throws -> CashReceipt {
-        try await post(path: AppURLConstants.Finance.cashTransactionsSubmit, request: request)
+    func submit(_ request: CashTransactionRequest, attachments: [CashAttachment]) async throws -> CashReceipt {
+        try await post(path: AppURLConstants.Finance.cashTransactionsSubmit, request: request, attachments: attachments)
     }
 
     @discardableResult
-    func saveDraft(_ request: CashTransactionRequest) async throws -> CashReceipt {
+    func saveDraft(_ request: CashTransactionRequest, attachments: [CashAttachment]) async throws -> CashReceipt {
         // Same payload as submit, un-suffixed collection path (the web client's
         // "Simpan Draft" posts to /cash-transactions).
-        try await post(path: AppURLConstants.Finance.cashTransactions, request: request)
+        try await post(path: AppURLConstants.Finance.cashTransactions, request: request, attachments: attachments)
     }
 
-    private func post(path: String, request: CashTransactionRequest) async throws -> CashReceipt {
+    private func post(
+        path: String,
+        request: CashTransactionRequest,
+        attachments: [CashAttachment]
+    ) async throws -> CashReceipt {
         let endpoint = Endpoint(
             baseURL: AppURLConstants.financeBaseURL,
             path: path,
             method: .post
         )
-        let response = try await network.requestDecoded(
-            endpoint: endpoint,
-            body: request,
-            responseType: SubmitResponse.self
-        )
+
+        let response: SubmitResponse
+        if attachments.isEmpty {
+            response = try await network.requestDecoded(
+                endpoint: endpoint,
+                body: request,
+                responseType: SubmitResponse.self
+            )
+        } else {
+            // Multipart: the JSON payload rides in a `data` field, each file as
+            // `attachments_n` (matching the web client's submit request).
+            let encoder = JSONEncoder()
+            let json = try encoder.encode(request)
+            let dataField = MultipartTextField(name: "data", value: String(decoding: json, as: UTF8.self))
+            let files = attachments.enumerated().map { index, attachment in
+                MultipartFile(
+                    field: "attachments_\(index)",
+                    filename: attachment.filename,
+                    mimeType: attachment.mimeType,
+                    data: attachment.data
+                )
+            }
+            response = try await network.requestMultipartDecoded(
+                endpoint: endpoint,
+                textFields: [dataField],
+                files: files,
+                responseType: SubmitResponse.self
+            )
+        }
+
         guard let dto = response.data else { throw NetworkError.noData }
         return CashReceipt(dto: dto)
     }

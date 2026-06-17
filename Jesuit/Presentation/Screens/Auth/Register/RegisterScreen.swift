@@ -15,28 +15,49 @@ struct RegisterScreen: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                Text("Create Account")
+                Text("Mulai Sekarang")
                     .customFont(.bold, 30)
                     .foregroundStyle(.title)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.smooth, value: focusedField)
                     .opacity(focusedField != nil ? 0.0 : 1.0)
 
-                Text("Join us and start your journey")
-                    .customFont(.medium, 18)
-                    .foregroundStyle(.subtitle)
-                    .padding(.top, -6)
-                    .padding(.bottom, 20)
-                    .animation(.smooth, value: focusedField)
-                    .opacity(focusedField != nil ? 0.0 : 1.0)
+                HStack(spacing: 6) {
+                    Text("Sudah punya akun?")
+                        .customFont(.medium, 16)
+                        .foregroundStyle(.subtitle)
+                    Button("Masuk") {
+                        navigation.navigate(to: .login)
+                    }
+                    .font(.customFont(.medium, 16))
+                    .foregroundStyle(.mySecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 20)
+                .animation(.smooth, value: focusedField)
+                .opacity(focusedField != nil ? 0.0 : 1.0)
 
                 PrimaryTextField(
                     text: $presenter.nameText,
-                    title: "Full Name",
-                    hint: "Enter your full name",
+                    title: "Nama lengkap",
+                    hint: "Masukkan nama lengkap",
                     keyboard: .default,
                     isSecure: false
                 )
                 .focused($focusedField, equals: .name)
+                .submitLabel(.next)
+                .onSubmit {
+                    focusedField = .email
+                }
+
+                PrimaryTextField(
+                    text: $presenter.emailText,
+                    title: "Alamat email",
+                    hint: "Masukkan alamat email",
+                    keyboard: .emailAddress,
+                    isSecure: false
+                )
+                .focused($focusedField, equals: .email)
                 .submitLabel(.next)
                 .onSubmit {
                     focusedField = .username
@@ -45,24 +66,11 @@ struct RegisterScreen: View {
                 PrimaryTextField(
                     text: $presenter.usernameText,
                     title: "Username",
-                    hint: "Choose a username",
+                    hint: "Pilih username",
                     keyboard: .default,
                     isSecure: false
                 )
                 .focused($focusedField, equals: .username)
-                .submitLabel(.next)
-                .onSubmit {
-                    focusedField = .email
-                }
-
-                PrimaryTextField(
-                    text: $presenter.emailText,
-                    title: "Email",
-                    hint: "Enter your email",
-                    keyboard: .emailAddress,
-                    isSecure: false
-                )
-                .focused($focusedField, equals: .email)
                 .submitLabel(.next)
                 .onSubmit {
                     focusedField = .phone
@@ -70,8 +78,8 @@ struct RegisterScreen: View {
 
                 PrimaryTextField(
                     text: $presenter.phoneText,
-                    title: "Phone",
-                    hint: "Enter your phone number",
+                    title: "Nomor telepon (opsional)",
+                    hint: "Masukkan nomor telepon",
                     keyboard: .phonePad,
                     isSecure: false
                 )
@@ -83,8 +91,8 @@ struct RegisterScreen: View {
 
                 PrimaryTextField(
                     text: $presenter.companyText,
-                    title: "Company",
-                    hint: "Enter your company name",
+                    title: "Nama perusahaan",
+                    hint: "Masukkan nama perusahaan",
                     keyboard: .default,
                     isSecure: false
                 )
@@ -96,25 +104,13 @@ struct RegisterScreen: View {
 
                 PrimaryTextField(
                     text: $presenter.passText,
-                    title: "Password",
-                    hint: "Enter your password",
+                    title: "Kata sandi",
+                    hint: "Minimal 6 karakter",
                     keyboard: .asciiCapable,
                     isSecure: true
                 )
                 .focused($focusedField, equals: .newPassword)
-                .submitLabel(.next)
-                .onSubmit {
-                    focusedField = .password
-                }
-
-                PrimaryTextField(
-                    text: $presenter.confirmText,
-                    title: "Confirm Pass",
-                    hint: "Confirm your password",
-                    keyboard: .asciiCapable,
-                    isSecure: true
-                )
-                .focused($focusedField, equals: .password)
+                .submitLabel(.done)
 
                 if let error = presenter.errorMessage {
                     Text(error)
@@ -137,7 +133,7 @@ struct RegisterScreen: View {
                             if presenter.isLoading {
                                 ProgressView().tint(.white)
                             } else {
-                                Text("Register")
+                                Text("Buat akun")
                                     .font(.customFont(.medium, 20))
                                     .foregroundStyle(.white)
                             }
@@ -151,19 +147,13 @@ struct RegisterScreen: View {
                 .disabled(presenter.isLoading)
                 .padding(.vertical, 20)
 
-                HStack {
-                    Text("Already have an account?")
-                        .customFont(.medium, 16)
-                        .foregroundStyle(.subtitle)
-
-                    Button("Login") {
-                        navigation.navigate(to: .login)
-                    }
-                    .font(.customFont(.medium, 16))
-                    .foregroundStyle(.mySecondary)
-                }
-                .animation(.smooth, value: focusedField)
-                .opacity(focusedField != nil ? 0.0 : 1.0)
+                Text("Dengan mendaftar, saya menyetujui Syarat layanan dan Kebijakan privasi.")
+                    .customFont(.regular, 14)
+                    .foregroundStyle(.subtitle)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .animation(.smooth, value: focusedField)
+                    .opacity(focusedField != nil ? 0.0 : 1.0)
             }
             .padding(20)
         }

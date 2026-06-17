@@ -200,7 +200,7 @@ struct HomeScreen: View {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(.subtitle)
-                Text("Quick Create")
+                Text("Buat Cepat")
                     .customFont(.semibold, 20)
                     .foregroundStyle(.title)
             }
@@ -292,7 +292,7 @@ struct HomeScreen: View {
     }
 
     private var cashAccountsEmptyState: some View {
-        Text("No cash or bank accounts to show.")
+        Text("Belum ada rekening kas atau bank.")
             .customFont(.regular, 16)
             .foregroundStyle(.subtitle)
             .frame(maxWidth: .infinity, minHeight: 120)
@@ -309,7 +309,7 @@ struct HomeScreen: View {
                     Image(systemName: "waveform.path.ecg")
                         .font(.system(size: 16))
                         .foregroundStyle(.subtitle)
-                    Text("Cash Flow")
+                    Text("Arus Kas")
                         .customFont(.semibold, 20)
                         .foregroundStyle(.title)
                 }

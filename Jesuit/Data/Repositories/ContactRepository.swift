@@ -82,4 +82,18 @@ struct ContactRepository: ContactRepositoryProtocol {
         guard let dto = response.data else { throw NetworkError.noData }
         return Contact(dto: dto)
     }
+
+    func deleteContact(id: String) async throws {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.contact(id),
+            method: .delete
+        )
+        // Response is `{ data: null, message }`; CreateContactResponse tolerates null data.
+        _ = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: CreateContactResponse.self
+        )
+    }
 }

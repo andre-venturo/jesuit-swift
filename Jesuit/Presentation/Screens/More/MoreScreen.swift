@@ -85,7 +85,7 @@ struct MoreScreen: View {
             .padding(16)
         }
         .background(Color.background1.ignoresSafeArea())
-        .navigationTitle("More")
+        .navigationTitle("Lainnya")
         .sheet(isPresented: $showEditProfile) {
             EditProfileSheet(onSuccess: { showProfileSaved = true })
         }

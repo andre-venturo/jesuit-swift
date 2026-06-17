@@ -170,7 +170,7 @@ struct CashReceiptDetailSheet: View {
 
     private func linesSection(_ detail: CashReceiptDetail) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Detail Lines (\(detail.lines.count))")
+            Text("Detail Baris (\(detail.lines.count))")
                 .customFont(.semibold, 16)
                 .foregroundStyle(.title)
 

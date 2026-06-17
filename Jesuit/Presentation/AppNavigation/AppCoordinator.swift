@@ -33,7 +33,7 @@ struct AppCoordinator: View {
                 case .resetPassword:
                     ResetPasswordScreen()
                 default:
-                    Text("Why you here?")
+                    Text("Halaman tidak ditemukan.")
                 }
             }
             .ignoresSafeArea(.all)

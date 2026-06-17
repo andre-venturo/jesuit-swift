@@ -28,11 +28,11 @@ final class LoginPresenter {
     func validate() -> Bool {
         let login = emailText.trimmingCharacters(in: .whitespaces)
         guard !login.isEmpty else {
-            errorMessage = "Please enter your email or username."
+            errorMessage = "Masukkan email atau username Anda."
             return false
         }
         guard passText.count >= 6 else {
-            errorMessage = "Password must be at least 6 characters."
+            errorMessage = "Kata sandi minimal 6 karakter."
             return false
         }
         errorMessage = nil
@@ -62,7 +62,7 @@ final class LoginPresenter {
         if let networkError = error as? NetworkError {
             switch networkError {
             case .unauthorized:
-                return "Incorrect email/username or password."
+                return "Email/username atau kata sandi salah."
             case .serverError(_, let message):
                 return message ?? networkError.localizedDescription
             default:

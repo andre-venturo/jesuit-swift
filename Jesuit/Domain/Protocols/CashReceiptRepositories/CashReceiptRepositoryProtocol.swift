@@ -28,14 +28,15 @@ protocol CashReceiptRepositoryProtocol: Sendable {
     func fetchDisbursements(page: Int, limit: Int) async throws -> CashReceiptPage
 
     /// Creates and submits a cash transaction (POST `/cash-transactions/submit`),
-    /// returning the created row.
+    /// returning the created row. When `attachments` is non-empty the payload is
+    /// sent as `multipart/form-data` (`data` JSON field + `attachments_n` files).
     @discardableResult
-    func submit(_ request: CashTransactionRequest) async throws -> CashReceipt
+    func submit(_ request: CashTransactionRequest, attachments: [CashAttachment]) async throws -> CashReceipt
 
     /// Creates a cash transaction as a draft (POST `/cash-transactions`),
-    /// returning the created row.
+    /// returning the created row. Same multipart behaviour as `submit`.
     @discardableResult
-    func saveDraft(_ request: CashTransactionRequest) async throws -> CashReceipt
+    func saveDraft(_ request: CashTransactionRequest, attachments: [CashAttachment]) async throws -> CashReceipt
 
     /// Active cash/bank accounts, for the create-transaction cash-account picker.
     func fetchCashAccounts() async throws -> [AccountDTO]

@@ -15,6 +15,7 @@ struct CreateContactSheet: View {
     private let editTarget: Contact?
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showDeleteConfirm = false
 
     /// Create mode (shared list presenter; its form is reset on appear).
     init(presenter: ContactPresenter, onCreated: @escaping () -> Void) {
@@ -60,6 +61,10 @@ struct CreateContactSheet: View {
                     }
 
                     saveButton
+
+                    if isEditing {
+                        deleteButton
+                    }
                 }
                 .padding(20)
             }
@@ -71,6 +76,19 @@ struct CreateContactSheet: View {
                     Button("Tutup") { dismiss() }
                         .foregroundStyle(.subtitle)
                 }
+            }
+            .alert("Hapus Kontak", isPresented: $showDeleteConfirm) {
+                Button("Batal", role: .cancel) {}
+                Button("Hapus", role: .destructive) {
+                    Task {
+                        if let editTarget, await presenter.deleteContact(id: editTarget.id) {
+                            onCreated()
+                            dismiss()
+                        }
+                    }
+                }
+            } message: {
+                Text("Hapus \(editTarget?.name ?? "kontak ini")? Tindakan ini tidak dapat dibatalkan.")
             }
         }
         .task {
@@ -137,6 +155,32 @@ struct CreateContactSheet: View {
         }
         .disabled(!form.isValid || presenter.isSaving)
         .padding(.top, 8)
+    }
+
+    private var isDeleting: Bool {
+        guard let editTarget else { return false }
+        return presenter.deletingId == editTarget.id
+    }
+
+    private var deleteButton: some View {
+        Button {
+            showDeleteConfirm = true
+        } label: {
+            Group {
+                if isDeleting {
+                    ProgressView().tint(.expense)
+                } else {
+                    Text("Hapus Kontak")
+                        .customFont(.semibold, 16)
+                        .foregroundStyle(.expense)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.expense.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(isDeleting || presenter.isSaving)
     }
 
     // MARK: - Helpers
