@@ -62,4 +62,14 @@ protocol CashReceiptRepositoryProtocol: Sendable {
     /// create minus `transaction_type`.
     @discardableResult
     func update(id: String, request: CashTransactionRequest) async throws -> CashReceipt
+
+    /// Uploads a file to an existing transaction line
+    /// (`POST /cash-transactions/{id}/lines/{lineId}/attachments`), returning the
+    /// stored attachment.
+    @discardableResult
+    func uploadLineAttachment(
+        transactionId: String,
+        lineId: String,
+        attachment: CashAttachment
+    ) async throws -> CashLineAttachment
 }

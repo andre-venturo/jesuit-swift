@@ -249,4 +249,45 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
         guard let dto = response.data else { throw NetworkError.noData }
         return CashReceipt(dto: dto)
     }
+
+    /// Envelope for the line-attachment upload: `{ data: CashAttachmentDTO, message }`.
+    private nonisolated struct AttachmentResponse: Codable, Sendable {
+        let data: CashAttachmentDTO?
+        let message: String?
+    }
+
+    @discardableResult
+    func uploadLineAttachment(
+        transactionId: String,
+        lineId: String,
+        attachment: CashAttachment
+    ) async throws -> CashLineAttachment {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.cashTransactionLineAttachments(transactionId, lineId),
+            method: .post
+        )
+        let file = MultipartFile(
+            field: "file",
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            data: attachment.data
+        )
+        let response = try await network.requestMultipartDecoded(
+            endpoint: endpoint,
+            textFields: [],
+            files: [file],
+            responseType: AttachmentResponse.self
+        )
+        guard let dto = response.data, let url = dto.fileUrl, !url.isEmpty else {
+            throw NetworkError.noData
+        }
+        return CashLineAttachment(
+            id: dto.id,
+            fileName: dto.fileName ?? attachment.filename,
+            fileUrl: url,
+            fileSize: dto.fileSize ?? attachment.data.count,
+            mimeType: dto.mimeType ?? attachment.mimeType
+        )
+    }
 }

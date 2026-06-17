@@ -123,21 +123,29 @@ final class PenerimaanPresenter {
     @MainActor
     final class LineDraft: Identifiable {
         let id = UUID()
+        /// Server line id when editing an existing transaction (nil for new lines);
+        /// needed to upload edit-time attachments to the right line.
+        var lineId: String?
         var accountId: String?   // Akun Lawan
         var description: String   // Deskripsi
         var amountText: String    // Jumlah (digits only)
-        var attachments: [CashAttachment]   // Lampiran
+        var attachments: [CashAttachment]            // newly-picked local files
+        var existingAttachments: [CashLineAttachment]  // already uploaded (server)
 
         init(
+            lineId: String? = nil,
             accountId: String? = nil,
             description: String = "",
             amountText: String = "",
-            attachments: [CashAttachment] = []
+            attachments: [CashAttachment] = [],
+            existingAttachments: [CashLineAttachment] = []
         ) {
+            self.lineId = lineId
             self.accountId = accountId
             self.description = description
             self.amountText = amountText
             self.attachments = attachments
+            self.existingAttachments = existingAttachments
         }
 
         var amount: Double { Double(amountText) ?? 0 }
@@ -150,7 +158,9 @@ final class PenerimaanPresenter {
 
         /// Detached copy for editing; changes only land via `CreateForm.commit`.
         func copy() -> LineDraft {
-            LineDraft(accountId: accountId, description: description, amountText: amountText, attachments: attachments)
+            LineDraft(lineId: lineId, accountId: accountId, description: description,
+                      amountText: amountText, attachments: attachments,
+                      existingAttachments: existingAttachments)
         }
 
         /// Overwrites fields from an edited copy (commit on "Tambah").
@@ -159,6 +169,7 @@ final class PenerimaanPresenter {
             description = other.description
             amountText = other.amountText
             attachments = other.attachments
+            existingAttachments = other.existingAttachments
         }
     }
 
@@ -296,9 +307,11 @@ extension PenerimaanPresenter.CreateForm {
         cashAccountId = detail.cashAccountId
         lines = detail.lines.map { line in
             PenerimaanPresenter.LineDraft(
+                lineId: line.id,
                 accountId: line.accountId,
                 description: line.description,
-                amountText: String(Int(line.amount))
+                amountText: String(Int(line.amount)),
+                existingAttachments: line.attachments
             )
         }
     }

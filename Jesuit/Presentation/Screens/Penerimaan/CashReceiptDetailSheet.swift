@@ -10,7 +10,12 @@
 import SwiftUI
 
 struct CashReceiptDetailSheet: View {
+    /// Which create/edit sheet to present for "Ubah" — receipts and disbursements
+    /// share this detail view but have separate edit forms.
+    enum Kind { case receipt, disbursement }
+
     let id: String
+    let kind: Kind
     /// Called after a mutation (approve/reject/delete/edit) so the list reloads.
     let onChanged: () -> Void
 
@@ -22,8 +27,9 @@ struct CashReceiptDetailSheet: View {
     @State private var showEdit = false
     @State private var selectedLine: CashReceiptLine?
 
-    init(id: String, onChanged: @escaping () -> Void) {
+    init(id: String, kind: Kind = .receipt, onChanged: @escaping () -> Void) {
         self.id = id
+        self.kind = kind
         self.onChanged = onChanged
         _presenter = State(initialValue: AppDI.shared.cashReceiptDetailPresenter(id: id))
     }
@@ -54,14 +60,30 @@ struct CashReceiptDetailSheet: View {
         .task { await presenter.load() }
         .sheet(isPresented: $showEdit) {
             if let detail = presenter.detail {
-                CreateReceiptSheet(editing: detail, onCreated: {
-                    onChanged()
-                    Task { await presenter.load() }
-                })
+                switch kind {
+                case .receipt:
+                    CreateReceiptSheet(editing: detail, onCreated: {
+                        onChanged()
+                        Task { await presenter.load() }
+                    })
+                case .disbursement:
+                    CreateExpenseSheet(editing: detail, onCreated: {
+                        onChanged()
+                        Task { await presenter.load() }
+                    })
+                }
             }
         }
         .sheet(item: $selectedLine) { line in
-            CashReceiptLineDetailSheet(line: line)
+            CashReceiptLineDetailSheet(
+                line: line,
+                transactionId: id,
+                canEdit: presenter.canEdit,
+                onChanged: {
+                    onChanged()
+                    Task { await presenter.load() }
+                }
+            )
         }
         .alert("Setujui transaksi?", isPresented: $showApprove) {
             Button("Batal", role: .cancel) {}

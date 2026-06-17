@@ -13,9 +13,27 @@ import SwiftUI
 struct CreateExpenseSheet: View {
     let presenter: PengeluaranPresenter
     let onCreated: () -> Void
+    /// When non-nil the sheet edits this transaction (PUT) instead of creating.
+    private let editTarget: CashReceiptDetail?
 
     @Environment(\.dismiss) private var dismiss
     @State private var editing: LineEdit?
+
+    /// Create mode: caller supplies the shared presenter (its `form` is reset).
+    init(presenter: PengeluaranPresenter, onCreated: @escaping () -> Void) {
+        self.presenter = presenter
+        self.onCreated = onCreated
+        self.editTarget = nil
+    }
+
+    /// Edit mode: builds its own presenter and seeds the form from `editing`.
+    init(editing detail: CashReceiptDetail, onCreated: @escaping () -> Void) {
+        self.presenter = AppDI.shared.resolver(PengeluaranPresenter.self)
+        self.onCreated = onCreated
+        self.editTarget = detail
+    }
+
+    private var isEditing: Bool { editTarget != nil }
 
     private var form: PengeluaranPresenter.CreateForm { presenter.form }
 
@@ -45,7 +63,7 @@ struct CreateExpenseSheet: View {
                 .padding(20)
             }
             .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Pengeluaran Kas Baru")
+            .navigationTitle(isEditing ? "Ubah Pengeluaran Kas" : "Pengeluaran Kas Baru")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -54,7 +72,14 @@ struct CreateExpenseSheet: View {
                 }
             }
         }
-        .task { await presenter.loadFormOptions() }
+        .task {
+            if let editTarget {
+                presenter.startEditing(editTarget)
+            } else {
+                presenter.startCreate()
+            }
+            await presenter.loadFormOptions()
+        }
         .sheet(item: $editing) { edit in
             EditLineSheet(
                 draft: edit.draft,
@@ -179,21 +204,30 @@ struct CreateExpenseSheet: View {
 
     // MARK: - Actions
 
+    @ViewBuilder
     private var actions: some View {
-        HStack(spacing: 12) {
-            Button { save(submit: false) } label: {
-                actionLabel("Simpan Draft", filled: false)
-            }
+        if isEditing {
             Button { save(submit: true) } label: {
-                actionLabel("Simpan & Submit", filled: true)
+                actionLabel("Simpan Perubahan", filled: true)
             }
+            .disabled(!form.canSave)
+            .opacity(form.canSave ? 1 : 0.5)
+            .overlay { if form.isSaving { ProgressView().tint(.accent) } }
+            .padding(.top, 8)
+        } else {
+            HStack(spacing: 12) {
+                Button { save(submit: false) } label: {
+                    actionLabel("Simpan Draft", filled: false)
+                }
+                Button { save(submit: true) } label: {
+                    actionLabel("Simpan & Submit", filled: true)
+                }
+            }
+            .disabled(!form.canSave)
+            .opacity(form.canSave ? 1 : 0.5)
+            .overlay { if form.isSaving { ProgressView().tint(.accent) } }
+            .padding(.top, 8)
         }
-        .disabled(!form.canSave)
-        .opacity(form.canSave ? 1 : 0.5)
-        .overlay {
-            if form.isSaving { ProgressView().tint(.accent) }
-        }
-        .padding(.top, 8)
     }
 
     private func save(submit: Bool) {
@@ -313,10 +347,13 @@ private struct EditLineSheet: View {
                         .coreTextFieldStyle()
                     }
 
-                    AttachmentsField(attachments: Binding(
-                        get: { draft.attachments },
-                        set: { draft.attachments = $0 }
-                    ))
+                    AttachmentsField(
+                        attachments: Binding(
+                            get: { draft.attachments },
+                            set: { draft.attachments = $0 }
+                        ),
+                        existing: draft.existingAttachments
+                    )
                 }
                 .padding(20)
             }

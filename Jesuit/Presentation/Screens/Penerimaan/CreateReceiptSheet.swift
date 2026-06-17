@@ -164,34 +164,37 @@ struct CreateReceiptSheet: View {
 
     private func lineRow(_ line: PenerimaanPresenter.LineDraft) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(.orange)
-                .padding(.top, 2)
+            Button {
+                editing = LineEdit(draft: line.copy(), original: line)
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                        .padding(.top, 2)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(form.accountName(for: line.accountId) ?? "—")
-                    .customFont(.medium, 14)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                if !line.description.isEmpty {
-                    Text(line.description)
-                        .customFont(.regular, 13)
-                        .foregroundStyle(.subtitle)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(form.accountName(for: line.accountId) ?? "—")
+                            .customFont(.medium, 14)
+                            .foregroundStyle(.title)
+                            .lineLimit(1)
+                        if !line.description.isEmpty {
+                            Text(line.description)
+                                .customFont(.regular, 13)
+                                .foregroundStyle(.subtitle)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Text(line.amount.asIDR)
+                        .customFont(.medium, 14)
+                        .foregroundStyle(.title)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .contentShape(Rectangle())
             }
-            Spacer(minLength: 8)
-            Text(line.amount.asIDR)
-                .customFont(.medium, 14)
-                .foregroundStyle(.title)
-                .fixedSize(horizontal: true, vertical: false)
+            .buttonStyle(.plain)
 
-            Button { editing = LineEdit(draft: line.copy(), original: line) } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.subtitle)
-            }
             Button { form.removeLine(line) } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
@@ -347,10 +350,13 @@ private struct EditReceiptLineSheet: View {
                         .coreTextFieldStyle()
                     }
 
-                    AttachmentsField(attachments: Binding(
-                        get: { draft.attachments },
-                        set: { draft.attachments = $0 }
-                    ))
+                    AttachmentsField(
+                        attachments: Binding(
+                            get: { draft.attachments },
+                            set: { draft.attachments = $0 }
+                        ),
+                        existing: draft.existingAttachments
+                    )
                 }
                 .padding(20)
             }

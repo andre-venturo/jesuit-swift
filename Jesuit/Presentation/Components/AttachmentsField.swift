@@ -12,7 +12,10 @@ import SwiftUI
 import PhotosUI
 
 struct AttachmentsField: View {
+    /// Newly-picked local files (uploaded on save).
     @Binding var attachments: [CashAttachment]
+    /// Already-uploaded attachments shown when editing (read from the server).
+    var existing: [CashLineAttachment] = []
 
     @State private var selection: [PhotosPickerItem] = []
     @State private var isLoading = false
@@ -27,6 +30,9 @@ struct AttachmentsField: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
+                    ForEach(existing) { attachment in
+                        existingThumbnail(attachment)
+                    }
                     ForEach(attachments) { attachment in
                         thumbnail(attachment)
                     }
@@ -41,6 +47,48 @@ struct AttachmentsField: View {
     }
 
     // MARK: - Tiles
+
+    /// An already-uploaded attachment: remote image, read-only (no remove —
+    /// deletion isn't exposed by the API here).
+    private func existingThumbnail(_ attachment: CashLineAttachment) -> some View {
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if attachment.isImage, let url = URL(string: attachment.fileUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFill()
+                        case .empty:
+                            ProgressView().tint(.accent)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        default:
+                            Image(systemName: "photo")
+                                .font(.system(size: 28))
+                                .foregroundStyle(.subtitle)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                } else {
+                    Image(systemName: "doc")
+                        .font(.system(size: 28))
+                        .foregroundStyle(.subtitle)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .frame(width: tile, height: tile)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            Text(attachment.sizeLabel)
+                .customFont(.medium, 11)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(Color.black.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .padding(6)
+        }
+        .frame(width: tile, height: tile)
+    }
 
     private func thumbnail(_ attachment: CashAttachment) -> some View {
         ZStack(alignment: .bottomLeading) {

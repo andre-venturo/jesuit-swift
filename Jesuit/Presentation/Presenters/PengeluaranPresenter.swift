@@ -107,21 +107,29 @@ final class PengeluaranPresenter {
     @MainActor
     final class LineDraft: Identifiable {
         let id = UUID()
+        /// Server line id when editing an existing transaction (nil for new lines);
+        /// needed to upload edit-time attachments to the right line.
+        var lineId: String?
         var accountId: String?   // Akun Lawan
         var description: String   // Deskripsi
         var amountText: String    // Jumlah (digits only)
-        var attachments: [CashAttachment]   // Lampiran
+        var attachments: [CashAttachment]            // newly-picked local files
+        var existingAttachments: [CashLineAttachment]  // already uploaded (server)
 
         init(
+            lineId: String? = nil,
             accountId: String? = nil,
             description: String = "",
             amountText: String = "",
-            attachments: [CashAttachment] = []
+            attachments: [CashAttachment] = [],
+            existingAttachments: [CashLineAttachment] = []
         ) {
+            self.lineId = lineId
             self.accountId = accountId
             self.description = description
             self.amountText = amountText
             self.attachments = attachments
+            self.existingAttachments = existingAttachments
         }
 
         var amount: Double { Double(amountText) ?? 0 }
@@ -134,7 +142,9 @@ final class PengeluaranPresenter {
 
         /// Detached copy for editing; changes only land via `CreateForm.commit`.
         func copy() -> LineDraft {
-            LineDraft(accountId: accountId, description: description, amountText: amountText, attachments: attachments)
+            LineDraft(lineId: lineId, accountId: accountId, description: description,
+                      amountText: amountText, attachments: attachments,
+                      existingAttachments: existingAttachments)
         }
 
         /// Overwrites fields from an edited copy (commit on "Tambah").
@@ -143,6 +153,7 @@ final class PengeluaranPresenter {
             description = other.description
             amountText = other.amountText
             attachments = other.attachments
+            existingAttachments = other.existingAttachments
         }
     }
 
@@ -156,9 +167,14 @@ final class PengeluaranPresenter {
         var cashAccountId: String?          // Akun Kas/Bank (header)
         var lines: [LineDraft] = []
 
+        /// Non-nil when editing an existing transaction (PUT instead of create).
+        private(set) var editId: String?
+
         private(set) var accounts: [AccountDTO] = []
         private var defaultBranchId: String?
         private(set) var saveState: AppState<CashReceipt> = .idle
+
+        var isEditing: Bool { editId != nil }
 
         var total: Double { lines.reduce(0) { $0 + $1.amount } }
 
@@ -196,6 +212,18 @@ final class PengeluaranPresenter {
 
     var form = CreateForm()
 
+    /// Resets the form for a brand-new transaction (clears any prior edit).
+    func startCreate() {
+        form = CreateForm()
+    }
+
+    /// Seeds the form from an existing transaction for editing (PUT on save).
+    func startEditing(_ detail: CashReceiptDetail) {
+        let f = CreateForm()
+        f.seed(from: detail)
+        form = f
+    }
+
     /// Loads the cash-account picker (and default branch) for the create sheet,
     /// preselecting the first cash account and seeding one empty line.
     func loadFormOptions() async {
@@ -229,10 +257,15 @@ final class PengeluaranPresenter {
         )
         let attachments = form.lines.flatMap(\.attachments)
         do {
-            let created = submit
-                ? try await repository.submit(request, attachments: attachments)
-                : try await repository.saveDraft(request, attachments: attachments)
-            form.finishSave(created)
+            let saved: CashReceipt
+            if let editId = form.editId {
+                saved = try await repository.update(id: editId, request: request)
+            } else {
+                saved = submit
+                    ? try await repository.submit(request, attachments: attachments)
+                    : try await repository.saveDraft(request, attachments: attachments)
+            }
+            form.finishSave(saved)
             form = CreateForm()
             await load()
             return true
@@ -248,6 +281,22 @@ extension PengeluaranPresenter.CreateForm {
         self.accounts = accounts
         self.defaultBranchId = (branches.first { $0.isDefault == true } ?? branches.first)?.id
         if cashAccountId == nil { cashAccountId = accounts.first?.id }
+    }
+
+    /// Seeds the form from an existing transaction's detail for editing.
+    func seed(from detail: CashReceiptDetail) {
+        editId = detail.id
+        date = detail.date
+        cashAccountId = detail.cashAccountId
+        lines = detail.lines.map { line in
+            PengeluaranPresenter.LineDraft(
+                lineId: line.id,
+                accountId: line.accountId,
+                description: line.description,
+                amountText: String(Int(line.amount)),
+                existingAttachments: line.attachments
+            )
+        }
     }
 
     /// A new detached line for the "Tambah Baris" sheet, prefilled with the

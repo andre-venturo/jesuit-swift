@@ -42,6 +42,12 @@ enum AppURLConstants {
         static func cashTransaction(_ id: String) -> String { "/cash-transactions/\(id)" }
         static func cashTransactionApprove(_ id: String) -> String { "/cash-transactions/\(id)/approve" }
         static func cashTransactionReject(_ id: String) -> String { "/cash-transactions/\(id)/reject" }
+
+        /// `POST /cash-transactions/{id}/lines/{lineId}/attachments` — upload a
+        /// `file` to an existing transaction line.
+        static func cashTransactionLineAttachments(_ id: String, _ lineId: String) -> String {
+            "/cash-transactions/\(id)/lines/\(lineId)/attachments"
+        }
     }
 
     enum Core {

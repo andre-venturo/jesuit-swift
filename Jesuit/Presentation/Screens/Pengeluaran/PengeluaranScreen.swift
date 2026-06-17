@@ -11,6 +11,10 @@ import SwiftUI
 struct PengeluaranScreen: View {
     @State private var presenter = AppDI.shared.resolver(PengeluaranPresenter.self)
     @State private var showCreate = false
+    @State private var selected: SelectedExpense?
+
+    /// Identifiable wrapper so `sheet(item:)` can present an expense by id.
+    private struct SelectedExpense: Identifiable { let id: String }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -40,6 +44,10 @@ struct PengeluaranScreen: View {
         .sheet(isPresented: $showCreate) {
             CreateExpenseSheet(presenter: presenter, onCreated: {})
         }
+        .sheet(item: $selected) { item in
+            CashReceiptDetailSheet(id: item.id, kind: .disbursement,
+                                   onChanged: { Task { await presenter.load() } })
+        }
         .hotReloadable()
     }
 
@@ -59,8 +67,12 @@ struct PengeluaranScreen: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(presenter.filtered.enumerated()), id: \.element.id) { index, expense in
-                        CashReceiptRow(receipt: expense)
-                            .padding(.horizontal, ListMetrics.horizontalInset)
+                        Button { selected = SelectedExpense(id: expense.id) } label: {
+                            CashReceiptRow(receipt: expense)
+                                .padding(.horizontal, ListMetrics.horizontalInset)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         RowDivider(index: index, count: presenter.filtered.count)
                     }
                 }
