@@ -251,12 +251,30 @@ nonisolated struct CashTransactionLineDTO: Codable, Sendable, Identifiable {
     let description: String?
     let amount: Double?
     let isPinned: Bool?
+    let attachments: [CashAttachmentDTO]?
 
     enum CodingKeys: String, CodingKey {
-        case id, description, amount
+        case id, description, amount, attachments
         case lineNumber = "line_number"
         case accountId = "account_id"
         case isPinned = "is_pinned"
+    }
+}
+
+/// A stored attachment returned in a transaction line's `attachments` array.
+nonisolated struct CashAttachmentDTO: Codable, Sendable, Identifiable {
+    let id: String
+    let fileName: String?
+    let fileUrl: String?
+    let fileSize: Int?
+    let mimeType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case fileName = "file_name"
+        case fileUrl = "file_url"
+        case fileSize = "file_size"
+        case mimeType = "mime_type"
     }
 }
 
@@ -338,6 +356,23 @@ nonisolated struct CashTransactionDetailResponse: Codable, Sendable {
     let message: String?
 }
 
+/// A stored attachment shown in the detail sheet (downloaded from `fileUrl`).
+struct CashLineAttachment: Identifiable, Sendable {
+    let id: String
+    let fileName: String
+    let fileUrl: String
+    let fileSize: Int
+    let mimeType: String
+
+    /// True for image attachments (rendered as a thumbnail rather than a doc icon).
+    var isImage: Bool { mimeType.hasPrefix("image/") }
+
+    /// Human-readable size for the thumbnail badge (e.g. "803 KB").
+    var sizeLabel: String {
+        ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)
+    }
+}
+
 /// One line in the detail's "Detail Lines" table (names resolved client-side).
 struct CashReceiptLine: Identifiable, Sendable {
     let id: String
@@ -347,6 +382,7 @@ struct CashReceiptLine: Identifiable, Sendable {
     let description: String
     let amount: Double
     let isPinned: Bool
+    let attachments: [CashLineAttachment]
 }
 
 /// Full cash-receipt detail for the detail sheet.

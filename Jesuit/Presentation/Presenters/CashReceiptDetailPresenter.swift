@@ -182,7 +182,17 @@ final class CashReceiptDetailPresenter {
                     accountName: accountName(line.accountId),
                     description: line.description ?? "",
                     amount: line.amount ?? 0,
-                    isPinned: line.isPinned ?? false
+                    isPinned: line.isPinned ?? false,
+                    attachments: (line.attachments ?? []).compactMap { att in
+                        guard let url = att.fileUrl, !url.isEmpty else { return nil }
+                        return CashLineAttachment(
+                            id: att.id,
+                            fileName: att.fileName ?? "Lampiran",
+                            fileUrl: url,
+                            fileSize: att.fileSize ?? 0,
+                            mimeType: att.mimeType ?? ""
+                        )
+                    }
                 )
             }
         return CashReceiptDetail(

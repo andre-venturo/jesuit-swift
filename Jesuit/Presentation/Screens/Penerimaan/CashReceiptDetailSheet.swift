@@ -188,40 +188,110 @@ struct CashReceiptDetailSheet: View {
     }
 
     private func lineRow(_ line: CashReceiptLine) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text("\(line.lineNumber)")
-                .customFont(.medium, 14)
-                .foregroundStyle(.subtitle)
-                .frame(width: 18, alignment: .leading)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(line.accountName)
-                        .customFont(.medium, 15)
-                        .foregroundStyle(.title)
-                        .lineLimit(1)
-                    if line.isPinned {
-                        Text("Utama")
-                            .customFont(.medium, 11)
-                            .foregroundStyle(.accent)
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Color.accentColor.opacity(0.14))
-                            .clipShape(Capsule())
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Text("\(line.lineNumber)")
+                    .customFont(.medium, 14)
+                    .foregroundStyle(.subtitle)
+                    .frame(width: 18, alignment: .leading)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(line.accountName)
+                            .customFont(.medium, 15)
+                            .foregroundStyle(.title)
+                            .lineLimit(1)
+                        if line.isPinned {
+                            Text("Utama")
+                                .customFont(.medium, 11)
+                                .foregroundStyle(.accent)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Color.accentColor.opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    if !line.description.isEmpty {
+                        Text(line.description)
+                            .customFont(.regular, 13)
+                            .foregroundStyle(.subtitle)
+                            .lineLimit(2)
                     }
                 }
-                if !line.description.isEmpty {
-                    Text(line.description)
-                        .customFont(.regular, 13)
-                        .foregroundStyle(.subtitle)
-                        .lineLimit(2)
-                }
+                Spacer(minLength: 8)
+                Text(line.amount.asRupiah)
+                    .customFont(.semibold, 15)
+                    .foregroundStyle(.title)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            Spacer(minLength: 8)
-            Text(line.amount.asRupiah)
-                .customFont(.semibold, 15)
-                .foregroundStyle(.title)
-                .fixedSize(horizontal: true, vertical: false)
+
+            if !line.attachments.isEmpty {
+                attachmentsRow(line.attachments)
+                    .padding(.leading, 28)
+            }
         }
         .padding(14)
+    }
+
+    /// Horizontal strip of a line's stored attachments (image thumbnails or a
+    /// doc tile), each tappable to open the file in the browser.
+    private func attachmentsRow(_ attachments: [CashLineAttachment]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(attachments) { attachment in
+                    attachmentTile(attachment)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func attachmentTile(_ attachment: CashLineAttachment) -> some View {
+        let tile: CGFloat = 72
+        Link(destination: URL(string: attachment.fileUrl) ?? URL(string: "https://wizhub.id")!) {
+            ZStack(alignment: .bottomLeading) {
+                Group {
+                    if attachment.isImage, let url = URL(string: attachment.fileUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().scaledToFill()
+                            case .failure:
+                                tilePlaceholder("photo")
+                            case .empty:
+                                ProgressView().tint(.accent)
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            @unknown default:
+                                tilePlaceholder("doc")
+                            }
+                        }
+                    } else {
+                        tilePlaceholder("doc")
+                    }
+                }
+                .frame(width: tile, height: tile)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                Text(attachment.sizeLabel)
+                    .customFont(.medium, 10)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                    .padding(5)
+            }
+            .frame(width: tile, height: tile)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.subtitle.opacity(0.2), lineWidth: 1)
+            )
+        }
+    }
+
+    private func tilePlaceholder(_ systemImage: String) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 22))
+            .foregroundStyle(.subtitle)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.textFieldBG)
     }
 
     // MARK: - Actions
