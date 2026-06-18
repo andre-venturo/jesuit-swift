@@ -25,7 +25,7 @@ struct PengeluaranScreen: View {
                     title: "Pengeluaran",
                     searchPlaceholder: "Cari pengeluaran",
                     searchText: $presenter.searchText,
-                    chips: PengeluaranPresenter.Filter.allCases.map(\.rawValue),
+                    chips: PengeluaranPresenter.Filter.quickChips.map(\.rawValue),
                     selectedChip: presenter.filter.rawValue,
                     onSelectChip: { label in
                         if let f = PengeluaranPresenter.Filter(rawValue: label) { presenter.filter = f }

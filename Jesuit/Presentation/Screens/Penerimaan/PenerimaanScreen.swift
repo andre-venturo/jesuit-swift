@@ -25,7 +25,7 @@ struct PenerimaanScreen: View {
                     title: "Penerimaan",
                     searchPlaceholder: "Cari penerimaan",
                     searchText: $presenter.searchText,
-                    chips: PenerimaanPresenter.Filter.allCases.map(\.rawValue),
+                    chips: PenerimaanPresenter.Filter.quickChips.map(\.rawValue),
                     selectedChip: presenter.filter.rawValue,
                     onSelectChip: { label in
                         if let f = PenerimaanPresenter.Filter(rawValue: label) { presenter.filter = f }

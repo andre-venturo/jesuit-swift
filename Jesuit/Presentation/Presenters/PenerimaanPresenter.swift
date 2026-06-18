@@ -26,6 +26,10 @@ final class PenerimaanPresenter {
         case rejected = "Ditolak"
         var id: String { rawValue }
 
+        /// Subset shown as inline quick chips (the full list lives in the Filter
+        /// sheet). Keeps the chip row from overflowing.
+        static let quickChips: [Filter] = [.all, .draft, .waiting]
+
         /// Status this filter matches; `nil` for `.all`.
         var status: ReceiptStatus? {
             switch self {
