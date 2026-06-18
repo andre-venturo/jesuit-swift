@@ -39,11 +39,14 @@ struct CreateContactSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    sectionHeader("Detail Kontak")
                     field("Nama", text: bind(\.name), hint: "Nama kontak")
                     categorySection
                     field("Email", text: bind(\.email), hint: "name@email.com", keyboard: .emailAddress)
                     field("Telepon", text: bind(\.phone), hint: "08xxxxxxxxxx", keyboard: .phonePad)
                     field("Alamat", text: bind(\.address), hint: "Alamat")
+
+                    sectionHeader("Narahubung (PIC)")
                     field("Nama PIC", text: bind(\.picName), hint: "Nama PIC")
                     field("Jabatan PIC", text: bind(\.picPosition), hint: "Jabatan")
 
@@ -208,5 +211,13 @@ struct CreateContactSheet: View {
         Text(text)
             .customFont(.medium, Typography.body)
             .foregroundStyle(.subtitle)
+    }
+
+    /// Group heading separating the form into Zoho-style sections.
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text.uppercased())
+            .customFont(.semibold, Typography.caption)
+            .foregroundStyle(.subtitle)
+            .padding(.top, 4)
     }
 }
