@@ -50,13 +50,13 @@ struct ChangePasswordSheet: View {
 
                     if let hint = presenter.validationHint {
                         Text(hint)
-                            .customFont(.regular, 14)
+                            .customFont(.regular, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
                     if let error = presenter.errorMessage {
                         Text(error)
-                            .customFont(.regular, 14)
+                            .customFont(.regular, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
@@ -93,7 +93,7 @@ struct ChangePasswordSheet: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("Simpan")
-                        .customFont(.semibold, 18)
+                        .customFont(.semibold, Typography.headline)
                         .foregroundStyle(.white)
                 }
             }

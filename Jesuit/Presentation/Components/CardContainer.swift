@@ -28,13 +28,13 @@ struct SectionHeader: View {
     var body: some View {
         HStack {
             Text(title)
-                .customFont(.semibold, 18)
+                .customFont(.semibold, Typography.headline)
                 .foregroundStyle(.title)
             Spacer()
             if let action {
                 Button(action: {}) {
                     Text(action)
-                        .customFont(.medium, 14)
+                        .customFont(.medium, Typography.callout)
                         .foregroundStyle(.mySecondary)
                 }
             }

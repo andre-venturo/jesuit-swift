@@ -30,10 +30,10 @@ struct TopExpensesCard: View {
     private var totalBanner: some View {
         VStack(spacing: 6) {
             Text("Total Expenses")
-                .customFont(.semibold, 18)
+                .customFont(.semibold, Typography.headline)
                 .foregroundStyle(.orange)
             Text(total.asIDR)
-                .customFont(.bold, 30)
+                .customFont(.bold, Typography.display)
                 .foregroundStyle(.title)
         }
         .frame(maxWidth: .infinity)
@@ -69,17 +69,17 @@ struct TopExpensesCard: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.category)
-                            .customFont(.medium, 18)
+                            .customFont(.medium, Typography.headline)
                             .foregroundStyle(.title)
                         Text(percentLabel(item))
-                            .customFont(.regular, 13)
+                            .customFont(.regular, Typography.subhead)
                             .foregroundStyle(.subtitle)
                     }
 
                     Spacer()
 
                     Text(item.amount.asIDR)
-                        .customFont(.semibold, 18)
+                        .customFont(.semibold, Typography.headline)
                         .foregroundStyle(.title)
                 }
             }
@@ -88,7 +88,7 @@ struct TopExpensesCard: View {
 
     private var emptyState: some View {
         Text("No expenses recorded in the selected date range.")
-            .customFont(.regular, 16)
+            .customFont(.regular, Typography.body)
             .foregroundStyle(.subtitle)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 12)

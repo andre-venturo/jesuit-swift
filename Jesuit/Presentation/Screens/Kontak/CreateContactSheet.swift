@@ -49,14 +49,14 @@ struct CreateContactSheet: View {
 
                     Toggle(isOn: bind(\.isActive)) {
                         Text("Aktif")
-                            .customFont(.medium, 15)
+                            .customFont(.medium, Typography.body)
                             .foregroundStyle(.title)
                     }
                     .tint(.accent)
 
                     if let error = form.errorMessage {
                         Text(error)
-                            .customFont(.medium, 14)
+                            .customFont(.medium, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
@@ -106,25 +106,14 @@ struct CreateContactSheet: View {
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel("Kategori")
-            Menu {
-                ForEach(form.categories) { category in
-                    Button(category.name) { form.categoryId = category.id }
-                }
-            } label: {
-                HStack {
-                    Text(form.categoryName)
-                        .customFont(.regular, 16)
-                        .foregroundStyle(form.categoryId.isEmpty ? .subtitle : .title)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.subtitle)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
-                .background(Color.textFieldBG)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
+            SelectionField(
+                options: form.categories.map { SelectionOption(id: $0.id, title: $0.name) },
+                selectedId: form.categoryId.isEmpty ? nil : form.categoryId,
+                placeholder: "Pilih kategori",
+                sheetTitle: "Kategori",
+                searchPrompt: "Cari kategori…",
+                onSelect: { form.categoryId = $0 }
+            )
         }
     }
 
@@ -144,7 +133,7 @@ struct CreateContactSheet: View {
                     ProgressView().tint(.white)
                 } else {
                     Text(isEditing ? "Simpan Perubahan" : "Simpan")
-                        .customFont(.semibold, 16)
+                        .customFont(.semibold, Typography.body)
                         .foregroundStyle(.white)
                 }
             }
@@ -171,7 +160,7 @@ struct CreateContactSheet: View {
                     ProgressView().tint(.expense)
                 } else {
                     Text("Hapus Kontak")
-                        .customFont(.semibold, 16)
+                        .customFont(.semibold, Typography.body)
                         .foregroundStyle(.expense)
                 }
             }
@@ -203,7 +192,7 @@ struct CreateContactSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel(label)
             TextField("", text: text, prompt: Text(hint).foregroundStyle(Color.subtitle))
-                .font(.customFont(.regular, 16))
+                .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(Color.title)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(keyboard == .emailAddress ? .never : .words)
@@ -217,7 +206,7 @@ struct CreateContactSheet: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .customFont(.medium, 15)
+            .customFont(.medium, Typography.body)
             .foregroundStyle(.subtitle)
     }
 }

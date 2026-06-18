@@ -46,7 +46,7 @@ struct CashFlowRangeSheet: View {
                         dismiss()
                     } label: {
                         Text("Terapkan")
-                            .customFont(.medium, 18)
+                            .customFont(.medium, Typography.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -74,7 +74,7 @@ struct CashFlowRangeSheet: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)

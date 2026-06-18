@@ -23,19 +23,19 @@ struct InvoiceRow: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(invoice.customer)
-                    .customFont(.semibold, 15)
+                    .customFont(.semibold, Typography.body)
                     .foregroundStyle(.title)
                 Text("\(invoice.number) · Due \(invoice.dueDate.short)")
-                    .customFont(.regular, 12)
+                    .customFont(.regular, Typography.caption)
                     .foregroundStyle(.subtitle)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
                 Text(invoice.amount.asCurrency)
-                    .customFont(.semibold, 15)
+                    .customFont(.semibold, Typography.body)
                     .foregroundStyle(.title)
                 Text(LocalizedStringKey(invoice.status.rawValue))
-                    .customFont(.semibold, 11)
+                    .customFont(.semibold, Typography.caption2)
                     .foregroundStyle(statusColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)

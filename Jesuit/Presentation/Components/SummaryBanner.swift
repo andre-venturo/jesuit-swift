@@ -21,10 +21,10 @@ struct SummaryBanner: View {
                     .foregroundStyle(tint)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .customFont(.regular, 14)
+                        .customFont(.regular, Typography.callout)
                         .foregroundStyle(.subtitle)
                     Text(amount.asCurrency)
-                        .customFont(.bold, 26)
+                        .customFont(.bold, Typography.largeTitle)
                         .foregroundStyle(.title)
                 }
                 Spacer()

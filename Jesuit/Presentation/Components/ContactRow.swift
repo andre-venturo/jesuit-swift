@@ -17,7 +17,7 @@ struct ContactRow: View {
                 .frame(width: 52, height: 52)
                 .overlay(
                     Text(contact.initials)
-                        .customFont(.semibold, 17)
+                        .customFont(.semibold, Typography.headline)
                         .foregroundStyle(.white)
                 )
 

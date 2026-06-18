@@ -79,7 +79,7 @@ struct CashFlowChartCard: View {
                 AxisValueLabel {
                     if let v = value.as(Double.self) {
                         Text(v.asCompactSigned)
-                            .customFont(.regular, 10)
+                            .customFont(.regular, Typography.caption2)
                             .foregroundStyle(.subtitle)
                     }
                 }
@@ -92,7 +92,7 @@ struct CashFlowChartCard: View {
                         Text(date, format: granularity == .monthly
                             ? .dateTime.month(.abbreviated)
                             : .dateTime.day().month(.abbreviated))
-                            .customFont(.regular, 10)
+                            .customFont(.regular, Typography.caption2)
                             .foregroundStyle(.subtitle)
                             .multilineTextAlignment(.center)
                     }
@@ -117,7 +117,7 @@ struct CashFlowChartCard: View {
         VStack(spacing: 12) {
             HStack {
                 Text(title)
-                    .customFont(.bold, 18)
+                    .customFont(.bold, Typography.headline)
                     .foregroundStyle(.title)
                 Spacer()
                 trendBadge(change: change, trend: trend)
@@ -135,11 +135,11 @@ struct CashFlowChartCard: View {
     private func metric(_ label: String, _ amount: Double, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .customFont(.regular, 14)
+                .customFont(.regular, Typography.callout)
                 .foregroundStyle(.subtitle)
                 .lineLimit(1)
             Text(amount.asSignedRupiah)
-                .customFont(.semibold, 17)
+                .customFont(.semibold, Typography.headline)
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -153,11 +153,11 @@ struct CashFlowChartCard: View {
     private func totalRow(_ label: String, _ amount: Double) -> some View {
         HStack(spacing: 10) {
             Text(label)
-                .customFont(.bold, 16)
+                .customFont(.bold, Typography.body)
                 .foregroundStyle(.title)
             Spacer(minLength: 8)
             Text(amount.asSignedRupiah)
-                .customFont(.bold, 20)
+                .customFont(.bold, Typography.title2)
                 .foregroundStyle(amount < 0 ? Color.expense : .income)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -178,7 +178,7 @@ struct CashFlowChartCard: View {
             Image(systemName: glyph)
                 .font(.system(size: 11, weight: .bold))
             Text("\(Int(change.rounded()))%")
-                .customFont(.semibold, 14)
+                .customFont(.semibold, Typography.callout)
         }
         .foregroundStyle(tint)
         .padding(.horizontal, 10)

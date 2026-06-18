@@ -17,10 +17,10 @@ struct CashflowCard: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Cash Flow")
-                            .customFont(.semibold, 18)
+                            .customFont(.semibold, Typography.headline)
                             .foregroundStyle(.title)
                         Text("Last 6 months")
-                            .customFont(.regular, 13)
+                            .customFont(.regular, Typography.subhead)
                             .foregroundStyle(.subtitle)
                     }
                     Spacer()
@@ -57,7 +57,7 @@ struct CashflowCard: View {
                         AxisValueLabel {
                             if let v = value.as(Double.self) {
                                 Text(v.asCompactCurrency)
-                                    .customFont(.regular, 10)
+                                    .customFont(.regular, Typography.caption2)
                             }
                         }
                     }
@@ -76,7 +76,7 @@ struct LegendDot: View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 8, height: 8)
             Text(label)
-                .customFont(.regular, 11)
+                .customFont(.regular, Typography.caption2)
                 .foregroundStyle(.subtitle)
         }
     }

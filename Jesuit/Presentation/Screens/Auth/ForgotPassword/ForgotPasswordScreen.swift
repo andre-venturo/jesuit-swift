@@ -18,12 +18,12 @@ struct ForgotPasswordScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Lupa Kata Sandi")
-                .customFont(.bold, 25)
+                .customFont(.bold, Typography.largeTitle)
                 .foregroundStyle(.title)
                 .padding(.top, 19)
 
             Text(text + text1)
-                .customFont(.medium, 18)
+                .customFont(.medium, Typography.headline)
                 .foregroundStyle(.subtitle)
                 .animation(.smooth, value: focusedField)
                 
@@ -42,7 +42,7 @@ struct ForgotPasswordScreen: View {
                 action: { navigation.popTo(root: .home) },
                 label: {
                     Text("Kirim Tautan Reset")
-                        .font(.customFont(.medium, 20))
+                        .font(.customFont(.medium, Typography.title2))
                         .foregroundStyle(.white)
                 }
             )
@@ -54,7 +54,7 @@ struct ForgotPasswordScreen: View {
             Button("Kembali ke Masuk") {
                 navigation.pop()
             }
-            .font(.customFont(.medium, 16))
+            .font(.customFont(.medium, Typography.body))
             .foregroundStyle(.mySecondary)
             .frame(maxWidth: screenBounds.width, alignment: .center)
             .padding(.vertical, 4)

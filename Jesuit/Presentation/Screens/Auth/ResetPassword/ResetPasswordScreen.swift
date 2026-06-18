@@ -17,12 +17,12 @@ struct ResetPasswordScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Perbarui Kata Sandi")
-                .customFont(.bold, 25)
+                .customFont(.bold, Typography.largeTitle)
                 .foregroundStyle(.title)
                 .padding(.top, 19)
 
             Text(text)
-                .customFont(.medium, 18)
+                .customFont(.medium, Typography.headline)
                 .foregroundStyle(.subtitle)
                 .lineLimit(2)
                 .padding(.bottom)
@@ -66,7 +66,7 @@ struct ResetPasswordScreen: View {
                 action: { navigation.pop() },
                 label: {
                     Text("Perbarui Kata Sandi")
-                        .font(.customFont(.medium, 20))
+                        .font(.customFont(.medium, Typography.title2))
                         .foregroundStyle(.white)
                 }
             )

@@ -20,7 +20,7 @@ struct SearchPeriodBar: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.subtitle)
                 TextField(searchPrompt, text: $searchText)
-                    .font(Font.customFont(.regular, 15))
+                    .font(Font.customFont(.regular, Typography.body))
                     .foregroundStyle(.title)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -38,7 +38,7 @@ struct SearchPeriodBar: View {
             Button(action: onPeriodTap) {
                 HStack(spacing: 10) {
                     Text(periodLabel)
-                        .customFont(.regular, 15)
+                        .customFont(.regular, Typography.body)
                         .foregroundStyle(.subtitle)
                         .lineLimit(1)
                     Spacer(minLength: 0)

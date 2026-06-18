@@ -19,14 +19,14 @@ struct CurrencyField: View {
     var body: some View {
         HStack {
             Text("Rp")
-                .customFont(.medium, 16)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
             TextField(
                 "",
                 text: $display,
-                prompt: Text("0").customFont(.regular, 16).foregroundStyle(.subtitle)
+                prompt: Text("0").customFont(.regular, Typography.body).foregroundStyle(.subtitle)
             )
-            .font(.customFont(.regular, 16))
+            .font(.customFont(.regular, Typography.body))
             .foregroundStyle(.title)
             .keyboardType(.numberPad)
             .onChange(of: display) { _, newValue in

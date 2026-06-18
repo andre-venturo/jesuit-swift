@@ -37,7 +37,7 @@ struct ListTopBar: View {
     private var header: some View {
         HStack {
             Text(title)
-                .customFont(.bold, 34)
+                .customFont(.bold, Typography.display)
                 .foregroundStyle(.title)
             Spacer()
             Button {
@@ -60,7 +60,7 @@ struct ListTopBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.subtitle)
             TextField(searchPlaceholder, text: $searchText)
-                .font(.customFont(.regular, 15))
+                .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
         }
@@ -107,7 +107,7 @@ struct ListTopBar: View {
             onSelectChip(label)
         } label: {
             Text(label)
-                .customFont(.medium, 17)
+                .customFont(.medium, Typography.headline)
                 .foregroundStyle(isActive ? .white : .title)
                 .padding(.horizontal, 20)
                 .frame(height: 40)

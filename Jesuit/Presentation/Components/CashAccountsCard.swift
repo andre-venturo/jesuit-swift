@@ -49,7 +49,7 @@ struct CashAccountsCard: View {
         } label: {
             HStack(spacing: 6) {
                 Text(isExpanded ? "Tampilkan Lebih Sedikit" : "Tampilkan Semua (\(accounts.count))")
-                    .customFont(.semibold, 15)
+                    .customFont(.semibold, Typography.body)
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 12, weight: .semibold))
             }
@@ -64,15 +64,15 @@ struct CashAccountsCard: View {
     private var header: some View {
         HStack(alignment: .top) {
             Text("Rekening Kas & Bank")
-                .customFont(.bold, 20)
+                .customFont(.bold, Typography.title2)
                 .foregroundStyle(.title)
             Spacer(minLength: 12)
             VStack(alignment: .trailing, spacing: 4) {
                 Text("Total Saldo")
-                    .customFont(.regular, 13)
+                    .customFont(.regular, Typography.subhead)
                     .foregroundStyle(.subtitle)
                 Text(total.asRupiah)
-                    .customFont(.bold, 18)
+                    .customFont(.bold, Typography.headline)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
@@ -86,12 +86,12 @@ struct CashAccountsCard: View {
     private func accountRow(_ account: CashAccount) -> some View {
         HStack(spacing: 12) {
             Text(account.name)
-                .customFont(.regular, 16)
+                .customFont(.regular, Typography.body)
                 .foregroundStyle(.title)
                 .lineLimit(1)
             Spacer(minLength: 8)
             Text(account.balance.asRupiah)
-                .customFont(.semibold, 16)
+                .customFont(.semibold, Typography.body)
                 .foregroundStyle(account.balance < 0 ? Color.expense : .title)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)

@@ -59,7 +59,7 @@ struct HomeScreen: View {
                     .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
 
                 Text(presenter.organization)
-                    .customFont(.bold, 22)
+                    .customFont(.bold, Typography.title)
                     .foregroundStyle(.title)
                     .lineLimit(1)
 
@@ -112,11 +112,11 @@ struct HomeScreen: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Neraca")
-                    .customFont(.semibold, 20)
+                    .customFont(.semibold, Typography.title2)
                     .foregroundStyle(.white)
                 Spacer()
                 Text(balanceSheetAsOf)
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(Color.white.opacity(0.7))
             }
 
@@ -180,11 +180,11 @@ struct HomeScreen: View {
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(Color.white.opacity(0.6))
                 Text(title)
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(Color.white.opacity(0.7))
             }
             Text(amount.asIDR)
-                .customFont(.bold, 18)
+                .customFont(.bold, Typography.headline)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -201,7 +201,7 @@ struct HomeScreen: View {
                     .font(.system(size: 16))
                     .foregroundStyle(.subtitle)
                 Text("Buat Cepat")
-                    .customFont(.semibold, 20)
+                    .customFont(.semibold, Typography.title2)
                     .foregroundStyle(.title)
             }
 
@@ -227,7 +227,7 @@ struct HomeScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 Text(action.title)
-                    .customFont(.medium, 15)
+                    .customFont(.medium, Typography.body)
                     .foregroundStyle(.title)
             }
         }
@@ -252,7 +252,7 @@ struct HomeScreen: View {
                     .font(.system(size: 16))
                     .foregroundStyle(.subtitle)
                 Text("Project Summary")
-                    .customFont(.semibold, 20)
+                    .customFont(.semibold, Typography.title2)
                     .foregroundStyle(.title)
             }
 
@@ -293,7 +293,7 @@ struct HomeScreen: View {
 
     private var cashAccountsEmptyState: some View {
         Text("Belum ada rekening kas atau bank.")
-            .customFont(.regular, 16)
+            .customFont(.regular, Typography.body)
             .foregroundStyle(.subtitle)
             .frame(maxWidth: .infinity, minHeight: 120)
             .background(Color.white.opacity(0.04))
@@ -310,7 +310,7 @@ struct HomeScreen: View {
                         .font(.system(size: 16))
                         .foregroundStyle(.subtitle)
                     Text("Arus Kas")
-                        .customFont(.semibold, 20)
+                        .customFont(.semibold, Typography.title2)
                         .foregroundStyle(.title)
                 }
                 Spacer()
@@ -347,7 +347,7 @@ struct HomeScreen: View {
             stepperButton(systemImage: "chevron.left") { presenter.stepPeriod(by: -1) }
             Spacer()
             Text(presenter.cashFlowSteppedLabel)
-                .customFont(.semibold, 17)
+                .customFont(.semibold, Typography.headline)
                 .foregroundStyle(.title)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
@@ -394,7 +394,7 @@ struct HomeScreen: View {
         } label: {
             HStack(spacing: 6) {
                 Text(presenter.cashFlowRangeLabel)
-                    .customFont(.medium, 16)
+                    .customFont(.medium, Typography.body)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
@@ -413,7 +413,7 @@ struct HomeScreen: View {
     /// Centered label for an active custom range (replaces the stepper).
     private var customRangeLabel: some View {
         Text(presenter.cashFlowSteppedLabel)
-            .customFont(.semibold, 17)
+            .customFont(.semibold, Typography.headline)
             .foregroundStyle(.title)
             .lineLimit(1)
             .minimumScaleFactor(0.7)

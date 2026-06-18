@@ -43,7 +43,7 @@ struct CreateCompanySheet: View {
 
                     if let error = form.errorMessage {
                         Text(error)
-                            .customFont(.medium, 14)
+                            .customFont(.medium, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
@@ -83,7 +83,7 @@ struct CreateCompanySheet: View {
                 text: bindName,
                 prompt: Text("PT Contoh Indonesia").foregroundStyle(Color.subtitle)
             )
-            .font(.customFont(.regular, 16))
+            .font(.customFont(.regular, Typography.body))
             .foregroundStyle(Color.title)
             .textInputAutocapitalization(.words)
             .padding(.horizontal, 14)
@@ -105,7 +105,7 @@ struct CreateCompanySheet: View {
             Text(form.type == .holding
                  ? "Holding adalah perusahaan tingkat atas tanpa induk."
                  : "Anak perusahaan harus memilih induk holding.")
-                .customFont(.regular, 14)
+                .customFont(.regular, Typography.callout)
                 .foregroundStyle(.subtitle)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -114,13 +114,16 @@ struct CreateCompanySheet: View {
     private var typeMenu: some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel("Tipe")
-            Menu {
-                ForEach(CompanyType.allCases) { type in
-                    Button(type.label) { form.type = type }
+            SelectionField(
+                options: CompanyType.allCases.map { SelectionOption(id: $0.rawValue, title: $0.label) },
+                selectedId: form.type.rawValue,
+                placeholder: "Pilih tipe",
+                sheetTitle: "Tipe",
+                searchPrompt: "Cari tipe…",
+                onSelect: { id in
+                    if let type = CompanyType(rawValue: id) { form.type = type }
                 }
-            } label: {
-                menuLabel(form.type.label, isPlaceholder: false)
-            }
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -129,37 +132,18 @@ struct CreateCompanySheet: View {
     private var parentMenu: some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel("Induk Perusahaan")
-            Menu {
-                ForEach(form.parentOptions) { parent in
-                    Button(parent.name) { form.parentId = parent.id }
-                }
-            } label: {
-                menuLabel(
-                    form.type == .subsidiary ? form.parentName : "—",
-                    isPlaceholder: form.type == .holding || form.parentId.isEmpty
-                )
-            }
+            SelectionField(
+                options: form.parentOptions.map { SelectionOption(id: $0.id, title: $0.name) },
+                selectedId: form.type == .subsidiary && !form.parentId.isEmpty ? form.parentId : nil,
+                placeholder: form.type == .holding ? "—" : "Pilih induk",
+                sheetTitle: "Induk Perusahaan",
+                searchPrompt: "Cari perusahaan…",
+                onSelect: { form.parentId = $0 }
+            )
             .disabled(form.type == .holding || form.parentOptions.isEmpty)
             .opacity(form.type == .holding ? 0.5 : 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func menuLabel(_ text: String, isPlaceholder: Bool) -> some View {
-        HStack {
-            Text(text)
-                .customFont(.regular, 16)
-                .foregroundStyle(isPlaceholder ? .subtitle : .title)
-                .lineLimit(1)
-            Spacer()
-            Image(systemName: "chevron.down")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.subtitle)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
-        .background(Color.textFieldBG)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Save
@@ -179,7 +163,7 @@ struct CreateCompanySheet: View {
                 } else {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                        Text(isEditing ? "Simpan Perubahan" : "Simpan").customFont(.semibold, 16)
+                        Text(isEditing ? "Simpan Perubahan" : "Simpan").customFont(.semibold, Typography.body)
                     }
                     .foregroundStyle(.white)
                 }
@@ -201,7 +185,7 @@ struct CreateCompanySheet: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .customFont(.medium, 15)
+            .customFont(.medium, Typography.body)
             .foregroundStyle(.subtitle)
     }
 }

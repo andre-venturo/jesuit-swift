@@ -101,7 +101,7 @@ struct KontakScreen: View {
                 .font(.system(size: 36))
                 .foregroundStyle(.subtitle)
             Text(text)
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
                 .multilineTextAlignment(.center)
         }

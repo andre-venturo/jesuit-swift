@@ -24,18 +24,18 @@ struct KPICard: View {
                         Image(systemName: isUp ? "arrow.up.right" : "arrow.down.right")
                         Text(String(format: "%.1f%%", abs(kpi.deltaPercent)))
                     }
-                    .font(.customFont(.semibold, 12))
+                    .font(.customFont(.semibold, Typography.caption))
                     .foregroundStyle(isUp ? Color.income : Color.expense)
                 }
 
                 Text(kpi.amount.asCompactCurrency)
-                    .customFont(.bold, 22)
+                    .customFont(.bold, Typography.title)
                     .foregroundStyle(.title)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
 
                 Text(LocalizedStringKey(kpi.title))
-                    .customFont(.regular, 13)
+                    .customFont(.regular, Typography.subhead)
                     .foregroundStyle(.subtitle)
                     .lineLimit(1)
             }

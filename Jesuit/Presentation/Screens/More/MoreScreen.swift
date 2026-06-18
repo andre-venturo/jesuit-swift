@@ -26,15 +26,15 @@ struct MoreScreen: View {
                             .frame(width: 60, height: 60)
                             .overlay(
                                 Text(initials)
-                                    .customFont(.bold, 20)
+                                    .customFont(.bold, Typography.title2)
                                     .foregroundStyle(.accent)
                             )
                         VStack(alignment: .leading, spacing: 3) {
                             Text(presenter.userName)
-                                .customFont(.semibold, 17)
+                                .customFont(.semibold, Typography.headline)
                                 .foregroundStyle(.title)
                             Text(presenter.organization)
-                                .customFont(.regular, 14)
+                                .customFont(.regular, Typography.callout)
                                 .foregroundStyle(.subtitle)
                         }
                         Spacer()
@@ -71,7 +71,7 @@ struct MoreScreen: View {
                             ProgressView().tint(.expense)
                         } else {
                             Text("Keluar")
-                                .customFont(.semibold, 17)
+                                .customFont(.semibold, Typography.headline)
                                 .foregroundStyle(.expense)
                         }
                     }
@@ -118,12 +118,12 @@ struct MoreRow: View {
                 .foregroundStyle(.accent)
                 .frame(width: 24)
             Text(title)
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.title)
             Spacer()
             if !value.isEmpty {
                 Text(value)
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(.subtitle)
             }
             Image(systemName: "chevron.right")

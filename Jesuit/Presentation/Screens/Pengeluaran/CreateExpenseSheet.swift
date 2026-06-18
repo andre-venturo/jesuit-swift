@@ -54,7 +54,7 @@ struct CreateExpenseSheet: View {
 
                     if let error = form.errorMessage {
                         Text(error)
-                            .customFont(.medium, 14)
+                            .customFont(.medium, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
@@ -108,7 +108,7 @@ struct CreateExpenseSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 fieldLabel("Akun Kas/Bank")
                 accountMenu(
-                    selection: form.cashAccountName,
+                    selectedId: form.cashAccountId,
                     onSelect: { form.cashAccountId = $0 }
                 )
             }
@@ -129,14 +129,14 @@ struct CreateExpenseSheet: View {
                         Image(systemName: "plus")
                         Text("Baris")
                     }
-                    .font(.customFont(.medium, 14))
+                    .font(.customFont(.medium, Typography.callout))
                     .foregroundStyle(.accent)
                 }
             }
 
             if form.lines.isEmpty {
                 Text("Belum ada baris.")
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(.subtitle)
             } else {
                 VStack(spacing: 0) {
@@ -151,11 +151,11 @@ struct CreateExpenseSheet: View {
 
                 HStack {
                     Text("Total")
-                        .customFont(.bold, 15)
+                        .customFont(.bold, Typography.body)
                         .foregroundStyle(.title)
                     Spacer()
                     Text(form.total.asIDR)
-                        .customFont(.bold, 15)
+                        .customFont(.bold, Typography.body)
                         .foregroundStyle(.title)
                 }
             }
@@ -171,19 +171,19 @@ struct CreateExpenseSheet: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(form.accountName(for: line.accountId) ?? "—")
-                    .customFont(.medium, 14)
+                    .customFont(.medium, Typography.callout)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                 if !line.description.isEmpty {
                     Text(line.description)
-                        .customFont(.regular, 13)
+                        .customFont(.regular, Typography.subhead)
                         .foregroundStyle(.subtitle)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             Text(line.amount.asIDR)
-                .customFont(.medium, 14)
+                .customFont(.medium, Typography.callout)
                 .foregroundStyle(.title)
                 .fixedSize(horizontal: true, vertical: false)
 
@@ -243,13 +243,13 @@ struct CreateExpenseSheet: View {
 
     private func fieldLabel(_ text: String) -> some View {
         Text(text)
-            .customFont(.medium, 15)
+            .customFont(.medium, Typography.body)
             .foregroundStyle(.subtitle)
     }
 
     private func actionLabel(_ title: String, filled: Bool) -> some View {
         Text(title)
-            .customFont(.medium, 16)
+            .customFont(.medium, Typography.body)
             .foregroundStyle(filled ? .white : Color.title)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
@@ -259,28 +259,17 @@ struct CreateExpenseSheet: View {
 
     @ViewBuilder
     private func accountMenu(
-        selection: String,
+        selectedId: String?,
         onSelect: @escaping (String) -> Void
     ) -> some View {
-        Menu {
-            ForEach(form.accounts) { account in
-                Button(account.code.map { "\($0) — \(account.name)" } ?? account.name) {
-                    onSelect(account.id)
-                }
-            }
-        } label: {
-            HStack {
-                Text(selection)
-                    .customFont(.regular, 16)
-                    .foregroundStyle(.title)
-                Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.subtitle)
-            }
-            .coreTextFieldStyle()
-        }
-        .disabled(form.accounts.isEmpty)
+        SelectionField(
+            options: form.accounts.map(SelectionOption.init(account:)),
+            selectedId: selectedId,
+            placeholder: "Pilih akun",
+            sheetTitle: "Pilih Akun",
+            searchPrompt: "Cari akun…",
+            onSelect: onSelect
+        )
     }
 }
 
@@ -299,31 +288,21 @@ private struct EditLineSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Akun Lawan *")
-                            .customFont(.medium, 15)
+                            .customFont(.medium, Typography.body)
                             .foregroundStyle(.subtitle)
-                        Menu {
-                            ForEach(form.accounts) { account in
-                                Button(account.code.map { "\($0) — \(account.name)" } ?? account.name) {
-                                    draft.accountId = account.id
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text(form.accountName(for: draft.accountId) ?? "Pilih akun")
-                                    .customFont(.regular, 16)
-                                    .foregroundStyle(.title)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(.subtitle)
-                            }
-                            .coreTextFieldStyle()
-                        }
+                        SelectionField(
+                            options: form.accounts.map(SelectionOption.init(account:)),
+                            selectedId: draft.accountId,
+                            placeholder: "Pilih akun",
+                            sheetTitle: "Pilih Akun",
+                            searchPrompt: "Cari akun…",
+                            onSelect: { draft.accountId = $0 }
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Jumlah (IDR)")
-                            .customFont(.medium, 15)
+                            .customFont(.medium, Typography.body)
                             .foregroundStyle(.subtitle)
                         CurrencyField(digits: Binding(
                             get: { draft.amountText },
@@ -333,15 +312,15 @@ private struct EditLineSheet: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Deskripsi")
-                            .customFont(.medium, 15)
+                            .customFont(.medium, Typography.body)
                             .foregroundStyle(.subtitle)
                         TextField(
                             "",
                             text: Binding(get: { draft.description }, set: { draft.description = $0 }),
-                            prompt: Text("Deskripsi baris").customFont(.regular, 16).foregroundStyle(.subtitle),
+                            prompt: Text("Deskripsi baris").customFont(.regular, Typography.body).foregroundStyle(.subtitle),
                             axis: .vertical
                         )
-                        .font(.customFont(.regular, 16))
+                        .font(.customFont(.regular, Typography.body))
                         .foregroundStyle(.title)
                         .lineLimit(3, reservesSpace: true)
                         .coreTextFieldStyle()

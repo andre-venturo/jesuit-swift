@@ -45,7 +45,7 @@ struct EditProfileSheet: View {
 
                     if let error = presenter.errorMessage {
                         Text(error)
-                            .customFont(.regular, 14)
+                            .customFont(.regular, Typography.callout)
                             .foregroundStyle(.expense)
                     }
 
@@ -78,7 +78,7 @@ struct EditProfileSheet: View {
                 .frame(width: 72, height: 72)
                 .overlay(
                     Text(presenter.initials)
-                        .customFont(.bold, 24)
+                        .customFont(.bold, Typography.largeTitle)
                         .foregroundStyle(.accent)
                 )
             Spacer()
@@ -90,18 +90,18 @@ struct EditProfileSheet: View {
     private func readOnlyField(title: LocalizedStringKey, value: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .customFont(.medium, 16)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.title)
             HStack {
                 Text(value)
-                    .customFont(.regular, 16)
+                    .customFont(.regular, Typography.body)
                     .foregroundStyle(.subtitle)
                 Spacer()
             }
             .coreTextFieldStyle()
             .opacity(0.6)
             Text("Hubungi admin untuk mengubah.")
-                .customFont(.regular, 13)
+                .customFont(.regular, Typography.subhead)
                 .foregroundStyle(.subtitle)
         }
     }
@@ -121,7 +121,7 @@ struct EditProfileSheet: View {
                     ProgressView().tint(.white)
                 } else {
                     Text("Simpan")
-                        .customFont(.semibold, 18)
+                        .customFont(.semibold, Typography.headline)
                         .foregroundStyle(.white)
                 }
             }

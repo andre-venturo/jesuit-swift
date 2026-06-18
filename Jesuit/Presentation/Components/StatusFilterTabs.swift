@@ -38,11 +38,11 @@ struct StatusFilterTabs: View {
             VStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Text(status?.rawValue ?? "Semua")
-                        .customFont(isSelected ? .semibold : .medium, 15)
+                        .customFont(isSelected ? .semibold : .medium, Typography.body)
                         .foregroundStyle(isSelected ? .title : .subtitle)
 
                     Text("\(count(status))")
-                        .customFont(.semibold, 12)
+                        .customFont(.semibold, Typography.caption)
                         .foregroundStyle(isSelected ? Color.background1 : tint)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 2)

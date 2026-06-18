@@ -23,11 +23,11 @@ struct LoginScreen: View {
                 .opacity(focusedField != nil ? 0.0 : 1.0)
 
             Text("Selamat Datang!")
-                .customFont(.bold, 30)
+                .customFont(.bold, Typography.display)
                 .foregroundStyle(.title)
 
             Text("Masuk untuk melanjutkan")
-                .customFont(.medium, 18)
+                .customFont(.medium, Typography.headline)
                 .foregroundStyle(.subtitle)
 
             PrimaryTextField(
@@ -54,7 +54,7 @@ struct LoginScreen: View {
 
             if let error = presenter.errorMessage {
                 Text(error)
-                    .customFont(.medium, 14)
+                    .customFont(.medium, Typography.callout)
                     .foregroundStyle(.expense)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -74,7 +74,7 @@ struct LoginScreen: View {
                             ProgressView().tint(.white)
                         } else {
                             Text("Masuk")
-                                .font(.customFont(.medium, 20))
+                                .font(.customFont(.medium, Typography.title2))
                                 .foregroundStyle(.white)
                         }
                     }
@@ -89,13 +89,13 @@ struct LoginScreen: View {
 
             HStack {
                 Text("Belum punya akun?")
-                    .customFont(.medium, 16)
+                    .customFont(.medium, Typography.body)
                     .foregroundStyle(.subtitle)
 
                 Button("Daftar") {
                     navigation.navigate(to: .register)
                 }
-                .font(.customFont(.medium, 16))
+                .font(.customFont(.medium, Typography.body))
                 .foregroundStyle(.mySecondary)
             }
             .animation(.smooth, value: focusedField)

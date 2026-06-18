@@ -30,6 +30,33 @@ enum AppTheme {
     static let warningOrange = Color(hex: "FF9500")
 }
 
+/// Centralised semantic type scale. Every text size in the app maps to one of
+/// these steps so the type hierarchy stays consistent across features. Pair a
+/// step with a `CustomFontWeight` via `customFont(_:_:)`, e.g.
+/// `Text("…").customFont(.semibold, Typography.headline)`.
+enum Typography {
+    /// Hero metric numbers (e.g. main balance). Largest step.
+    static let display: CGFloat = 28
+    /// Screen / sheet titles.
+    static let largeTitle: CGFloat = 24
+    /// Prominent titles, primary list amounts, big card numbers.
+    static let title: CGFloat = 22
+    /// Section headers.
+    static let title2: CGFloat = 20
+    /// Card titles, row headlines, list item primary lines.
+    static let headline: CGFloat = 17
+    /// Default body text, text fields, primary content.
+    static let body: CGFloat = 15
+    /// Secondary content, status captions, buttons.
+    static let callout: CGFloat = 14
+    /// Field labels, metadata, secondary lines.
+    static let subhead: CGFloat = 13
+    /// Small captions.
+    static let caption: CGFloat = 12
+    /// Tiny badges / overlines. Smallest step.
+    static let caption2: CGFloat = 11
+}
+
 /// Shared sizing/spacing for the list tabs (Customers, Penerimaan,
 /// Pengeluaran) so rows, insets and type scale stay identical across screens.
 enum ListMetrics {
@@ -40,10 +67,10 @@ enum ListMetrics {
     /// Vertical spacing between stacked lines within a row.
     static let rowLineSpacing: CGFloat = 10
 
-    // Type scale (Inter weights via `customFont`).
-    static let titleSize: CGFloat = 20      // primary line + trailing amount
-    static let metaSize: CGFloat = 16       // date / number / secondary line
-    static let statusSize: CGFloat = 15     // status caption
+    // Type scale (Inter weights via `customFont`), backed by `Typography`.
+    static let titleSize: CGFloat = Typography.headline // primary line + trailing amount
+    static let metaSize: CGFloat = Typography.subhead   // date / number / secondary line
+    static let statusSize: CGFloat = Typography.caption  // status caption
 }
 
 // MARK: - Color from hex

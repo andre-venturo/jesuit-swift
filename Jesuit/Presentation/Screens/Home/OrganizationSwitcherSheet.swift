@@ -116,11 +116,11 @@ struct OrganizationSwitcherSheet: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(company.name)
-                        .customFont(.semibold, 16)
+                        .customFont(.semibold, Typography.body)
                         .foregroundStyle(.accent)
                         .lineLimit(1)
                     Text(company.subtitle)
-                        .customFont(.regular, 13)
+                        .customFont(.regular, Typography.subhead)
                         .foregroundStyle(.subtitle)
                         .lineLimit(1)
                 }

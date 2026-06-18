@@ -19,7 +19,7 @@ struct PrimaryTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .customFont(.medium, 16)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.title)
 
             HStack {
@@ -28,17 +28,17 @@ struct PrimaryTextField: View {
                         SecureField(
                             "",
                             text: $text,
-                            prompt: Text(hint).customFont(.regular, 16).foregroundStyle(.subtitle)
+                            prompt: Text(hint).customFont(.regular, Typography.body).foregroundStyle(.subtitle)
                         )
                     } else {
                         TextField(
                             "",
                             text: $text,
-                            prompt: Text(hint).customFont(.regular, 16).foregroundStyle(.subtitle)
+                            prompt: Text(hint).customFont(.regular, Typography.body).foregroundStyle(.subtitle)
                         )
                     }
                 }
-                .font(.customFont(.regular, 16))
+                .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(.never)

@@ -25,7 +25,7 @@ struct AttachmentsField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Lampiran")
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -79,7 +79,7 @@ struct AttachmentsField: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
             Text(attachment.sizeLabel)
-                .customFont(.medium, 11)
+                .customFont(.medium, Typography.caption2)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
@@ -108,7 +108,7 @@ struct AttachmentsField: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
             Text(attachment.sizeLabel)
-                .customFont(.medium, 11)
+                .customFont(.medium, Typography.caption2)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
@@ -138,7 +138,7 @@ struct AttachmentsField: View {
                     Image(systemName: "plus")
                         .font(.system(size: 22, weight: .medium))
                     Text("Tambah")
-                        .customFont(.medium, 13)
+                        .customFont(.medium, Typography.subhead)
                 }
             }
             .foregroundStyle(.subtitle)

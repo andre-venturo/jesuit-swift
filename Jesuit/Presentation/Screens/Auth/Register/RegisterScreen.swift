@@ -16,7 +16,7 @@ struct RegisterScreen: View {
         ScrollView {
             VStack(spacing: 14) {
                 Text("Mulai Sekarang")
-                    .customFont(.bold, 30)
+                    .customFont(.bold, Typography.display)
                     .foregroundStyle(.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.smooth, value: focusedField)
@@ -24,12 +24,12 @@ struct RegisterScreen: View {
 
                 HStack(spacing: 6) {
                     Text("Sudah punya akun?")
-                        .customFont(.medium, 16)
+                        .customFont(.medium, Typography.body)
                         .foregroundStyle(.subtitle)
                     Button("Masuk") {
                         navigation.navigate(to: .login)
                     }
-                    .font(.customFont(.medium, 16))
+                    .font(.customFont(.medium, Typography.body))
                     .foregroundStyle(.mySecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -114,7 +114,7 @@ struct RegisterScreen: View {
 
                 if let error = presenter.errorMessage {
                     Text(error)
-                        .customFont(.medium, 14)
+                        .customFont(.medium, Typography.callout)
                         .foregroundStyle(.expense)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -134,7 +134,7 @@ struct RegisterScreen: View {
                                 ProgressView().tint(.white)
                             } else {
                                 Text("Buat akun")
-                                    .font(.customFont(.medium, 20))
+                                    .font(.customFont(.medium, Typography.title2))
                                     .foregroundStyle(.white)
                             }
                         }
@@ -148,7 +148,7 @@ struct RegisterScreen: View {
                 .padding(.vertical, 20)
 
                 Text("Dengan mendaftar, saya menyetujui Syarat layanan dan Kebijakan privasi.")
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(.subtitle)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)

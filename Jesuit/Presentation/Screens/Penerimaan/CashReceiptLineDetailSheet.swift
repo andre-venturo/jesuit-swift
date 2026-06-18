@@ -48,11 +48,11 @@ struct CashReceiptLineDetailSheet: View {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top, spacing: 8) {
                         Text(line.accountName)
-                            .customFont(.semibold, 18)
+                            .customFont(.semibold, Typography.headline)
                             .foregroundStyle(.title)
                         if line.isPinned {
                             Text("Utama")
-                                .customFont(.medium, 11)
+                                .customFont(.medium, Typography.caption2)
                                 .foregroundStyle(.accent)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(Color.accentColor.opacity(0.14))
@@ -93,12 +93,12 @@ struct CashReceiptLineDetailSheet: View {
     private var attachmentsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Lampiran (\(attachments.count))")
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
 
             if attachments.isEmpty {
                 Text("Tidak ada lampiran.")
-                    .customFont(.regular, 14)
+                    .customFont(.regular, Typography.callout)
                     .foregroundStyle(.subtitle)
             } else {
                 ForEach(attachments) { attachment in
@@ -108,7 +108,7 @@ struct CashReceiptLineDetailSheet: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .customFont(.medium, 13)
+                    .customFont(.medium, Typography.subhead)
                     .foregroundStyle(.expense)
             }
 
@@ -127,7 +127,7 @@ struct CashReceiptLineDetailSheet: View {
                     Image(systemName: "plus")
                         .font(.system(size: 15, weight: .semibold))
                     Text("Tambah Lampiran")
-                        .customFont(.semibold, 15)
+                        .customFont(.semibold, Typography.body)
                 }
             }
             .foregroundStyle(.accent)
@@ -168,11 +168,11 @@ struct CashReceiptLineDetailSheet: View {
                         .foregroundStyle(.subtitle)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(attachment.fileName)
-                            .customFont(.medium, 14)
+                            .customFont(.medium, Typography.callout)
                             .foregroundStyle(.title)
                             .lineLimit(1)
                         Text(attachment.sizeLabel)
-                            .customFont(.regular, 12)
+                            .customFont(.regular, Typography.caption)
                             .foregroundStyle(.subtitle)
                     }
                     Spacer()
@@ -244,10 +244,10 @@ struct CashReceiptLineDetailSheet: View {
     private func field(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .customFont(.regular, 13)
+                .customFont(.regular, Typography.subhead)
                 .foregroundStyle(.subtitle)
             Text(value)
-                .customFont(.semibold, 16)
+                .customFont(.semibold, Typography.body)
                 .foregroundStyle(.title)
                 .fixedSize(horizontal: false, vertical: true)
         }

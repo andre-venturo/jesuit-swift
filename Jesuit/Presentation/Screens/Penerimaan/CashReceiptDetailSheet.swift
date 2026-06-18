@@ -150,12 +150,12 @@ struct CashReceiptDetailSheet: View {
                 .foregroundStyle(detail.status.tint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(detail.status.rawValue)
-                    .customFont(.semibold, 16)
+                    .customFont(.semibold, Typography.body)
                     .foregroundStyle(detail.status.tint)
                 if let level = detail.approvalLevel, let total = detail.totalApprovalLevels,
                    detail.status == .pendingApproval {
                     Text("Level \(level) dari \(total)")
-                        .customFont(.regular, 13)
+                        .customFont(.regular, Typography.subhead)
                         .foregroundStyle(.subtitle)
                 }
             }
@@ -197,7 +197,7 @@ struct CashReceiptDetailSheet: View {
     private func linesSection(_ detail: CashReceiptDetail) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Detail Baris (\(detail.lines.count))")
-                .customFont(.semibold, 16)
+                .customFont(.semibold, Typography.body)
                 .foregroundStyle(.title)
 
             VStack(spacing: 0) {
@@ -220,18 +220,18 @@ struct CashReceiptDetailSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 Text("\(line.lineNumber)")
-                    .customFont(.medium, 14)
+                    .customFont(.medium, Typography.callout)
                     .foregroundStyle(.subtitle)
                     .frame(width: 18, alignment: .leading)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(line.accountName)
-                            .customFont(.medium, 15)
+                            .customFont(.medium, Typography.body)
                             .foregroundStyle(.title)
                             .lineLimit(1)
                         if line.isPinned {
                             Text("Utama")
-                                .customFont(.medium, 11)
+                                .customFont(.medium, Typography.caption2)
                                 .foregroundStyle(.accent)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(Color.accentColor.opacity(0.14))
@@ -240,14 +240,14 @@ struct CashReceiptDetailSheet: View {
                     }
                     if !line.description.isEmpty {
                         Text(line.description)
-                            .customFont(.regular, 13)
+                            .customFont(.regular, Typography.subhead)
                             .foregroundStyle(.subtitle)
                             .lineLimit(2)
                     }
                 }
                 Spacer(minLength: 8)
                 Text(line.amount.asRupiah)
-                    .customFont(.semibold, 15)
+                    .customFont(.semibold, Typography.body)
                     .foregroundStyle(.title)
                     .fixedSize(horizontal: true, vertical: false)
                 Image(systemName: "chevron.right")
@@ -304,7 +304,7 @@ struct CashReceiptDetailSheet: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
                 Text(attachment.sizeLabel)
-                    .customFont(.medium, 10)
+                    .customFont(.medium, Typography.caption2)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 5).padding(.vertical, 2)
                     .background(Color.black.opacity(0.6))
@@ -374,7 +374,7 @@ struct CashReceiptDetailSheet: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: systemImage).font(.system(size: 13, weight: .semibold))
-                Text(title).customFont(.semibold, 15)
+                Text(title).customFont(.semibold, Typography.body)
             }
             .foregroundStyle(filled ? .white : tint)
             .frame(maxWidth: .infinity)
@@ -395,15 +395,15 @@ struct CashReceiptDetailSheet: View {
     private func field(_ label: String, _ value: String, sub: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
-                .customFont(.regular, 13)
+                .customFont(.regular, Typography.subhead)
                 .foregroundStyle(.subtitle)
             Text(value)
-                .customFont(.semibold, 16)
+                .customFont(.semibold, Typography.body)
                 .foregroundStyle(.title)
                 .fixedSize(horizontal: false, vertical: true)
             if let sub {
                 Text(sub)
-                    .customFont(.regular, 12)
+                    .customFont(.regular, Typography.caption)
                     .foregroundStyle(.subtitle)
             }
         }
@@ -416,7 +416,7 @@ struct CashReceiptDetailSheet: View {
                 .font(.system(size: 36))
                 .foregroundStyle(.subtitle)
             Text(text)
-                .customFont(.medium, 15)
+                .customFont(.medium, Typography.body)
                 .foregroundStyle(.subtitle)
                 .multilineTextAlignment(.center)
         }

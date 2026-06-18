@@ -27,7 +27,7 @@ struct ProjectSummaryCard: View {
                 value: {
                     (Text(unbilledHours).foregroundStyle(.title)
                         + Text(" Hrs").foregroundStyle(.subtitle))
-                        .customFont(.bold, 18)
+                        .customFont(.bold, Typography.headline)
                 }
             )
             unbilledRow(
@@ -35,7 +35,7 @@ struct ProjectSummaryCard: View {
                 value: {
                     Text(unbilledExpenses.asIDR)
                         .foregroundStyle(.title)
-                        .customFont(.bold, 18)
+                        .customFont(.bold, Typography.headline)
                 }
             )
         }
@@ -46,18 +46,18 @@ struct ProjectSummaryCard: View {
     private var timerCard: some View {
         VStack(spacing: 18) {
             Text(timerDisplay)
-                .customFont(.bold, 44)
+                .customFont(.bold, Typography.display)
                 .foregroundStyle(.white)
                 .monospacedDigit()
 
             Text("Start Project Timer")
-                .customFont(.medium, 22)
+                .customFont(.medium, Typography.title)
                 .foregroundStyle(Color.white.opacity(0.9))
 
             HStack(spacing: 14) {
                 Button(action: onLogTime) {
                     Text("Log Time")
-                        .customFont(.semibold, 18)
+                        .customFont(.semibold, Typography.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 64)
@@ -70,7 +70,7 @@ struct ProjectSummaryCard: View {
                         Image(systemName: isRunning ? "pause.fill" : "play.fill")
                             .font(.system(size: 16, weight: .bold))
                         Text(isRunning ? "Stop Timer" : "Start Timer")
-                            .customFont(.semibold, 18)
+                            .customFont(.semibold, Typography.headline)
                     }
                     .foregroundStyle(Color(red: 0.06, green: 0.07, blue: 0.25))
                     .frame(maxWidth: .infinity)
@@ -101,7 +101,7 @@ struct ProjectSummaryCard: View {
     ) -> some View {
         HStack {
             Text(title)
-                .customFont(.regular, 18)
+                .customFont(.regular, Typography.headline)
                 .foregroundStyle(.subtitle)
             Spacer()
             value()
