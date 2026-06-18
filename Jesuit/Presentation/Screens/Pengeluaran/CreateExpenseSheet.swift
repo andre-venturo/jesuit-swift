@@ -92,35 +92,30 @@ struct CreateExpenseSheet: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                fieldLabel("Tanggal")
-                DatePicker(
-                    "",
-                    selection: Binding(get: { form.date }, set: { form.date = $0 }),
-                    displayedComponents: .date
-                )
-                .labelsHidden()
-                .tint(.accent)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                fieldLabel("Akun Kas/Bank")
-                accountMenu(
-                    selectedId: form.cashAccountId,
-                    onSelect: { form.cashAccountId = $0 }
-                )
-            }
+        FormCard("Detail Transaksi") {
+            FormDateRow(label: "Tanggal", required: true,
+                        date: Binding(get: { form.date }, set: { form.date = $0 }))
+            FormPickerRow(
+                label: "Akun Kas/Bank", required: true,
+                options: form.accounts.map(SelectionOption.init(account:)),
+                selectedId: form.cashAccountId,
+                placeholder: "Pilih akun",
+                sheetTitle: "Pilih Akun",
+                searchPrompt: "Cari akun…",
+                showDivider: false,
+                onSelect: { form.cashAccountId = $0 }
+            )
         }
     }
 
     // MARK: - Lines
 
     private var linesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
-                fieldLabel("Detail Baris")
+                Text("DETAIL BARIS")
+                    .customFont(.semibold, Typography.caption)
+                    .foregroundStyle(.subtitle)
                 Spacer()
                 Button {
                     editing = LineEdit(draft: form.newLine(), original: nil)
@@ -133,33 +128,48 @@ struct CreateExpenseSheet: View {
                     .foregroundStyle(.accent)
                 }
             }
+            .padding(.leading, 4)
 
-            if form.lines.isEmpty {
-                Text("Belum ada baris.")
-                    .customFont(.regular, Typography.callout)
-                    .foregroundStyle(.subtitle)
-            } else {
-                VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                if form.lines.isEmpty {
+                    Button { editing = LineEdit(draft: form.newLine(), original: nil) } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "plus.circle.fill").foregroundStyle(.accent)
+                            Text("Tambah baris")
+                                .customFont(.regular, Typography.body)
+                                .foregroundStyle(.accent)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 52)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
                     ForEach(Array(form.lines.enumerated()), id: \.element.id) { index, line in
                         lineRow(line)
-                        if index < form.lines.count - 1 { Divider() }
+                        FormRowDivider()
                     }
-                }
-                .padding(.vertical, 4)
-                .background(Color.textFieldBG)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                HStack {
-                    Text("Total")
-                        .customFont(.bold, Typography.body)
-                        .foregroundStyle(.title)
-                    Spacer()
-                    Text(form.total.asIDR)
-                        .customFont(.bold, Typography.body)
-                        .foregroundStyle(.title)
+                    totalRow
                 }
             }
+            .background(Color.textFieldBG)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
+    }
+
+    private var totalRow: some View {
+        HStack {
+            Text("Total")
+                .customFont(.bold, Typography.body)
+                .foregroundStyle(.title)
+            Spacer()
+            Text(form.total.asIDR)
+                .customFont(.bold, Typography.body)
+                .foregroundStyle(.title)
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 52)
     }
 
     private func lineRow(_ line: PengeluaranPresenter.LineDraft) -> some View {
@@ -198,8 +208,8 @@ struct CreateExpenseSheet: View {
                     .foregroundStyle(.expense)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
     // MARK: - Actions
@@ -241,12 +251,6 @@ struct CreateExpenseSheet: View {
 
     // MARK: - Helpers
 
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .customFont(.medium, Typography.body)
-            .foregroundStyle(.subtitle)
-    }
-
     private func actionLabel(_ title: String, filled: Bool) -> some View {
         Text(title)
             .customFont(.medium, Typography.body)
@@ -255,21 +259,6 @@ struct CreateExpenseSheet: View {
             .padding(.vertical, 14)
             .background(filled ? Color.accentColor : Color.textFieldBG)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    @ViewBuilder
-    private func accountMenu(
-        selectedId: String?,
-        onSelect: @escaping (String) -> Void
-    ) -> some View {
-        SelectionField(
-            options: form.accounts.map(SelectionOption.init(account:)),
-            selectedId: selectedId,
-            placeholder: "Pilih akun",
-            sheetTitle: "Pilih Akun",
-            searchPrompt: "Cari akun…",
-            onSelect: onSelect
-        )
     }
 }
 
@@ -286,16 +275,15 @@ private struct EditLineSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Akun Lawan *")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.subtitle)
-                        SelectionField(
+                    FormCard {
+                        FormPickerRow(
+                            label: "Akun Lawan", required: true,
                             options: form.accounts.map(SelectionOption.init(account:)),
                             selectedId: draft.accountId,
                             placeholder: "Pilih akun",
                             sheetTitle: "Pilih Akun",
                             searchPrompt: "Cari akun…",
+                            showDivider: false,
                             onSelect: { draft.accountId = $0 }
                         )
                     }

@@ -38,24 +38,36 @@ struct CreateContactSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    sectionHeader("Detail Kontak")
-                    field("Nama", text: bind(\.name), hint: "Nama kontak")
-                    categorySection
-                    field("Email", text: bind(\.email), hint: "name@email.com", keyboard: .emailAddress)
-                    field("Telepon", text: bind(\.phone), hint: "08xxxxxxxxxx", keyboard: .phonePad)
-                    field("Alamat", text: bind(\.address), hint: "Alamat")
-
-                    sectionHeader("Narahubung (PIC)")
-                    field("Nama PIC", text: bind(\.picName), hint: "Nama PIC")
-                    field("Jabatan PIC", text: bind(\.picPosition), hint: "Jabatan")
-
-                    Toggle(isOn: bind(\.isActive)) {
-                        Text("Aktif")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.title)
+                VStack(alignment: .leading, spacing: 20) {
+                    FormCard("Detail Kontak") {
+                        FormFieldRow(label: "Nama", required: true, text: bind(\.name),
+                                     placeholder: "Nama kontak")
+                        FormPickerRow(
+                            label: "Kategori", required: true,
+                            options: form.categories.map { SelectionOption(id: $0.id, title: $0.name) },
+                            selectedId: form.categoryId.isEmpty ? nil : form.categoryId,
+                            placeholder: "Pilih kategori",
+                            sheetTitle: "Kategori",
+                            searchPrompt: "Cari kategori…",
+                            onSelect: { form.categoryId = $0 }
+                        )
+                        FormFieldRow(label: "Email", text: bind(\.email),
+                                     placeholder: "name@email.com", keyboard: .emailAddress)
+                        FormFieldRow(label: "Telepon", text: bind(\.phone),
+                                     placeholder: "08xxxxxxxxxx", keyboard: .phonePad)
+                        FormFieldRow(label: "Alamat", text: bind(\.address),
+                                     placeholder: "Alamat", showDivider: false)
                     }
-                    .tint(.accent)
+
+                    FormCard("Narahubung (PIC)") {
+                        FormFieldRow(label: "Nama PIC", text: bind(\.picName), placeholder: "Nama PIC")
+                        FormFieldRow(label: "Jabatan PIC", text: bind(\.picPosition),
+                                     placeholder: "Jabatan", showDivider: false)
+                    }
+
+                    FormCard {
+                        FormToggleRow(label: "Aktif", isOn: bind(\.isActive))
+                    }
 
                     if let error = form.errorMessage {
                         Text(error)
@@ -101,22 +113,6 @@ struct CreateContactSheet: View {
                 presenter.startCreate()
             }
             await presenter.loadCategories()
-        }
-    }
-
-    // MARK: - Category
-
-    private var categorySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            fieldLabel("Kategori")
-            SelectionField(
-                options: form.categories.map { SelectionOption(id: $0.id, title: $0.name) },
-                selectedId: form.categoryId.isEmpty ? nil : form.categoryId,
-                placeholder: "Pilih kategori",
-                sheetTitle: "Kategori",
-                searchPrompt: "Cari kategori…",
-                onSelect: { form.categoryId = $0 }
-            )
         }
     }
 
@@ -184,40 +180,5 @@ struct CreateContactSheet: View {
 
     private func bind(_ keyPath: ReferenceWritableKeyPath<ContactPresenter.CreateForm, Bool>) -> Binding<Bool> {
         Binding(get: { form[keyPath: keyPath] }, set: { form[keyPath: keyPath] = $0 })
-    }
-
-    private func field(
-        _ label: String,
-        text: Binding<String>,
-        hint: String,
-        keyboard: UIKeyboardType = .default
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            fieldLabel(label)
-            TextField("", text: text, prompt: Text(hint).foregroundStyle(Color.subtitle))
-                .font(.customFont(.regular, Typography.body))
-                .foregroundStyle(Color.title)
-                .keyboardType(keyboard)
-                .textInputAutocapitalization(keyboard == .emailAddress ? .never : .words)
-                .autocorrectionDisabled(keyboard == .emailAddress)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 14)
-                .background(Color.textFieldBG)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .customFont(.medium, Typography.body)
-            .foregroundStyle(.subtitle)
-    }
-
-    /// Group heading separating the form into Zoho-style sections.
-    private func sectionHeader(_ text: String) -> some View {
-        Text(text.uppercased())
-            .customFont(.semibold, Typography.caption)
-            .foregroundStyle(.subtitle)
-            .padding(.top, 4)
     }
 }
