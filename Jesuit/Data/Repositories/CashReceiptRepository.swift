@@ -290,4 +290,25 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
             mimeType: dto.mimeType ?? attachment.mimeType
         )
     }
+
+    // MARK: - Activity log (Riwayat tab)
+
+    func fetchActivity(reffId: String) async throws -> [AuditLogDTO] {
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.baseURL,
+            path: AppURLConstants.Core.auditLogs,
+            method: .get,
+            parameters: [
+                "reff_type": "finance.cash_transactions",
+                "reff_id": reffId,
+                "limit": "100"
+            ]
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: PaginatedResponse<AuditLogDTO>.self
+        )
+        return response.data ?? []
+    }
 }

@@ -23,6 +23,9 @@ final class CashReceiptDetailPresenter {
     /// In-flight action (approve/reject/delete/update) → drives a busy overlay.
     private(set) var actionState: AppState<Bool> = .idle
 
+    /// Activity log for the "Riwayat" tab, loaded lazily on first view.
+    private(set) var activityState: AppState<[ActivityEntry]> = .idle
+
     private var accounts: [AccountDTO] = []
     private var branches: [BranchDTO] = []
 
@@ -55,6 +58,40 @@ final class CashReceiptDetailPresenter {
     var detail: CashReceiptDetail? {
         if case .success(let d) = state { return d }
         return nil
+    }
+
+    // MARK: - Activity (Riwayat tab)
+
+    var isLoadingActivity: Bool {
+        if case .loading = activityState { return true }
+        return false
+    }
+
+    var activityErrorMessage: String? {
+        if case .error(let error) = activityState { return LoginPresenter.message(for: error) }
+        return nil
+    }
+
+    var activity: [ActivityEntry] {
+        if case .success(let entries) = activityState { return entries }
+        return []
+    }
+
+    /// Loads the transaction's activity log. Idempotent: skips if already loaded
+    /// or in flight (called when the Riwayat tab first appears).
+    func loadActivity() async {
+        switch activityState {
+        case .loading, .success: return
+        default: break
+        }
+        activityState = .loading
+        do {
+            let logs = try await repository.fetchActivity(reffId: id)
+            let entries = logs.map(ActivityEntry.init(dto:))
+            activityState = entries.isEmpty ? .empty : .success(entries)
+        } catch {
+            activityState = .error(error)
+        }
     }
 
     // MARK: - Role / status gating

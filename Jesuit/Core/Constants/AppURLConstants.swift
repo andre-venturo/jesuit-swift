@@ -52,6 +52,10 @@ enum AppURLConstants {
 
     enum Core {
         static let branches = "/branches"
+        /// `GET /audit-logs?reff_type&reff_id&limit` — a document's activity log.
+        static let auditLogs = "/audit-logs"
+        /// `GET /approval-requests/by-doc?reff_type&reff_id` — approval progress.
+        static let approvalRequestsByDoc = "/approval-requests/by-doc"
         /// `POST /companies` — create a company (holding or subsidiary).
         static let companies = "/companies"
         /// `/companies/{id}` — PUT update, DELETE.

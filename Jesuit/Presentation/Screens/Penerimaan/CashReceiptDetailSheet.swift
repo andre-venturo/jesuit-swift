@@ -26,6 +26,14 @@ struct CashReceiptDetailSheet: View {
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
     @State private var selectedLine: CashReceiptLine?
+    @State private var tab: DetailTab = .detail
+
+    /// Detail-sheet segmented tabs (Zoho's "Expense Details / History").
+    private enum DetailTab: String, CaseIterable, Identifiable {
+        case detail = "Detail"
+        case riwayat = "Riwayat"
+        var id: String { rawValue }
+    }
 
     init(id: String, kind: Kind = .receipt, onChanged: @escaping () -> Void) {
         self.id = id
@@ -125,11 +133,22 @@ struct CashReceiptDetailSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 statusBanner(detail)
-                fieldsGrid(detail)
-                if !detail.description.isEmpty {
-                    field("Deskripsi", detail.description)
+
+                Picker("", selection: $tab) {
+                    ForEach(DetailTab.allCases) { Text($0.rawValue).tag($0) }
                 }
-                linesSection(detail)
+                .pickerStyle(.segmented)
+
+                switch tab {
+                case .detail:
+                    fieldsGrid(detail)
+                    if !detail.description.isEmpty {
+                        field("Deskripsi", detail.description)
+                    }
+                    linesSection(detail)
+                case .riwayat:
+                    riwayatSection
+                }
             }
             .padding(20)
             .padding(.bottom, 90)
@@ -140,6 +159,68 @@ struct CashReceiptDetailSheet: View {
                 Color.black.opacity(0.2).ignoresSafeArea()
                 ProgressView().tint(.accent)
             }
+        }
+        .task(id: tab) {
+            if tab == .riwayat { await presenter.loadActivity() }
+        }
+    }
+
+    // MARK: - Riwayat (activity log)
+
+    @ViewBuilder
+    private var riwayatSection: some View {
+        if presenter.isLoadingActivity {
+            ProgressView().tint(.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 40)
+        } else if let error = presenter.activityErrorMessage {
+            stateMessage(error, systemImage: "exclamationmark.triangle")
+        } else if presenter.activity.isEmpty {
+            stateMessage("Belum ada riwayat.", systemImage: "clock")
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                let entries = presenter.activity
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    activityRow(entry, isLast: index == entries.count - 1)
+                }
+            }
+        }
+    }
+
+    private func activityRow(_ entry: ActivityEntry, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 4)
+                if !isLast {
+                    Rectangle()
+                        .fill(Color.subtitle.opacity(0.3))
+                        .frame(width: 1.5)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .frame(width: 10)
+
+            VStack(alignment: .leading, spacing: 3) {
+                if let date = entry.date {
+                    Text(Self.dateTimeFormat(date))
+                        .customFont(.regular, Typography.subhead)
+                        .foregroundStyle(.subtitle)
+                }
+                Text(entry.title)
+                    .customFont(.semibold, Typography.body)
+                    .foregroundStyle(.title)
+                if !entry.actor.isEmpty {
+                    Text(entry.actor)
+                        .customFont(.regular, Typography.subhead)
+                        .foregroundStyle(.subtitle)
+                }
+            }
+            .padding(.bottom, isLast ? 0 : 18)
+
+            Spacer(minLength: 0)
         }
     }
 

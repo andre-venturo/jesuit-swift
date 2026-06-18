@@ -72,4 +72,9 @@ protocol CashReceiptRepositoryProtocol: Sendable {
         lineId: String,
         attachment: CashAttachment
     ) async throws -> CashLineAttachment
+
+    /// Loads a transaction's activity log for the detail "Riwayat" tab
+    /// (`GET /core/v1/audit-logs?reff_type=finance.cash_transactions&reff_id={id}`),
+    /// newest first.
+    func fetchActivity(reffId: String) async throws -> [AuditLogDTO]
 }
