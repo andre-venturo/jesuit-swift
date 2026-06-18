@@ -105,6 +105,9 @@ struct CashFlowChartCard: View {
 
     // MARK: - Summary panel (Laba Rugi / Arus Kas)
 
+    /// Mobile-first summary: lead with the outcome (profit / cash increase) as a
+    /// hero number, then list the two contributing amounts as simple, full-width
+    /// lines with a colored dot. Vertical and scannable — no side-by-side tiles.
     private func panel(
         title: String,
         change: Double,
@@ -114,59 +117,56 @@ struct CashFlowChartCard: View {
         totalLabel: String,
         total: Double
     ) -> some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            // Header: section name + trend
             HStack {
                 Text(title)
-                    .customFont(.bold, Typography.headline)
+                    .customFont(.bold, Typography.body)
                     .foregroundStyle(.title)
                 Spacer()
                 trendBadge(change: change, trend: trend)
             }
 
-            HStack(spacing: 12) {
-                metric(left.label, left.amount, tint: left.tint)
-                metric(right.label, right.amount, tint: right.tint)
+            // Hero: the headline result
+            VStack(alignment: .leading, spacing: 2) {
+                Text(total.asSignedRupiah)
+                    .customFont(.bold, Typography.title)
+                    .foregroundStyle(total < 0 ? Color.expense : .income)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text(totalLabel)
+                    .customFont(.regular, Typography.subhead)
+                    .foregroundStyle(.subtitle)
             }
 
-            totalRow(totalLabel, total)
+            // Breakdown
+            VStack(spacing: 10) {
+                breakdownLine(left.label, left.amount, tint: left.tint)
+                breakdownLine(right.label, right.amount, tint: right.tint)
+            }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func metric(_ label: String, _ amount: Double, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    /// A dot · label ────── amount line.
+    private func breakdownLine(_ label: String, _ amount: Double, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(tint)
+                .frame(width: 7, height: 7)
             Text(label)
                 .customFont(.regular, Typography.callout)
                 .foregroundStyle(.subtitle)
-                .lineLimit(1)
-            Text(amount.asSignedRupiah)
-                .customFont(.semibold, Typography.headline)
-                .foregroundStyle(tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func totalRow(_ label: String, _ amount: Double) -> some View {
-        HStack(spacing: 10) {
-            Text(label)
-                .customFont(.bold, Typography.body)
-                .foregroundStyle(.title)
             Spacer(minLength: 8)
             Text(amount.asSignedRupiah)
-                .customFont(.bold, Typography.title2)
-                .foregroundStyle(amount < 0 ? Color.expense : .income)
+                .customFont(.medium, Typography.callout)
+                .foregroundStyle(.title)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func trendBadge(change: Double, trend: String) -> some View {
@@ -178,11 +178,11 @@ struct CashFlowChartCard: View {
             Image(systemName: glyph)
                 .font(.system(size: 11, weight: .bold))
             Text("\(Int(change.rounded()))%")
-                .customFont(.semibold, Typography.callout)
+                .customFont(.semibold, Typography.subhead)
         }
         .foregroundStyle(tint)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
         .background(tint.opacity(0.14))
         .clipShape(Capsule())
     }

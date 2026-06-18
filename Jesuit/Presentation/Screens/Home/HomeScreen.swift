@@ -288,7 +288,6 @@ struct HomeScreen: View {
                 )
             }
         }
-        .padding(.horizontal, -16)
     }
 
     private var cashAccountsEmptyState: some View {

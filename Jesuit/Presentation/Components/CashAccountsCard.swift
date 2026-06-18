@@ -24,23 +24,23 @@ struct CashAccountsCard: View {
     private var canToggle: Bool { accounts.count > collapsedLimit }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 14) {
             header
-            Divider().opacity(0.4)
 
-            ForEach(Array(visibleAccounts.enumerated()), id: \.element.id) { index, account in
-                accountRow(account)
-                if index < visibleAccounts.count - 1 {
-                    Divider().opacity(0.4).padding(.leading, 18)
+            VStack(spacing: 12) {
+                ForEach(visibleAccounts) { account in
+                    accountRow(account)
                 }
             }
 
             if canToggle {
-                Divider().opacity(0.4)
                 showMoreButton
             }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var showMoreButton: some View {
@@ -49,54 +49,54 @@ struct CashAccountsCard: View {
         } label: {
             HStack(spacing: 6) {
                 Text(isExpanded ? "Tampilkan Lebih Sedikit" : "Tampilkan Semua (\(accounts.count))")
-                    .customFont(.semibold, Typography.body)
+                    .customFont(.semibold, Typography.callout)
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(.accent)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
+            .padding(.top, 2)
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (title + hero total)
 
     private var header: some View {
-        HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Rekening Kas & Bank")
-                .customFont(.bold, Typography.title2)
+                .customFont(.bold, Typography.body)
                 .foregroundStyle(.title)
-            Spacer(minLength: 12)
-            VStack(alignment: .trailing, spacing: 4) {
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(total.asRupiah)
+                    .customFont(.bold, Typography.title)
+                    .foregroundStyle(total < 0 ? Color.expense : .title)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                 Text("Total Saldo")
                     .customFont(.regular, Typography.subhead)
                     .foregroundStyle(.subtitle)
-                Text(total.asRupiah)
-                    .customFont(.bold, Typography.headline)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
             }
         }
-        .padding(18)
     }
 
-    // MARK: - Row
+    // MARK: - Row (dot · name ── balance)
 
     private func accountRow(_ account: CashAccount) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(account.balance < 0 ? Color.expense : Color.income)
+                .frame(width: 7, height: 7)
             Text(account.name)
-                .customFont(.regular, Typography.body)
-                .foregroundStyle(.title)
+                .customFont(.regular, Typography.callout)
+                .foregroundStyle(.subtitle)
                 .lineLimit(1)
             Spacer(minLength: 8)
             Text(account.balance.asRupiah)
-                .customFont(.semibold, Typography.body)
+                .customFont(.medium, Typography.callout)
                 .foregroundStyle(account.balance < 0 ? Color.expense : .title)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
     }
 }
