@@ -11,6 +11,8 @@ import SwiftUI
 struct PenerimaanScreen: View {
     @State private var presenter = AppDI.shared.resolver(PenerimaanPresenter.self)
     @State private var showCreate = false
+    @State private var showFilter = false
+    @State private var showSort = false
     @State private var selected: SelectedReceipt?
 
     /// Identifiable wrapper so `sheet(item:)` can present a receipt by id.
@@ -28,7 +30,8 @@ struct PenerimaanScreen: View {
                     onSelectChip: { label in
                         if let f = PenerimaanPresenter.Filter(rawValue: label) { presenter.filter = f }
                     },
-                    onToggleSort: { presenter.toggleSort() }
+                    onOpenFilter: { showFilter = true },
+                    onOpenSort: { showSort = true }
                 )
 
                 content
@@ -46,6 +49,28 @@ struct PenerimaanScreen: View {
         }
         .sheet(item: $selected) { item in
             CashReceiptDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
+        }
+        .sheet(isPresented: $showFilter) {
+            FilterBySheet(
+                title: "Filter Berdasarkan",
+                options: PenerimaanPresenter.Filter.allCases.map {
+                    FilterOption(id: $0.rawValue, label: $0.rawValue, count: presenter.count(for: $0.status))
+                },
+                selectedId: presenter.filter.rawValue,
+                onSelect: { id in
+                    if let f = PenerimaanPresenter.Filter(rawValue: id) { presenter.filter = f }
+                }
+            )
+        }
+        .sheet(isPresented: $showSort) {
+            SortBySheet(
+                field: presenter.sortField,
+                direction: presenter.sortDirection,
+                onApply: { field, direction in
+                    presenter.sortField = field
+                    presenter.sortDirection = direction
+                }
+            )
         }
         .hotReloadable()
     }

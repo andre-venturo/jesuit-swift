@@ -15,26 +15,33 @@ import Observation
 final class PenerimaanPresenter {
     private let repository: CashReceiptRepositoryProtocol
 
-    /// Top filter chip selection.
+    /// Status filter selection — the four real API statuses plus "All".
+    /// `rawValue` is the chip/sheet label; `status` maps to the receipt status
+    /// (`nil` == all).
     enum Filter: String, CaseIterable, Identifiable, Sendable {
-        case draft = "Draft"
-        case unpaid = "Unpaid"
-        case all = "All"
+        case all      = "Semua"
+        case draft    = "Draft"
+        case waiting  = "Menunggu"
+        case posted   = "Disetujui"
+        case rejected = "Ditolak"
         var id: String { rawValue }
+
+        /// Status this filter matches; `nil` for `.all`.
+        var status: ReceiptStatus? {
+            switch self {
+            case .all:      return nil
+            case .draft:    return .draft
+            case .waiting:  return .pendingApproval
+            case .posted:   return .approved
+            case .rejected: return .rejected
+            }
+        }
     }
 
-    /// Sort order for the list (toggled by the sort button).
-    enum SortOrder: Sendable { case dateDesc, dateAsc }
-
-    /// Filter tab selection. `nil` == "Semua" (all).
-    var selectedStatus: ReceiptStatus? = nil
     var filter: Filter = .all
-    var sortOrder: SortOrder = .dateDesc
+    var sortField: ReceiptSortField = .createdTime
+    var sortDirection: SortDirection = .newToOld
     var searchText: String = ""
-
-    func toggleSort() {
-        sortOrder = sortOrder == .dateDesc ? .dateAsc : .dateDesc
-    }
 
     private(set) var receipts: [CashReceipt] = []
     private(set) var state: AppState<[CashReceipt]> = .idle
@@ -81,23 +88,13 @@ final class PenerimaanPresenter {
     /// Receipts after applying the filter chip, search query and sort.
     var filtered: [CashReceipt] {
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        let status = filter.status
         return receipts
-            .filter { receipt in
-                switch filter {
-                case .all:    return true
-                case .draft:  return receipt.status == .draft
-                case .unpaid: return receipt.status == .pendingApproval
-                }
-            }
+            .filter { status == nil || $0.status == status }
             .filter { query.isEmpty
                 || $0.number.lowercased().contains(query)
                 || $0.description.lowercased().contains(query) }
-            .sorted { lhs, rhs in
-                switch sortOrder {
-                case .dateDesc: return lhs.date > rhs.date
-                case .dateAsc:  return lhs.date < rhs.date
-                }
-            }
+            .sorted { CashReceipt.isOrdered($0, $1, by: sortField, sortDirection) }
     }
 
     /// Total count for a given tab (`nil` == Semua). Prefers the server-provided

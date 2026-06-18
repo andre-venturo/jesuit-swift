@@ -11,6 +11,8 @@ import SwiftUI
 struct KontakScreen: View {
     @State private var presenter = AppDI.shared.resolver(ContactPresenter.self)
     @State private var showCreate = false
+    @State private var showFilter = false
+    @State private var showSort = false
     @State private var editingContact: Contact?
 
     var body: some View {
@@ -25,7 +27,8 @@ struct KontakScreen: View {
                     onSelectChip: { label in
                         if let f = ContactPresenter.Filter(rawValue: label) { presenter.filter = f }
                     },
-                    onToggleSort: { presenter.toggleSort() }
+                    onOpenFilter: { showFilter = true },
+                    onOpenSort: { showSort = true }
                 )
 
                 content
@@ -43,6 +46,30 @@ struct KontakScreen: View {
         }
         .sheet(item: $editingContact) { contact in
             CreateContactSheet(editing: contact, onCreated: { Task { await presenter.load() } })
+        }
+        .sheet(isPresented: $showFilter) {
+            FilterBySheet(
+                title: "Filter Berdasarkan",
+                options: ContactPresenter.Filter.allCases.map {
+                    FilterOption(id: $0.rawValue, label: $0.rawValue)
+                },
+                selectedId: presenter.filter.rawValue,
+                onSelect: { id in
+                    if let f = ContactPresenter.Filter(rawValue: id) { presenter.filter = f }
+                }
+            )
+        }
+        .sheet(isPresented: $showSort) {
+            FilterBySheet(
+                title: "Urutkan",
+                options: ContactPresenter.SortOrder.allCases.map {
+                    FilterOption(id: $0.rawValue, label: $0.rawValue)
+                },
+                selectedId: presenter.sortOrder.rawValue,
+                onSelect: { id in
+                    if let o = ContactPresenter.SortOrder(rawValue: id) { presenter.sortOrder = o }
+                }
+            )
         }
         .hotReloadable()
     }

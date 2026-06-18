@@ -21,8 +21,12 @@ final class ContactPresenter {
         var id: String { rawValue }
     }
 
-    /// Sort order for the list (toggled by the sort button).
-    enum SortOrder: Sendable { case nameAsc, nameDesc }
+    /// Sort order for the list (chosen in the Urutkan sheet).
+    enum SortOrder: String, CaseIterable, Identifiable, Sendable {
+        case nameAsc  = "Nama (A-Z)"
+        case nameDesc = "Nama (Z-A)"
+        var id: String { rawValue }
+    }
 
     private(set) var contacts: [Contact] = []
     private(set) var state: AppState<[Contact]> = .idle
@@ -56,10 +60,6 @@ final class ContactPresenter {
                 case .nameDesc: return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedDescending
                 }
             }
-    }
-
-    func toggleSort() {
-        sortOrder = sortOrder == .nameAsc ? .nameDesc : .nameAsc
     }
 
     var isLoading: Bool {

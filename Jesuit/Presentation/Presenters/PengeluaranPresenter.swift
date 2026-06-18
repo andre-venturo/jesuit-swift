@@ -15,19 +15,30 @@ import Observation
 final class PengeluaranPresenter {
     private let repository: CashReceiptRepositoryProtocol
 
-    /// Top filter chip selection.
+    /// Status filter selection — the four real API statuses plus "All".
     enum Filter: String, CaseIterable, Identifiable, Sendable {
-        case all = "All"
-        case unpaid = "Unpaid"
-        case draft = "Draft"
+        case all      = "Semua"
+        case draft    = "Draft"
+        case waiting  = "Menunggu"
+        case posted   = "Disetujui"
+        case rejected = "Ditolak"
         var id: String { rawValue }
+
+        /// Status this filter matches; `nil` for `.all`.
+        var status: ReceiptStatus? {
+            switch self {
+            case .all:      return nil
+            case .draft:    return .draft
+            case .waiting:  return .pendingApproval
+            case .posted:   return .approved
+            case .rejected: return .rejected
+            }
+        }
     }
 
-    /// Sort order for the list (toggled by the sort button).
-    enum SortOrder: Sendable { case dateDesc, dateAsc }
-
     var filter: Filter = .all
-    var sortOrder: SortOrder = .dateDesc
+    var sortField: ReceiptSortField = .createdTime
+    var sortDirection: SortDirection = .newToOld
     var searchText: String = ""
 
     private(set) var expenses: [CashReceipt] = []
@@ -55,10 +66,6 @@ final class PengeluaranPresenter {
         return nil
     }
 
-    func toggleSort() {
-        sortOrder = sortOrder == .dateDesc ? .dateAsc : .dateDesc
-    }
-
     /// Loads the first page of cash disbursements from the finance API.
     func load() async {
         state = .loading
@@ -79,23 +86,29 @@ final class PengeluaranPresenter {
     /// Expenses after applying the filter chip, search and sort.
     var filtered: [CashReceipt] {
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        let status = filter.status
         return expenses
-            .filter { expense in
-                switch filter {
-                case .all:    return true
-                case .unpaid: return expense.status == .pendingApproval
-                case .draft:  return expense.status == .draft
-                }
-            }
+            .filter { status == nil || $0.status == status }
             .filter { query.isEmpty
                 || $0.number.lowercased().contains(query)
                 || $0.description.lowercased().contains(query) }
-            .sorted { lhs, rhs in
-                switch sortOrder {
-                case .dateDesc: return lhs.date > rhs.date
-                case .dateAsc:  return lhs.date < rhs.date
-                }
+            .sorted { CashReceipt.isOrdered($0, $1, by: sortField, sortDirection) }
+    }
+
+    /// Total count for a given tab (`nil` == Semua). Prefers the server-provided
+    /// counts; falls back to counting the loaded page.
+    func count(for status: ReceiptStatus?) -> Int {
+        if let counts = serverCounts {
+            switch status {
+            case .none:             return counts.all ?? expenses.count
+            case .draft:            return counts.draft ?? 0
+            case .pendingApproval:  return counts.waiting ?? 0
+            case .approved:         return counts.posted ?? 0
+            case .rejected:         return counts.rejected ?? 0
             }
+        }
+        guard let status else { return expenses.count }
+        return expenses.filter { $0.status == status }.count
     }
 
     var total: Double { expenses.reduce(0) { $0 + $1.amount } }

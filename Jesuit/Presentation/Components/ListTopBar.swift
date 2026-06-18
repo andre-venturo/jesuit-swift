@@ -19,7 +19,10 @@ struct ListTopBar: View {
     let selectedChip: String
     let onSelectChip: (String) -> Void
 
-    let onToggleSort: () -> Void
+    /// Opens the extended "Filter Berdasarkan" sheet (the chevron-down button).
+    let onOpenFilter: () -> Void
+    /// Opens the "Urutkan" sort sheet (the sort button).
+    let onOpenSort: () -> Void
 
     @State private var showSearch = false
 
@@ -79,9 +82,7 @@ struct ListTopBar: View {
             ForEach(chips, id: \.self) { label in
                 chip(label)
             }
-            Button {
-                // Reserved for the extended filter sheet.
-            } label: {
+            Button(action: onOpenFilter) {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.title)
@@ -91,7 +92,7 @@ struct ListTopBar: View {
 
             Spacer()
 
-            Button(action: onToggleSort) {
+            Button(action: onOpenSort) {
                 Image(systemName: "line.3.horizontal.decrease")
                     .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(.title)

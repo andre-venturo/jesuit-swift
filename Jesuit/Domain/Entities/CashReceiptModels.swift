@@ -48,6 +48,28 @@ extension ReceiptStatus {
     }
 }
 
+/// Field the cash-transaction list is sorted by (client-side, over the loaded
+/// page — the API has no sort param). Shared by the Penerimaan and Pengeluaran
+/// Sort sheets.
+enum ReceiptSortField: String, CaseIterable, Identifiable, Sendable {
+    case createdTime  = "Waktu Dibuat"
+    case lastModified = "Terakhir Diperbarui"
+    case date         = "Tanggal"
+    case number       = "No. Transaksi"
+    case amount       = "Jumlah"
+    var id: String { rawValue }
+}
+
+/// Sort direction for a `ReceiptSortField`.
+enum SortDirection: Sendable {
+    case newToOld, oldToNew
+
+    var label: String { self == .newToOld ? "Terbaru ke Terlama" : "Terlama ke Terbaru" }
+    /// Arrow shown on the selected sort row.
+    var systemImage: String { self == .newToOld ? "arrow.down" : "arrow.up" }
+    mutating func toggle() { self = self == .newToOld ? .oldToNew : .newToOld }
+}
+
 /// A single cash-receipt transaction row.
 struct CashReceipt: Identifiable, Sendable {
     let id: String
@@ -58,6 +80,7 @@ struct CashReceipt: Identifiable, Sendable {
     let amount: Double          // Jumlah
     let status: ReceiptStatus   // Status
     let createdAt: Date         // Dibuat Pada
+    let updatedAt: Date         // Terakhir Diperbarui
 
     init(
         id: String = UUID().uuidString,
@@ -67,7 +90,8 @@ struct CashReceipt: Identifiable, Sendable {
         account: String,
         amount: Double,
         status: ReceiptStatus,
-        createdAt: Date
+        createdAt: Date,
+        updatedAt: Date
     ) {
         self.id = id
         self.number = number
@@ -77,6 +101,24 @@ struct CashReceipt: Identifiable, Sendable {
         self.amount = amount
         self.status = status
         self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CashReceipt {
+    /// Orders two receipts by the given field + direction. Used by both the
+    /// Penerimaan and Pengeluaran list sorters.
+    static func isOrdered(_ lhs: CashReceipt, _ rhs: CashReceipt,
+                          by field: ReceiptSortField, _ direction: SortDirection) -> Bool {
+        let ascending: Bool
+        switch field {
+        case .createdTime:  ascending = lhs.createdAt < rhs.createdAt
+        case .lastModified: ascending = lhs.updatedAt < rhs.updatedAt
+        case .date:         ascending = lhs.date < rhs.date
+        case .number:       ascending = lhs.number.localizedStandardCompare(rhs.number) == .orderedAscending
+        case .amount:       ascending = lhs.amount < rhs.amount
+        }
+        return direction == .oldToNew ? ascending : !ascending
     }
 }
 
@@ -91,7 +133,8 @@ extension CashReceipt {
             account: dto.accountName ?? "-",
             amount: dto.amount ?? 0,
             status: ReceiptStatus(apiStatus: dto.status),
-            createdAt: dto.createdAt ?? dto.date ?? .now
+            createdAt: dto.createdAt ?? dto.date ?? .now,
+            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.date ?? .now
         )
     }
 }
@@ -444,6 +487,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
     let amount: Double?
     let status: String?
     let createdAt: Date?
+    let updatedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id, amount, status, description
@@ -452,6 +496,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
         case referenceNumber   = "reference_number"
         case transactionDate   = "transaction_date"
         case createdAt         = "created_at"
+        case updatedAt         = "updated_at"
         case totalAmount       = "total_amount"
         case originalAmount    = "original_amount"
         case cashAccountName   = "cash_account_name"
@@ -478,6 +523,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
             ?? CashTransactionDTO.decodeFlexibleDouble(c, forKey: .amount)
         date = CashTransactionDTO.decodeFlexibleDate(c, forKey: .transactionDate)
         createdAt = CashTransactionDTO.decodeFlexibleDate(c, forKey: .createdAt)
+        updatedAt = CashTransactionDTO.decodeFlexibleDate(c, forKey: .updatedAt)
 
         // Account may arrive flat (cash_account_name) or nested under
         // `cash_account` / `account`.
