@@ -25,6 +25,7 @@ struct CashReceiptDetailSheet: View {
     @State private var showReject = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
+    @State private var showMoreOptions = false
     @State private var selectedLine: CashReceiptLine?
     @State private var tab: DetailTab = .detail
 
@@ -93,6 +94,16 @@ struct CashReceiptDetailSheet: View {
                 }
             )
         }
+        .confirmationDialog("Opsi Lain", isPresented: $showMoreOptions, titleVisibility: .visible) {
+            if presenter.canApproveOrReject {
+                Button("Setujui") { showApprove = true }
+                Button("Tolak", role: .destructive) { showReject = true }
+            }
+            if presenter.canDelete {
+                Button("Hapus", role: .destructive) { showDeleteConfirm = true }
+            }
+            Button("Batal", role: .cancel) {}
+        }
         .alert("Setujui transaksi?", isPresented: $showApprove) {
             Button("Batal", role: .cancel) {}
             Button("Setujui") { Task { await act { await presenter.approve(comment: "") } } }
@@ -132,7 +143,7 @@ struct CashReceiptDetailSheet: View {
     private func content(_ detail: CashReceiptDetail) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                statusBanner(detail)
+                hero(detail)
 
                 Picker("", selection: $tab) {
                     ForEach(DetailTab.allCases) { Text($0.rawValue).tag($0) }
@@ -141,11 +152,12 @@ struct CashReceiptDetailSheet: View {
 
                 switch tab {
                 case .detail:
-                    fieldsGrid(detail)
-                    if !detail.description.isEmpty {
-                        field("Deskripsi", detail.description)
-                    }
+                    infoCard(detail)
                     linesSection(detail)
+                    summaryCard(detail)
+                    if !detail.description.isEmpty {
+                        notesCard(detail.description)
+                    }
                 case .riwayat:
                     riwayatSection
                 }
@@ -224,28 +236,47 @@ struct CashReceiptDetailSheet: View {
         }
     }
 
-    private func statusBanner(_ detail: CashReceiptDetail) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: bannerIcon(detail.status))
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(detail.status.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(detail.status.rawValue)
-                    .customFont(.semibold, Typography.body)
-                    .foregroundStyle(detail.status.tint)
-                if let level = detail.approvalLevel, let total = detail.totalApprovalLevels,
-                   detail.status == .pendingApproval {
-                    Text("Level \(level) dari \(total)")
-                        .customFont(.regular, Typography.subhead)
-                        .foregroundStyle(.subtitle)
-                }
-            }
-            Spacer()
+    // MARK: - Hero (amount · account · status pill)
+
+    private func hero(_ detail: CashReceiptDetail) -> some View {
+        VStack(spacing: 8) {
+            Text(detail.total.asRupiah)
+                .customFont(.bold, Typography.display)
+                .foregroundStyle(.title)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+
+            Text(detail.cashAccountName)
+                .customFont(.regular, Typography.body)
+                .foregroundStyle(.subtitle)
+                .lineLimit(1)
+
+            statusPill(detail)
+                .padding(.top, 2)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(detail.status.tint.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+    }
+
+    private func statusPill(_ detail: CashReceiptDetail) -> some View {
+        let suffix: String = {
+            if let level = detail.approvalLevel, let total = detail.totalApprovalLevels,
+               detail.status == .pendingApproval {
+                return " · Level \(level)/\(total)"
+            }
+            return ""
+        }()
+        return HStack(spacing: 6) {
+            Image(systemName: bannerIcon(detail.status))
+                .font(.system(size: 12, weight: .semibold))
+            Text(detail.status.rawValue + suffix)
+                .customFont(.semibold, Typography.subhead)
+        }
+        .foregroundStyle(detail.status.tint)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(detail.status.tint.opacity(0.14))
+        .clipShape(Capsule())
     }
 
     private func bannerIcon(_ status: ReceiptStatus) -> String {
@@ -257,22 +288,98 @@ struct CashReceiptDetailSheet: View {
         }
     }
 
-    private func fieldsGrid(_ detail: CashReceiptDetail) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 16) {
-                field("No. Transaksi", detail.number)
-                field("Tanggal Transaksi", Self.dayFormat(detail.date))
+    // MARK: - Info card (transaction meta as a grouped list)
+
+    private func infoCard(_ detail: CashReceiptDetail) -> some View {
+        VStack(spacing: 0) {
+            infoRow("No. Transaksi", detail.number)
+            cardDivider
+            infoRow("Tanggal Transaksi", Self.dayFormat(detail.date))
+            cardDivider
+            infoRow("Akun Kas/Bank", detail.cashAccountName)
+            if !detail.branchName.isEmpty {
+                cardDivider
+                infoRow("Cabang", detail.branchName)
             }
-            HStack(alignment: .top, spacing: 16) {
-                field("Akun Kas/Bank", detail.cashAccountName, sub: detail.branchName)
-                field("Total", detail.total.asRupiah)
-            }
-            HStack(alignment: .top, spacing: 16) {
-                field("Jurnal Terkait", detail.hasJournal ? "Terbentuk" : "—",
-                      sub: detail.hasJournal ? nil : "Belum terbentuk")
-                field("Terakhir Diperbarui", Self.dateTimeFormat(detail.updatedAt))
-            }
+            cardDivider
+            infoRow("Jurnal Terkait", detail.hasJournal ? "Terbentuk" : "Belum terbentuk")
+            cardDivider
+            infoRow("Terakhir Diperbarui", Self.dateTimeFormat(detail.updatedAt))
         }
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func infoRow(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(label)
+                .customFont(.regular, Typography.callout)
+                .foregroundStyle(.subtitle)
+            Spacer(minLength: 12)
+            Text(value)
+                .customFont(.semibold, Typography.callout)
+                .foregroundStyle(.title)
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    private var cardDivider: some View {
+        Divider().opacity(0.4).padding(.leading, 14)
+    }
+
+    // MARK: - Summary (sub total · total)
+
+    private func summaryCard(_ detail: CashReceiptDetail) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Sub Total")
+                    .customFont(.regular, Typography.callout)
+                    .foregroundStyle(.subtitle)
+                Spacer()
+                Text(detail.total.asRupiah)
+                    .customFont(.medium, Typography.callout)
+                    .foregroundStyle(.title)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+
+            cardDivider
+
+            HStack {
+                Text("Total")
+                    .customFont(.semibold, Typography.body)
+                    .foregroundStyle(.title)
+                Spacer()
+                Text(detail.total.asRupiah)
+                    .customFont(.bold, Typography.headline)
+                    .foregroundStyle(.title)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+        }
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    // MARK: - Notes
+
+    private func notesCard(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Deskripsi")
+                .customFont(.regular, Typography.subhead)
+                .foregroundStyle(.subtitle)
+            Text(text)
+                .customFont(.regular, Typography.callout)
+                .foregroundStyle(.title)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func linesSection(_ detail: CashReceiptDetail) -> some View {
@@ -410,13 +517,22 @@ struct CashReceiptDetailSheet: View {
 
     // MARK: - Actions
 
+    /// Whether the "Opsi Lain" sheet has anything to show (approve/reject/delete,
+    /// all role/status-gated).
+    private var hasMoreOptions: Bool {
+        presenter.canApproveOrReject || presenter.canDelete
+    }
+
     @ViewBuilder
     private func actionBar(_ detail: CashReceiptDetail) -> some View {
-        let buttons = visibleActions
-        if !buttons.isEmpty {
-            HStack(spacing: 10) {
-                ForEach(buttons, id: \.self) { action in
-                    actionButton(action)
+        if presenter.canEdit || hasMoreOptions {
+            HStack {
+                if presenter.canEdit {
+                    pillButton("Ubah", systemImage: "pencil") { showEdit = true }
+                }
+                Spacer(minLength: 12)
+                if hasMoreOptions {
+                    pillButton("Opsi Lain", systemImage: "ellipsis.circle") { showMoreOptions = true }
                 }
             }
             .padding(.horizontal, 16)
@@ -425,43 +541,20 @@ struct CashReceiptDetailSheet: View {
         }
     }
 
-    private enum Action: Hashable { case ubah, setujui, tolak, hapus }
-
-    private var visibleActions: [Action] {
-        var actions: [Action] = []
-        if presenter.canEdit { actions.append(.ubah) }
-        if presenter.canApproveOrReject { actions.append(.setujui); actions.append(.tolak) }
-        if presenter.canDelete { actions.append(.hapus) }
-        return actions
-    }
-
-    @ViewBuilder
-    private func actionButton(_ action: Action) -> some View {
-        switch action {
-        case .ubah:
-            barButton("Ubah", systemImage: "pencil", tint: .title, filled: false) { showEdit = true }
-        case .setujui:
-            barButton("Setujui", systemImage: "checkmark", tint: .income, filled: true) { showApprove = true }
-        case .tolak:
-            barButton("Tolak", systemImage: "xmark", tint: .orange, filled: false) { showReject = true }
-        case .hapus:
-            barButton("Hapus", systemImage: "trash", tint: .expense, filled: false) { showDeleteConfirm = true }
-        }
-    }
-
-    private func barButton(
-        _ title: String, systemImage: String, tint: Color, filled: Bool, action: @escaping () -> Void
-    ) -> some View {
+    /// An outlined capsule action button (the reference's bottom Edit / More
+    /// Options pills), sized to its content so the pair floats to the corners.
+    private func pillButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage).font(.system(size: 13, weight: .semibold))
+            HStack(spacing: 8) {
+                Image(systemName: systemImage).font(.system(size: 15, weight: .medium))
                 Text(title).customFont(.semibold, Typography.body)
             }
-            .foregroundStyle(filled ? .white : tint)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(filled ? tint : tint.opacity(0.14))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .foregroundStyle(.accent)
+            .padding(.horizontal, 28)
+            .padding(.vertical, 14)
+            .overlay(
+                Capsule().stroke(Color.white.opacity(0.14), lineWidth: 1)
+            )
         }
         .disabled(presenter.isWorking)
     }
@@ -472,24 +565,6 @@ struct CashReceiptDetailSheet: View {
     }
 
     // MARK: - Helpers
-
-    private func field(_ label: String, _ value: String, sub: String? = nil) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .customFont(.regular, Typography.subhead)
-                .foregroundStyle(.subtitle)
-            Text(value)
-                .customFont(.semibold, Typography.body)
-                .foregroundStyle(.title)
-                .fixedSize(horizontal: false, vertical: true)
-            if let sub {
-                Text(sub)
-                    .customFont(.regular, Typography.caption)
-                    .foregroundStyle(.subtitle)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
 
     private func stateMessage(_ text: String, systemImage: String) -> some View {
         VStack(spacing: 12) {

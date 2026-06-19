@@ -174,34 +174,36 @@ struct CreateExpenseSheet: View {
 
     private func lineRow(_ line: PengeluaranPresenter.LineDraft) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 12))
-                .foregroundStyle(.orange)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(form.accountName(for: line.accountId) ?? "—")
-                    .customFont(.medium, Typography.callout)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                if !line.description.isEmpty {
-                    Text(line.description)
-                        .customFont(.regular, Typography.subhead)
-                        .foregroundStyle(.subtitle)
-                        .lineLimit(1)
-                }
-            }
-            Spacer(minLength: 8)
-            Text(line.amount.asIDR)
-                .customFont(.medium, Typography.callout)
-                .foregroundStyle(.title)
-                .fixedSize(horizontal: true, vertical: false)
-
+            // Tap anywhere on the line content to edit.
             Button { editing = LineEdit(draft: line.copy(), original: line) } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.subtitle)
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.orange)
+                        .padding(.top, 2)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(form.accountName(for: line.accountId) ?? "—")
+                            .customFont(.medium, Typography.callout)
+                            .foregroundStyle(.title)
+                            .lineLimit(1)
+                        if !line.description.isEmpty {
+                            Text(line.description)
+                                .customFont(.regular, Typography.subhead)
+                                .foregroundStyle(.subtitle)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Text(line.amount.asIDR)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.title)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
             Button { form.removeLine(line) } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
@@ -283,35 +285,18 @@ private struct EditLineSheet: View {
                             placeholder: "Pilih akun",
                             sheetTitle: "Pilih Akun",
                             searchPrompt: "Cari akun…",
-                            showDivider: false,
                             onSelect: { draft.accountId = $0 }
                         )
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Jumlah (IDR)")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.subtitle)
-                        CurrencyField(digits: Binding(
-                            get: { draft.amountText },
-                            set: { draft.amountText = $0 }
-                        ))
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Deskripsi")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.subtitle)
-                        TextField(
-                            "",
-                            text: Binding(get: { draft.description }, set: { draft.description = $0 }),
-                            prompt: Text("Deskripsi baris").customFont(.regular, Typography.body).foregroundStyle(.subtitle),
-                            axis: .vertical
+                        FormCurrencyRow(
+                            label: "Jumlah (IDR)", required: true,
+                            digits: Binding(get: { draft.amountText }, set: { draft.amountText = $0 })
                         )
-                        .font(.customFont(.regular, Typography.body))
-                        .foregroundStyle(.title)
-                        .lineLimit(3, reservesSpace: true)
-                        .coreTextFieldStyle()
+                        FormTextAreaRow(
+                            label: "Deskripsi",
+                            text: Binding(get: { draft.description }, set: { draft.description = $0 }),
+                            placeholder: "Deskripsi baris",
+                            showDivider: false
+                        )
                     }
 
                     AttachmentsField(

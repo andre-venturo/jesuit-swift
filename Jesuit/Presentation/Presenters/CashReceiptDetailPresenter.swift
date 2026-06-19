@@ -98,16 +98,6 @@ final class CashReceiptDetailPresenter {
 
     private var isAdmin: Bool { session.isAdministrator }
 
-    /// Raw API statuses that are still mutable (not yet finalised). Gating on the
-    /// raw string — not the lossy `ReceiptStatus` — so a posted/rejected/unknown
-    /// status can never fall through to a permissive default.
-    private static let mutableStatuses: Set<String> = ["draft", "waiting", "pending"]
-
-    private var isMutable: Bool {
-        guard let detail else { return false }
-        return Self.mutableStatuses.contains(detail.rawStatus)
-    }
-
     private var isCreator: Bool {
         guard let detail else { return false }
         return detail.createdById == session.userId
@@ -121,10 +111,11 @@ final class CashReceiptDetailPresenter {
         return isAdmin && waiting
     }
 
-    /// Edit is allowed only on not-yet-finalised transactions (draft / waiting)
-    /// for admins or the creator — a posted/rejected entry is locked.
+    /// Edit is allowed in any status for admins or the creator — the edit form
+    /// itself handles whatever the API permits per status.
     var canEdit: Bool {
-        isMutable && (isAdmin || isCreator)
+        guard detail != nil else { return false }
+        return isAdmin || isCreator
     }
 
     /// Delete is allowed in any status (including approved/rejected) for admins

@@ -25,6 +25,7 @@ struct ListTopBar: View {
     let onOpenSort: () -> Void
 
     @State private var showSearch = false
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,6 +46,7 @@ struct ListTopBar: View {
             Spacer()
             Button {
                 withAnimation { showSearch.toggle() }
+                searchFocused = showSearch
             } label: {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .medium))
@@ -66,6 +68,7 @@ struct ListTopBar: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
+                .focused($searchFocused)
         }
         .padding(.horizontal, 14)
         .frame(height: 44)
@@ -78,23 +81,28 @@ struct ListTopBar: View {
     // MARK: - Filter chips
 
     private var filterChips: some View {
-        HStack(spacing: 12) {
-            ForEach(chips, id: \.self) { label in
-                chip(label)
+        HStack(spacing: 10) {
+            // Chips scroll horizontally so full labels stay readable instead of
+            // truncating ("Belu…" / "Men…") when squeezed against the buttons.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(chips, id: \.self) { label in
+                        chip(label)
+                    }
+                }
             }
+
             Button(action: onOpenFilter) {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.title)
-                    .frame(width: 36, height: 36)
+                    .frame(width: 32, height: 32)
                     .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
             }
 
-            Spacer()
-
             Button(action: onOpenSort) {
                 Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(.title)
             }
         }
@@ -108,10 +116,12 @@ struct ListTopBar: View {
             onSelectChip(label)
         } label: {
             Text(label)
-                .customFont(.medium, Typography.headline)
+                .customFont(.medium, Typography.subhead)
                 .foregroundStyle(isActive ? .white : .title)
-                .padding(.horizontal, 20)
-                .frame(height: 40)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 14)
+                .frame(height: 32)
                 .background(isActive ? Color.accentColor : Color.white.opacity(0.06))
                 .clipShape(Capsule())
         }

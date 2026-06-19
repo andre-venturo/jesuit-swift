@@ -16,11 +16,57 @@ struct CashFlowChartCard: View {
     let profitLoss: ProfitLossSummary?
     let cashMovement: CashFlowMovement?
 
+    /// Which summary panel the segmented toggle shows.
+    private enum SummaryTab: String, CaseIterable, Identifiable {
+        case labaRugi = "Laba Rugi"
+        case arusKas  = "Arus Kas"
+        var id: String { rawValue }
+    }
+
+    @State private var selectedTab: SummaryTab = .labaRugi
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 18) {
             if !series.isEmpty {
                 chart
             }
+            if profitLoss != nil || cashMovement != nil {
+                summaryToggle
+                summaryContent
+            }
+        }
+    }
+
+    // MARK: - Summary toggle + content
+
+    /// Segmented pill control switching between the Laba Rugi and Arus Kas panels.
+    private var summaryToggle: some View {
+        HStack(spacing: 4) {
+            ForEach(SummaryTab.allCases) { tab in
+                let isActive = selectedTab == tab
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+                } label: {
+                    Text(tab.rawValue)
+                        .customFont(.semibold, Typography.subhead)
+                        .foregroundStyle(isActive ? .title : .subtitle)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(isActive ? Color.white.opacity(0.12) : .clear)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Color.white.opacity(0.05))
+        .clipShape(Capsule())
+    }
+
+    @ViewBuilder
+    private var summaryContent: some View {
+        switch selectedTab {
+        case .labaRugi:
             if let profitLoss {
                 panel(
                     title: "Laba Rugi",
@@ -32,6 +78,7 @@ struct CashFlowChartCard: View {
                     total: profitLoss.profit
                 )
             }
+        case .arusKas:
             if let cashMovement {
                 panel(
                     title: "Arus Kas",
@@ -118,25 +165,20 @@ struct CashFlowChartCard: View {
         total: Double
     ) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Header: section name + trend
-            HStack {
-                Text(title)
-                    .customFont(.bold, Typography.body)
-                    .foregroundStyle(.title)
-                Spacer()
+            // Hero: the headline result + trend
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(total.asSignedRupiah)
+                        .customFont(.bold, Typography.title)
+                        .foregroundStyle(total < 0 ? Color.expense : .income)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                    Text(totalLabel)
+                        .customFont(.regular, Typography.subhead)
+                        .foregroundStyle(.subtitle)
+                }
+                Spacer(minLength: 8)
                 trendBadge(change: change, trend: trend)
-            }
-
-            // Hero: the headline result
-            VStack(alignment: .leading, spacing: 2) {
-                Text(total.asSignedRupiah)
-                    .customFont(.bold, Typography.title)
-                    .foregroundStyle(total < 0 ? Color.expense : .income)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-                Text(totalLabel)
-                    .customFont(.regular, Typography.subhead)
-                    .foregroundStyle(.subtitle)
             }
 
             // Breakdown

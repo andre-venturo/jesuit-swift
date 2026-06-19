@@ -12,6 +12,7 @@ struct HomeScreen: View {
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var showCustomRange = false
     @State private var showOrgSwitcher = false
+    @State private var showAllCashAccounts = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -112,32 +113,28 @@ struct HomeScreen: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
                 Text("Neraca")
-                    .customFont(.semibold, Typography.title2)
+                    .customFont(.semibold, Typography.headline)
                     .foregroundStyle(.white)
                 Spacer()
                 Text(balanceSheetAsOf)
-                    .customFont(.regular, Typography.callout)
+                    .customFont(.regular, Typography.subhead)
                     .foregroundStyle(Color.white.opacity(0.7))
             }
 
-            HStack(alignment: .top, spacing: 12) {
-                balanceSheetMetric(
+            VStack(spacing: 0) {
+                balanceSheetRow(
                     title: "Harta",
                     amount: presenter.balanceSheet?.assets ?? 0,
                     systemImage: "building.columns.fill"
                 )
-                Divider()
-                    .frame(height: 44)
-                    .overlay(Color.white.opacity(0.18))
-                balanceSheetMetric(
+                rowDivider
+                balanceSheetRow(
                     title: "Kewajiban",
                     amount: presenter.balanceSheet?.liabilities ?? 0,
                     systemImage: "creditcard.fill"
                 )
-                Divider()
-                    .frame(height: 44)
-                    .overlay(Color.white.opacity(0.18))
-                balanceSheetMetric(
+                rowDivider
+                balanceSheetRow(
                     title: "Modal",
                     amount: presenter.balanceSheet?.equity ?? 0,
                     systemImage: "chart.pie.fill"
@@ -173,23 +170,30 @@ struct HomeScreen: View {
         return "Per \(f.string(from: date))"
     }
 
-    private func balanceSheetMetric(title: String, amount: Double, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.white.opacity(0.6))
-                Text(title)
-                    .customFont(.regular, Typography.callout)
-                    .foregroundStyle(Color.white.opacity(0.7))
-            }
+    private var rowDivider: some View {
+        Divider()
+            .overlay(Color.white.opacity(0.14))
+            .padding(.vertical, 14)
+    }
+
+    /// One balance-sheet line: icon + label on the left, amount on the right —
+    /// full row width so the number stays large and readable.
+    private func balanceSheetRow(title: String, amount: Double, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.7))
+                .frame(width: 22)
+            Text(title)
+                .customFont(.medium, Typography.callout)
+                .foregroundStyle(Color.white.opacity(0.85))
+            Spacer(minLength: 12)
             Text(amount.asIDR)
                 .customFont(.bold, Typography.headline)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Quick Create
@@ -284,9 +288,16 @@ struct HomeScreen: View {
             } else {
                 CashAccountsCard(
                     total: presenter.cashAccountsTotal,
-                    accounts: presenter.cashAccounts
+                    accounts: presenter.cashAccounts,
+                    onShowAll: { showAllCashAccounts = true }
                 )
             }
+        }
+        .sheet(isPresented: $showAllCashAccounts) {
+            CashAccountsListSheet(
+                total: presenter.cashAccountsTotal,
+                accounts: presenter.cashAccounts
+            )
         }
     }
 

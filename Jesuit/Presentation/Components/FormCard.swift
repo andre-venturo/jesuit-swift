@@ -149,6 +149,83 @@ struct FormFieldRow: View {
     }
 }
 
+/// A currency row: label on the left, right-aligned rupiah input (`Rp` prefix,
+/// grouped thousands). Binds to a digits-only string.
+struct FormCurrencyRow: View {
+    let label: String
+    var required: Bool = false
+    @Binding var digits: String
+    var showDivider: Bool = true
+
+    @State private var display = ""
+
+    var body: some View {
+        VStack(spacing: 0) {
+            FormRowShell(label: label, required: required) {
+                HStack(spacing: 4) {
+                    Text("Rp")
+                        .customFont(.regular, Typography.body)
+                        .foregroundStyle(.subtitle)
+                    TextField(
+                        "",
+                        text: $display,
+                        prompt: Text("0").foregroundStyle(Color.subtitle)
+                    )
+                    .font(.customFont(.regular, Typography.body))
+                    .foregroundStyle(.title)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .onChange(of: display) { _, newValue in
+                        let onlyDigits = newValue.filter(\.isNumber)
+                        digits = onlyDigits
+                        let grouped = onlyDigits.groupedThousands
+                        if grouped != newValue { display = grouped }
+                    }
+                }
+            }
+            if showDivider { FormRowDivider() }
+        }
+        .onAppear { display = digits.groupedThousands }
+    }
+}
+
+/// A multi-line text row: label on top, full-width text editor beneath — used
+/// for free-text fields like "Deskripsi" inside a grouped card.
+struct FormTextAreaRow: View {
+    let label: String
+    var required: Bool = false
+    @Binding var text: String
+    var placeholder: String = ""
+    var showDivider: Bool = true
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(label)
+                    .customFont(.medium, Typography.body)
+                    .foregroundStyle(required ? Color.expense : Color.title)
+                TextField(
+                    "",
+                    text: $text,
+                    prompt: Text(placeholder).foregroundStyle(Color.subtitle),
+                    axis: .vertical
+                )
+                .font(.customFont(.regular, Typography.body))
+                .foregroundStyle(.title)
+                .lineLimit(3, reservesSpace: true)
+                .padding(12)
+                .background(Color.background1)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+
+            if showDivider { FormRowDivider() }
+        }
+    }
+}
+
 /// A date row: label on the left, compact `DatePicker` pill on the right.
 struct FormDateRow: View {
     let label: String

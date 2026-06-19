@@ -18,7 +18,7 @@ struct StatusFilterTabs: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 24) {
+            HStack(spacing: 18) {
                 ForEach(Array(tabs.enumerated()), id: \.offset) { _, status in
                     tab(status)
                 }
@@ -35,23 +35,23 @@ struct StatusFilterTabs: View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) { selection = status }
         } label: {
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
+            VStack(spacing: 6) {
+                HStack(spacing: 6) {
                     Text(status?.rawValue ?? "Semua")
-                        .customFont(isSelected ? .semibold : .medium, Typography.body)
+                        .customFont(isSelected ? .semibold : .medium, Typography.subhead)
                         .foregroundStyle(isSelected ? .title : .subtitle)
 
                     Text("\(count(status))")
-                        .customFont(.semibold, Typography.caption)
+                        .customFont(.semibold, Typography.caption2)
                         .foregroundStyle(isSelected ? Color.background1 : tint)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1.5)
                         .background(isSelected ? tint : tint.opacity(0.15))
                         .clipShape(Capsule())
                 }
                 Rectangle()
                     .fill(isSelected ? Color.title : .clear)
-                    .frame(height: 2)
+                    .frame(height: 1.5)
             }
             .fixedSize()
         }

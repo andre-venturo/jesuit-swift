@@ -286,35 +286,18 @@ private struct EditReceiptLineSheet: View {
                             placeholder: "Pilih akun",
                             sheetTitle: "Pilih Akun",
                             searchPrompt: "Cari akun…",
-                            showDivider: false,
                             onSelect: { draft.accountId = $0 }
                         )
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Jumlah (IDR)")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.subtitle)
-                        CurrencyField(digits: Binding(
-                            get: { draft.amountText },
-                            set: { draft.amountText = $0 }
-                        ))
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Deskripsi")
-                            .customFont(.medium, Typography.body)
-                            .foregroundStyle(.subtitle)
-                        TextField(
-                            "",
-                            text: Binding(get: { draft.description }, set: { draft.description = $0 }),
-                            prompt: Text("Deskripsi baris").customFont(.regular, Typography.body).foregroundStyle(.subtitle),
-                            axis: .vertical
+                        FormCurrencyRow(
+                            label: "Jumlah (IDR)", required: true,
+                            digits: Binding(get: { draft.amountText }, set: { draft.amountText = $0 })
                         )
-                        .font(.customFont(.regular, Typography.body))
-                        .foregroundStyle(.title)
-                        .lineLimit(3, reservesSpace: true)
-                        .coreTextFieldStyle()
+                        FormTextAreaRow(
+                            label: "Deskripsi",
+                            text: Binding(get: { draft.description }, set: { draft.description = $0 }),
+                            placeholder: "Deskripsi baris",
+                            showDivider: false
+                        )
                     }
 
                     AttachmentsField(

@@ -11,29 +11,46 @@ import SwiftUI
 struct CashAccountsCard: View {
     let total: Double
     let accounts: [CashAccount]
-    /// Max rows shown when collapsed.
-    var collapsedLimit: Int = 4
+    /// Max rows shown on the dashboard card.
+    var visibleLimit: Int = 5
+    /// Tapped "show all" — the host opens the full accounts list page.
+    var onShowAll: () -> Void = {}
 
-    @State private var isExpanded = false
-
-    /// Rows currently visible (all when expanded, else the first `collapsedLimit`).
-    private var visibleAccounts: [CashAccount] {
-        isExpanded ? accounts : Array(accounts.prefix(collapsedLimit))
+    /// Accounts that actually carry a balance, largest magnitude first.
+    /// Zero-balance accounts are noise on a list of hundreds.
+    private var activeAccounts: [CashAccount] {
+        accounts
+            .filter { $0.balance != 0 }
+            .sorted { abs($0.balance) > abs($1.balance) }
     }
 
-    private var canToggle: Bool { accounts.count > collapsedLimit }
+    /// Top rows shown on the card.
+    private var visibleAccounts: [CashAccount] {
+        Array(activeAccounts.prefix(visibleLimit))
+    }
+
+    /// Active accounts not shown on the card.
+    private var hiddenCount: Int {
+        max(activeAccounts.count - visibleLimit, 0)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
-            VStack(spacing: 12) {
-                ForEach(visibleAccounts) { account in
-                    accountRow(account)
+            if visibleAccounts.isEmpty {
+                Text("Belum ada saldo")
+                    .customFont(.regular, Typography.callout)
+                    .foregroundStyle(.subtitle)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(visibleAccounts) { account in
+                        accountRow(account)
+                    }
                 }
             }
 
-            if canToggle {
+            if hiddenCount > 0 {
                 showMoreButton
             }
         }
@@ -44,13 +61,11 @@ struct CashAccountsCard: View {
     }
 
     private var showMoreButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
-        } label: {
+        Button(action: onShowAll) {
             HStack(spacing: 6) {
-                Text(isExpanded ? "Tampilkan Lebih Sedikit" : "Tampilkan Semua (\(accounts.count))")
+                Text("+\(hiddenCount) Rekening Lainnya")
                     .customFont(.semibold, Typography.callout)
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(.accent)
