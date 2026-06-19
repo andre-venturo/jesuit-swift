@@ -26,6 +26,7 @@ struct CashReceiptDetailSheet: View {
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
     @State private var showMoreOptions = false
+    @State private var previewImage: PreviewImage?
     @State private var selectedLine: CashReceiptLine?
     @State private var tab: DetailTab = .detail
 
@@ -94,6 +95,7 @@ struct CashReceiptDetailSheet: View {
                 }
             )
         }
+        .fullScreenCover(item: $previewImage) { ImagePreviewSheet(image: $0) }
         .confirmationDialog("Opsi Lain", isPresented: $showMoreOptions, titleVisibility: .visible) {
             if presenter.canApproveOrReject {
                 Button("Setujui") { showApprove = true }
@@ -240,7 +242,7 @@ struct CashReceiptDetailSheet: View {
 
     private func hero(_ detail: CashReceiptDetail) -> some View {
         VStack(spacing: 8) {
-            Text(detail.total.asRupiah)
+            Text(detail.total.asCurrency(detail.currencyCode))
                 .customFont(.bold, Typography.display)
                 .foregroundStyle(.title)
                 .lineLimit(1)
@@ -339,7 +341,7 @@ struct CashReceiptDetailSheet: View {
                     .customFont(.regular, Typography.callout)
                     .foregroundStyle(.subtitle)
                 Spacer()
-                Text(detail.total.asRupiah)
+                Text(detail.total.asCurrency(detail.currencyCode))
                     .customFont(.medium, Typography.callout)
                     .foregroundStyle(.title)
             }
@@ -353,7 +355,7 @@ struct CashReceiptDetailSheet: View {
                     .customFont(.semibold, Typography.body)
                     .foregroundStyle(.title)
                 Spacer()
-                Text(detail.total.asRupiah)
+                Text(detail.total.asCurrency(detail.currencyCode))
                     .customFont(.bold, Typography.headline)
                     .foregroundStyle(.title)
             }
@@ -434,7 +436,7 @@ struct CashReceiptDetailSheet: View {
                     }
                 }
                 Spacer(minLength: 8)
-                Text(line.amount.asRupiah)
+                Text(line.amount.asCurrency(line.currencyCode))
                     .customFont(.semibold, Typography.body)
                     .foregroundStyle(.title)
                     .fixedSize(horizontal: true, vertical: false)
@@ -452,67 +454,48 @@ struct CashReceiptDetailSheet: View {
         .padding(14)
     }
 
-    /// Horizontal strip of a line's stored attachments (image thumbnails or a
-    /// doc tile), each tappable to open the file in the browser.
+    /// Horizontal strip of a line's stored attachments as compact icon chips.
+    /// Image chips open the in-app preview; other files open in the browser.
     private func attachmentsRow(_ attachments: [CashLineAttachment]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 ForEach(attachments) { attachment in
-                    attachmentTile(attachment)
+                    attachmentChip(attachment)
                 }
             }
         }
     }
 
     @ViewBuilder
-    private func attachmentTile(_ attachment: CashLineAttachment) -> some View {
-        let tile: CGFloat = 72
-        Link(destination: URL(string: attachment.fileUrl) ?? URL(string: "https://wizhub.id")!) {
-            ZStack(alignment: .bottomLeading) {
-                Group {
-                    if attachment.isImage, let url = URL(string: attachment.fileUrl) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image.resizable().scaledToFill()
-                            case .failure:
-                                tilePlaceholder("photo")
-                            case .empty:
-                                ProgressView().tint(.accent)
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            @unknown default:
-                                tilePlaceholder("doc")
-                            }
-                        }
-                    } else {
-                        tilePlaceholder("doc")
-                    }
-                }
-                .frame(width: tile, height: tile)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                Text(attachment.sizeLabel)
-                    .customFont(.medium, Typography.caption2)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(Color.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
-                    .padding(5)
+    private func attachmentChip(_ attachment: CashLineAttachment) -> some View {
+        if let preview = PreviewImage(attachment) {
+            Button { previewImage = preview } label: { chipBody(attachment) }
+                .buttonStyle(.plain)
+        } else {
+            Link(destination: URL(string: attachment.fileUrl) ?? URL(string: "https://wizhub.id")!) {
+                chipBody(attachment)
             }
-            .frame(width: tile, height: tile)
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.subtitle.opacity(0.2), lineWidth: 1)
-            )
         }
     }
 
-    private func tilePlaceholder(_ systemImage: String) -> some View {
-        Image(systemName: systemImage)
-            .font(.system(size: 22))
-            .foregroundStyle(.subtitle)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.textFieldBG)
+    private func chipBody(_ attachment: CashLineAttachment) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: attachment.isImage ? "photo" : "doc.text")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.accent)
+            Text(attachment.fileName)
+                .customFont(.medium, Typography.subhead)
+                .foregroundStyle(.title)
+                .lineLimit(1)
+            Text(attachment.sizeLabel)
+                .customFont(.regular, Typography.caption2)
+                .foregroundStyle(.subtitle)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.textFieldBG)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Color.subtitle.opacity(0.2), lineWidth: 1))
     }
 
     // MARK: - Actions

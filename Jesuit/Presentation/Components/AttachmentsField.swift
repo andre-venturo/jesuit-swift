@@ -19,6 +19,7 @@ struct AttachmentsField: View {
 
     @State private var selection: [PhotosPickerItem] = []
     @State private var isLoading = false
+    @State private var previewImage: PreviewImage?
 
     private let tile: CGFloat = 96
 
@@ -44,6 +45,7 @@ struct AttachmentsField: View {
             guard !items.isEmpty else { return }
             Task { await load(items) }
         }
+        .fullScreenCover(item: $previewImage) { ImagePreviewSheet(image: $0) }
     }
 
     // MARK: - Tiles
@@ -77,6 +79,10 @@ struct AttachmentsField: View {
             }
             .frame(width: tile, height: tile)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if let preview = PreviewImage(attachment) { previewImage = preview }
+            }
 
             Text(attachment.sizeLabel)
                 .customFont(.medium, Typography.caption2)
@@ -106,6 +112,10 @@ struct AttachmentsField: View {
             }
             .frame(width: tile, height: tile)
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(Rectangle())
+            .onTapGesture {
+                if let preview = PreviewImage(attachment) { previewImage = preview }
+            }
 
             Text(attachment.sizeLabel)
                 .customFont(.medium, Typography.caption2)

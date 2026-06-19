@@ -44,6 +44,11 @@ protocol CashReceiptRepositoryProtocol: Sendable {
     /// Active company branches, for the create-transaction branch picker.
     func fetchBranches() async throws -> [BranchDTO]
 
+    /// Current `base`→IDR exchange rate (rounded to a whole rupiah), used to
+    /// prefill the Kurs field when a foreign-currency cash account is selected.
+    /// Hits an external FX host directly (no auth).
+    func fetchExchangeRate(base: String) async throws -> Double
+
     /// Loads one transaction's full detail (`GET /cash-transactions/{id}`).
     func fetchDetail(id: String) async throws -> CashTransactionDetailDTO
 
@@ -59,9 +64,11 @@ protocol CashReceiptRepositoryProtocol: Sendable {
     func delete(id: String) async throws
 
     /// Updates a transaction (`PUT /cash-transactions/{id}`) — same body as
-    /// create minus `transaction_type`.
+    /// create minus `transaction_type`. Returns the full detail (whose `lines`
+    /// carry server ids) so callers can upload edit-time attachments to the
+    /// right line, including lines added during the edit.
     @discardableResult
-    func update(id: String, request: CashTransactionRequest) async throws -> CashReceipt
+    func update(id: String, request: CashTransactionRequest) async throws -> CashTransactionDetailDTO
 
     /// Uploads a file to an existing transaction line
     /// (`POST /cash-transactions/{id}/lines/{lineId}/attachments`), returning the

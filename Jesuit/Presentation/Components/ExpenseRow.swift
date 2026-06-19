@@ -20,24 +20,24 @@ struct ExpenseRow: View {
         VStack(alignment: .leading, spacing: ListMetrics.rowLineSpacing) {
             HStack(alignment: .firstTextBaseline) {
                 Text(expense.category)
-                    .customFont(.bold, ListMetrics.titleSize - 2)
+                    .customFont(.bold, ListMetrics.titleSize)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                 Spacer(minLength: 12)
                 Text(expense.amount.asIDR)
-                    .customFont(.bold, ListMetrics.titleSize - 2)
+                    .customFont(.bold, ListMetrics.titleSize)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
 
             Text(dateLabel)
-                .customFont(.regular, ListMetrics.metaSize - 1)
+                .customFont(.regular, ListMetrics.metaSize)
                 .foregroundStyle(.subtitle)
 
             HStack {
                 Text(expense.billing.rawValue.uppercased())
-                    .customFont(.medium, ListMetrics.statusSize - 1)
+                    .customFont(.medium, ListMetrics.statusSize)
                     .foregroundStyle(.subtitle)
                 Spacer()
                 Image(systemName: "ellipsis")

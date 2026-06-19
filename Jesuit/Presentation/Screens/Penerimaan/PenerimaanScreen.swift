@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct PenerimaanScreen: View {
+    @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(PenerimaanPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
@@ -37,9 +38,11 @@ struct PenerimaanScreen: View {
                 content
             }
 
-            addButton
-                .padding(.trailing, 20)
-                .padding(.bottom, 24)
+            if session.can(Permission.cashCreate) {
+                addButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 24)
+            }
         }
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

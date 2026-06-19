@@ -146,7 +146,14 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
             baseURL: AppURLConstants.financeBaseURL,
             path: AppURLConstants.Finance.accounts,
             method: .get,
-            parameters: ["is_header": "false", "is_active": "true", "limit": "200"]
+            // `include_balance=true` makes the endpoint return each account's
+            // `balance`, surfaced as the trailing value in the cash-account picker.
+            parameters: [
+                "is_header": "false",
+                "is_active": "true",
+                "include_balance": "true",
+                "limit": "200"
+            ]
         )
         let response = try await network.requestDecoded(
             endpoint: endpoint,
@@ -154,6 +161,21 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
             responseType: AccountsResponse.self
         )
         return (response.data?.accounts ?? []).filter { $0.isCashBank }
+    }
+
+    /// FX response from `api.frankfurter.dev/v1/latest?base=…&symbols=IDR`.
+    private nonisolated struct FrankfurterResponse: Decodable, Sendable {
+        let rates: [String: Double]?
+    }
+
+    func fetchExchangeRate(base: String) async throws -> Double {
+        guard base.uppercased() != "IDR",
+              let url = URL(string: "https://api.frankfurter.dev/v1/latest?base=\(base)&symbols=IDR")
+        else { return 1 }
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let decoded = try JSONDecoder().decode(FrankfurterResponse.self, from: data)
+        guard let rate = decoded.rates?["IDR"], rate > 0 else { throw NetworkError.noData }
+        return rate.rounded()
     }
 
     func fetchBranches() async throws -> [BranchDTO] {
@@ -235,19 +257,21 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
     }
 
     @discardableResult
-    func update(id: String, request: CashTransactionRequest) async throws -> CashReceipt {
+    func update(id: String, request: CashTransactionRequest) async throws -> CashTransactionDetailDTO {
         let endpoint = Endpoint(
             baseURL: AppURLConstants.financeBaseURL,
             path: AppURLConstants.Finance.cashTransaction(id),
             method: .put
         )
+        // PUT returns the full detail (same shape as the `{id}` GET), whose
+        // `lines` carry server ids — needed to attach files post-update.
         let response = try await network.requestDecoded(
             endpoint: endpoint,
             body: request,
-            responseType: SubmitResponse.self
+            responseType: CashTransactionDetailResponse.self
         )
         guard let dto = response.data else { throw NetworkError.noData }
-        return CashReceipt(dto: dto)
+        return dto
     }
 
     /// Envelope for the line-attachment upload: `{ data: CashAttachmentDTO, message }`.

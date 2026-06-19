@@ -16,6 +16,8 @@ private nonisolated struct AuthSessionData: Codable, Sendable {
     let tokens: AuthTokens
     let user: AuthUser?
     let company: AuthCompany?
+    let roles: [String]?
+    let permissions: [String]?
 
     init(from decoder: Decoder) throws {
         // Tokens may sit at the top level or under a "tokens"/"data" object.
@@ -40,6 +42,12 @@ private nonisolated struct AuthSessionData: Codable, Sendable {
         }
         company = container.flatMap { c in
             AnyCodingKey(stringValue: "company").flatMap { try? c.decode(AuthCompany.self, forKey: $0) }
+        }
+        roles = container.flatMap { c in
+            AnyCodingKey(stringValue: "roles").flatMap { try? c.decode([String].self, forKey: $0) }
+        }
+        permissions = container.flatMap { c in
+            AnyCodingKey(stringValue: "permissions").flatMap { try? c.decode([String].self, forKey: $0) }
         }
     }
 
@@ -198,8 +206,16 @@ struct AuthRepository: AuthRepositoryProtocol {
             accessToken: data.tokens.accessToken,
             refreshToken: data.tokens.refreshToken
         )
-        if let user = data.user {
-            return AuthMe(user: user, company: data.company, roles: nil, permissions: nil)
+        // Use the embedded profile only when the payload also carries the
+        // roles/permissions the UI gates on; otherwise fall back to `/auth/me`
+        // so we never strip the signed-in user's grants.
+        if let user = data.user, data.roles != nil || data.permissions != nil {
+            return AuthMe(
+                user: user,
+                company: data.company,
+                roles: data.roles,
+                permissions: data.permissions
+            )
         }
         return try await fetchMe()
     }

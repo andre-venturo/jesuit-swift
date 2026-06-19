@@ -29,6 +29,7 @@ struct CurrencyField: View {
             .font(.customFont(.regular, Typography.body))
             .foregroundStyle(.title)
             .keyboardType(.numberPad)
+            .keyboardDoneButton()
             .onChange(of: display) { _, newValue in
                 let onlyDigits = newValue.filter(\.isNumber)
                 digits = onlyDigits

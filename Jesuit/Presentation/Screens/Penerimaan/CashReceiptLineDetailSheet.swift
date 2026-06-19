@@ -28,6 +28,7 @@ struct CashReceiptLineDetailSheet: View {
     @State private var pickerItems: [PhotosPickerItem] = []
     @State private var isUploading = false
     @State private var errorMessage: String?
+    @State private var previewImage: PreviewImage?
 
     init(
         line: CashReceiptLine,
@@ -60,7 +61,7 @@ struct CashReceiptLineDetailSheet: View {
                         }
                     }
 
-                    field("Jumlah", line.amount.asRupiah)
+                    field("Jumlah", line.amount.asCurrency(line.currencyCode))
 
                     if !line.description.isEmpty {
                         field("Deskripsi", line.description)
@@ -85,6 +86,7 @@ struct CashReceiptLineDetailSheet: View {
             guard !items.isEmpty else { return }
             Task { await upload(items) }
         }
+        .fullScreenCover(item: $previewImage) { ImagePreviewSheet(image: $0) }
     }
 
     // MARK: - Attachments
@@ -140,51 +142,63 @@ struct CashReceiptLineDetailSheet: View {
         .padding(.top, 4)
     }
 
+    /// Attachment card. Images open the in-app preview; other files open in the
+    /// browser.
+    @ViewBuilder
     private func attachmentCard(_ attachment: CashLineAttachment) -> some View {
-        Link(destination: URL(string: attachment.fileUrl) ?? URL(string: "https://wizhub.id")!) {
-            VStack(alignment: .leading, spacing: 0) {
-                if attachment.isImage, let url = URL(string: attachment.fileUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFit()
-                        case .failure:
-                            preview(systemImage: "photo")
-                        case .empty:
-                            ProgressView().tint(.accent)
-                                .frame(maxWidth: .infinity, minHeight: 180)
-                        @unknown default:
-                            preview(systemImage: "doc")
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                } else {
-                    preview(systemImage: "doc")
-                }
-
-                HStack(spacing: 8) {
-                    Image(systemName: "paperclip")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.subtitle)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(attachment.fileName)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.title)
-                            .lineLimit(1)
-                        Text(attachment.sizeLabel)
-                            .customFont(.regular, Typography.caption)
-                            .foregroundStyle(.subtitle)
-                    }
-                    Spacer()
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 15))
-                        .foregroundStyle(.accent)
-                }
-                .padding(12)
+        if let preview = PreviewImage(attachment) {
+            Button { previewImage = preview } label: { cardBody(attachment) }
+                .buttonStyle(.plain)
+        } else {
+            Link(destination: URL(string: attachment.fileUrl) ?? URL(string: "https://wizhub.id")!) {
+                cardBody(attachment)
             }
-            .background(Color.textFieldBG)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+    }
+
+    private func cardBody(_ attachment: CashLineAttachment) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if attachment.isImage, let url = URL(string: attachment.fileUrl) {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFit()
+                    case .failure:
+                        preview(systemImage: "photo")
+                    case .empty:
+                        ProgressView().tint(.accent)
+                            .frame(maxWidth: .infinity, minHeight: 180)
+                    @unknown default:
+                        preview(systemImage: "doc")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                preview(systemImage: "doc")
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "paperclip")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.subtitle)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(attachment.fileName)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.title)
+                        .lineLimit(1)
+                    Text(attachment.sizeLabel)
+                        .customFont(.regular, Typography.caption)
+                        .foregroundStyle(.subtitle)
+                }
+                Spacer()
+                Image(systemName: attachment.isImage ? "arrow.up.left.and.arrow.down.right" : "arrow.up.right.square")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.accent)
+            }
+            .padding(12)
+        }
+        .background(Color.textFieldBG)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func preview(systemImage: String) -> some View {

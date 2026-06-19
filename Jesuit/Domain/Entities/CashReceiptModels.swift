@@ -78,6 +78,7 @@ struct CashReceipt: Identifiable, Sendable {
     let description: String     // Deskripsi
     let account: String         // Akun Kas/Bank
     let amount: Double          // Jumlah
+    let currencyCode: String    // Mata uang (e.g. "IDR", "USD")
     let status: ReceiptStatus   // Status
     let createdAt: Date         // Dibuat Pada
     let updatedAt: Date         // Terakhir Diperbarui
@@ -89,6 +90,7 @@ struct CashReceipt: Identifiable, Sendable {
         description: String,
         account: String,
         amount: Double,
+        currencyCode: String = "IDR",
         status: ReceiptStatus,
         createdAt: Date,
         updatedAt: Date
@@ -99,10 +101,14 @@ struct CashReceipt: Identifiable, Sendable {
         self.description = description
         self.account = account
         self.amount = amount
+        self.currencyCode = currencyCode
         self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+
+    /// Amount formatted in the transaction's currency.
+    var amountText: String { amount.asCurrency(currencyCode) }
 }
 
 extension CashReceipt {
@@ -123,6 +129,24 @@ extension CashReceipt {
 }
 
 extension CashReceipt {
+    /// Maps a full `CashTransactionDetailDTO` (returned by the update PUT) to the
+    /// UI list entity. Account name isn't on the detail payload — callers reload
+    /// the list afterwards, so a placeholder is fine here.
+    init(detail dto: CashTransactionDetailDTO) {
+        self.init(
+            id: dto.id,
+            number: dto.transactionNo ?? "-",
+            date: dto.transactionDate ?? dto.createdAt ?? .now,
+            description: dto.description ?? "",
+            account: "-",
+            amount: dto.totalAmount ?? 0,
+            currencyCode: dto.currencyCode ?? "IDR",
+            status: ReceiptStatus(apiStatus: dto.status),
+            createdAt: dto.createdAt ?? dto.transactionDate ?? .now,
+            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.transactionDate ?? .now
+        )
+    }
+
     /// Maps a finance `CashTransactionDTO` to the UI entity.
     init(dto: CashTransactionDTO) {
         self.init(
@@ -132,6 +156,7 @@ extension CashReceipt {
             description: dto.description ?? "",
             account: dto.accountName ?? "-",
             amount: dto.amount ?? 0,
+            currencyCode: dto.currencyCode ?? "IDR",
             status: ReceiptStatus(apiStatus: dto.status),
             createdAt: dto.createdAt ?? dto.date ?? .now,
             updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.date ?? .now
@@ -156,6 +181,10 @@ nonisolated struct CashTransactionRequest: Codable, Sendable {
     let lines: [Line]
 
     nonisolated struct Line: Codable, Sendable {
+        /// Existing server line id, sent only when editing (PUT). Without it the
+        /// API treats the line as new, recreating it with a fresh id and orphaning
+        /// the old line + its attachments. Nil for create (POST) / new edit lines.
+        let id: String?
         let accountId: String
         let description: String
         let amount: Double
@@ -165,7 +194,7 @@ nonisolated struct CashTransactionRequest: Codable, Sendable {
         let projectId: String?
 
         enum CodingKeys: String, CodingKey {
-            case description, amount
+            case id, description, amount
             case accountId = "account_id"
             case isPinned = "is_pinned"
             case costCenterId = "cost_center_id"
@@ -189,9 +218,18 @@ nonisolated struct CashTransactionRequest: Codable, Sendable {
 extension CashTransactionRequest {
     /// A single draft line as entered in the form, before serialization.
     nonisolated struct DraftLine: Sendable {
+        /// Server line id when editing an existing line; nil for new lines.
+        let lineId: String?
         let accountId: String   // Akun Lawan (counter account)
         let description: String // Deskripsi
         let amount: Double      // Jumlah
+
+        init(lineId: String? = nil, accountId: String, description: String, amount: Double) {
+            self.lineId = lineId
+            self.accountId = accountId
+            self.description = description
+            self.amount = amount
+        }
     }
 
     /// Builds a multi-line expense/receipt payload from the header + lines. The
@@ -202,11 +240,21 @@ extension CashTransactionRequest {
         cashAccountId: String,
         date: Date,
         lines: [DraftLine],
-        currencyCode: String = "IDR"
+        currencyCode: String = "IDR",
+        exchangeRate: Double = 1
     ) {
         let df = DateFormatter()
         df.locale = Locale(identifier: "en_US_POSIX")
         df.dateFormat = "yyyy-MM-dd"
+        // Foreign-currency accounts carry the live rate and an `original_amount`
+        // (the total back-converted to the account currency); IDR uses 1 / 0.
+        // Mirrors the web client's `M ? {rate, round(totalRp/rate)} : {1, 0}`.
+        let isForeign = currencyCode.uppercased() != "IDR"
+        let totalRp = lines.reduce(0) { $0 + $1.amount }
+        let resolvedRate = isForeign ? exchangeRate : 1
+        let originalAmount = (isForeign && resolvedRate > 0)
+            ? (totalRp / resolvedRate).rounded()
+            : 0
         self.init(
             branchId: branchId,
             transactionType: type,
@@ -214,14 +262,18 @@ extension CashTransactionRequest {
             description: lines.first?.description ?? "",
             cashAccountId: cashAccountId,
             currencyCode: currencyCode,
-            exchangeRate: 1,
-            originalAmount: 0,
-            lines: lines.map { line in
+            exchangeRate: resolvedRate,
+            originalAmount: originalAmount,
+            // Only the first line is pinned. The API rejects payloads with more
+            // than one pinned line ("Invalid transaction lines" / onlyOnePinned),
+            // and the web client auto-pins just the first line.
+            lines: lines.enumerated().map { index, line in
                 Line(
+                    id: line.lineId,
                     accountId: line.accountId,
                     description: line.description,
                     amount: line.amount,
-                    isPinned: true,
+                    isPinned: index == 0,
                     costCenterId: nil,
                     departmentId: nil,
                     projectId: nil
@@ -258,12 +310,49 @@ nonisolated struct AccountDTO: Codable, Sendable, Identifiable {
     let accountSubType: String?
     let currencyCode: String?
     let isActive: Bool?
+    /// Current account balance, when the endpoint returns it (number or string).
+    let balance: Double?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, code
+        case id, name, code, balance
         case accountSubType = "account_sub_type"
         case currencyCode = "currency_code"
         case isActive = "is_active"
+        case currentBalance = "current_balance"
+        case endingBalance = "ending_balance"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        code = try? c.decode(String.self, forKey: .code)
+        accountSubType = try? c.decode(String.self, forKey: .accountSubType)
+        currencyCode = try? c.decode(String.self, forKey: .currencyCode)
+        isActive = try? c.decode(Bool.self, forKey: .isActive)
+        balance = AccountDTO.flexibleDouble(c, .balance)
+            ?? AccountDTO.flexibleDouble(c, .currentBalance)
+            ?? AccountDTO.flexibleDouble(c, .endingBalance)
+    }
+
+    /// Accepts a balance encoded as a JSON number or a numeric string.
+    private static func flexibleDouble(
+        _ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys
+    ) -> Double? {
+        if let d = try? c.decode(Double.self, forKey: key) { return d }
+        if let s = try? c.decode(String.self, forKey: key) { return Double(s) }
+        return nil
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encodeIfPresent(code, forKey: .code)
+        try c.encodeIfPresent(accountSubType, forKey: .accountSubType)
+        try c.encodeIfPresent(currencyCode, forKey: .currencyCode)
+        try c.encodeIfPresent(isActive, forKey: .isActive)
+        try c.encodeIfPresent(balance, forKey: .balance)
     }
 
     /// True for cash/bank accounts eligible as a transaction's cash account.
@@ -333,6 +422,7 @@ nonisolated struct CashTransactionDetailDTO: Codable, Sendable, Identifiable {
     let cashAccountId: String?
     let branchId: String?
     let currencyCode: String?
+    let exchangeRate: Double?
     let totalAmount: Double?
     let status: String?
     let currentApprovalLevel: Int?
@@ -351,6 +441,7 @@ nonisolated struct CashTransactionDetailDTO: Codable, Sendable, Identifiable {
         case cashAccountId = "cash_account_id"
         case branchId = "branch_id"
         case currencyCode = "currency_code"
+        case exchangeRate = "exchange_rate"
         case totalAmount = "total_amount"
         case currentApprovalLevel = "current_approval_level"
         case totalApprovalLevels = "total_approval_levels"
@@ -370,6 +461,8 @@ nonisolated struct CashTransactionDetailDTO: Codable, Sendable, Identifiable {
         cashAccountId = try? c.decode(String.self, forKey: .cashAccountId)
         branchId = try? c.decode(String.self, forKey: .branchId)
         currencyCode = try? c.decode(String.self, forKey: .currencyCode)
+        exchangeRate = (try? c.decode(Double.self, forKey: .exchangeRate))
+            ?? (try? c.decode(String.self, forKey: .exchangeRate)).flatMap(Double.init)
         journalEntryId = try? c.decode(String.self, forKey: .journalEntryId)
         createdBy = try? c.decode(String.self, forKey: .createdBy)
         currentApprovalLevel = try? c.decode(Int.self, forKey: .currentApprovalLevel)
@@ -424,6 +517,7 @@ struct CashReceiptLine: Identifiable, Sendable {
     let accountName: String
     let description: String
     let amount: Double
+    let currencyCode: String
     let isPinned: Bool
     let attachments: [CashLineAttachment]
 }
@@ -438,6 +532,9 @@ struct CashReceiptDetail: Sendable {
     let cashAccountName: String
     let branchName: String
     let total: Double
+    let currencyCode: String
+    /// Stored `base`→IDR rate for foreign-currency transactions (1 for IDR).
+    let exchangeRate: Double
     let status: ReceiptStatus
     /// Raw API status (e.g. "draft", "waiting", "posted", "rejected"), used for
     /// action gating so unmapped values don't fall back to a permissive default.
@@ -486,6 +583,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
     let accountName: String?
     let amount: Double?
     let status: String?
+    let currencyCode: String?
     let createdAt: Date?
     let updatedAt: Date?
 
@@ -495,6 +593,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
         case transactionNo     = "transaction_no"
         case referenceNumber   = "reference_number"
         case transactionDate   = "transaction_date"
+        case currencyCode      = "currency_code"
         case createdAt         = "created_at"
         case updatedAt         = "updated_at"
         case totalAmount       = "total_amount"
@@ -517,6 +616,7 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
             ?? (try? c.decode(String.self, forKey: .referenceNumber))
         description = try? c.decode(String.self, forKey: .description)
         status = try? c.decode(String.self, forKey: .status)
+        currencyCode = try? c.decode(String.self, forKey: .currencyCode)
         // API sends `total_amount`; fall back to `original_amount`/`amount`.
         amount = CashTransactionDTO.decodeFlexibleDouble(c, forKey: .totalAmount)
             ?? CashTransactionDTO.decodeFlexibleDouble(c, forKey: .originalAmount)

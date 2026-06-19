@@ -92,19 +92,40 @@ struct CreateReceiptSheet: View {
     // MARK: - Header
 
     private var header: some View {
-        FormCard("Detail Transaksi") {
-            FormDateRow(label: "Tanggal", required: true,
-                        date: Binding(get: { form.date }, set: { form.date = $0 }))
-            FormPickerRow(
-                label: "Akun Kas/Bank", required: true,
-                options: form.accounts.map(SelectionOption.init(account:)),
-                selectedId: form.cashAccountId,
-                placeholder: "Pilih akun",
-                sheetTitle: "Pilih Akun",
-                searchPrompt: "Cari akun…",
-                showDivider: false,
-                onSelect: { form.cashAccountId = $0 }
-            )
+        VStack(alignment: .leading, spacing: 8) {
+            FormCard("Detail Transaksi") {
+                FormDateRow(label: "Tanggal", required: true,
+                            date: Binding(get: { form.date }, set: { form.date = $0 }))
+                FormPickerRow(
+                    label: "Akun Kas/Bank", required: true,
+                    options: form.accounts.map(SelectionOption.init(account:)),
+                    selectedId: form.cashAccountId,
+                    placeholder: "Pilih akun",
+                    sheetTitle: "Pilih Akun",
+                    searchPrompt: "Cari akun…",
+                    showDivider: form.isForeign,
+                    onSelect: { id in
+                        form.cashAccountId = id
+                        Task { await presenter.onCashAccountChanged() }
+                    }
+                )
+                if form.isForeign {
+                    FormCurrencyRow(
+                        label: "Kurs (1 \(form.selectedCurrencyCode) = Rp)", required: true,
+                        digits: Binding(
+                            get: { form.exchangeRate > 0 ? String(Int(form.exchangeRate)) : "" },
+                            set: { form.exchangeRate = Double($0) ?? 0 }
+                        ),
+                        showDivider: false
+                    )
+                }
+            }
+            if form.isForeign {
+                Text("Kurs diambil otomatis, boleh ditimpa manual.")
+                    .customFont(.regular, Typography.caption)
+                    .foregroundStyle(.subtitle)
+                    .padding(.leading, 4)
+            }
         }
     }
 
@@ -288,16 +309,19 @@ private struct EditReceiptLineSheet: View {
                             searchPrompt: "Cari akun…",
                             onSelect: { draft.accountId = $0 }
                         )
-                        FormCurrencyRow(
-                            label: "Jumlah (IDR)", required: true,
-                            digits: Binding(get: { draft.amountText }, set: { draft.amountText = $0 })
-                        )
+                        amountRows
                         FormTextAreaRow(
                             label: "Deskripsi",
                             text: Binding(get: { draft.description }, set: { draft.description = $0 }),
                             placeholder: "Deskripsi baris",
                             showDivider: false
                         )
+                    }
+                    if form.isForeign {
+                        Text("Isi salah satu — sisi lain dihitung otomatis dari kurs. Yang disimpan adalah Rp.")
+                            .customFont(.regular, Typography.caption)
+                            .foregroundStyle(.subtitle)
+                            .padding(.leading, 4)
                     }
 
                     AttachmentsField(
@@ -326,6 +350,47 @@ private struct EditReceiptLineSheet: View {
                     .disabled(!draft.isValid)
                 }
             }
+        }
+    }
+
+    /// IDR: a single rupiah field. Foreign: dual fields — a decimal `Jumlah
+    /// (USD)` and a `Jumlah (Rp)`; editing one recomputes the other via the
+    /// header rate. The stored value is always `amountText` (Rp).
+    @ViewBuilder
+    private var amountRows: some View {
+        if form.isForeign {
+            FormFieldRow(
+                label: "Jumlah (\(form.selectedCurrencyCode))", required: true,
+                text: Binding(
+                    get: { draft.foreignAmountText },
+                    set: { newValue in
+                        draft.foreignAmountText = newValue
+                        let foreign = Double(newValue.replacingOccurrences(of: ",", with: ".")) ?? 0
+                        let rp = (foreign * form.exchangeRate).rounded()
+                        draft.amountText = rp > 0 ? String(Int(rp)) : ""
+                    }
+                ),
+                placeholder: "0",
+                keyboard: .decimalPad
+            )
+            FormCurrencyRow(
+                label: "Jumlah (Rp)", required: true,
+                digits: Binding(
+                    get: { draft.amountText },
+                    set: { newDigits in
+                        draft.amountText = newDigits
+                        let rp = Double(newDigits) ?? 0
+                        draft.foreignAmountText = (form.exchangeRate > 0 && rp > 0)
+                            ? PenerimaanPresenter.CreateForm.foreignString(rp / form.exchangeRate)
+                            : ""
+                    }
+                )
+            )
+        } else {
+            FormCurrencyRow(
+                label: "Jumlah (IDR)", required: true,
+                digits: Binding(get: { draft.amountText }, set: { draft.amountText = $0 })
+            )
         }
     }
 }

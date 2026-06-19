@@ -26,12 +26,12 @@ struct CashReceiptRow: View {
         VStack(alignment: .leading, spacing: ListMetrics.rowLineSpacing) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title)
-                    .customFont(.bold, ListMetrics.titleSize - 2)
+                    .customFont(.bold, ListMetrics.titleSize)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                 Spacer(minLength: 12)
-                Text(receipt.amount.asIDR)
-                    .customFont(.bold, ListMetrics.titleSize - 2)
+                Text(receipt.amountText)
+                    .customFont(.bold, ListMetrics.titleSize)
                     .foregroundStyle(.title)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -39,19 +39,19 @@ struct CashReceiptRow: View {
 
             HStack(spacing: 8) {
                 Text(dateLabel)
-                    .customFont(.regular, ListMetrics.metaSize - 1)
+                    .customFont(.regular, ListMetrics.metaSize)
                     .foregroundStyle(.subtitle)
                 Circle()
                     .fill(Color.subtitle)
                     .frame(width: 4, height: 4)
                 Text(receipt.number)
-                    .customFont(.regular, ListMetrics.metaSize - 1)
+                    .customFont(.regular, ListMetrics.metaSize)
                     .foregroundStyle(.subtitle)
             }
 
             HStack {
                 Text(receipt.status.rawValue.uppercased())
-                    .customFont(.medium, ListMetrics.statusSize - 1)
+                    .customFont(.medium, ListMetrics.statusSize)
                     .foregroundStyle(receipt.status.tint)
                 Spacer()
                 Image(systemName: "ellipsis")

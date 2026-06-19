@@ -16,7 +16,7 @@ final class ContactPresenter {
     /// Top filter chip selection.
     enum Filter: String, CaseIterable, Identifiable, Sendable {
         case active = "Aktif"
-        case unpaid = "Belum Lunas"
+        case inactive = "Nonaktif"
         case all = "Semua"
         var id: String { rawValue }
     }
@@ -47,9 +47,9 @@ final class ContactPresenter {
         return contacts
             .filter { contact in
                 switch filter {
-                case .all:    return true
-                case .active: return true   // all seeded contacts are active
-                case .unpaid: return contact.receivables > 0
+                case .all:      return true
+                case .active:   return contact.isActive
+                case .inactive: return !contact.isActive
                 }
             }
             .filter { query.isEmpty || $0.name.lowercased().contains(query)

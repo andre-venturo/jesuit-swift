@@ -16,16 +16,25 @@ struct SelectionOption: Identifiable, Equatable {
     let id: String
     let title: String
     var subtitle: String?
+    /// Optional trailing value (e.g. an account's balance), pre-formatted.
+    var trailing: String?
 
-    init(id: String, title: String, subtitle: String? = nil) {
+    init(id: String, title: String, subtitle: String? = nil, trailing: String? = nil) {
         self.id = id
         self.title = title
         self.subtitle = subtitle
+        self.trailing = trailing
     }
 
-    /// Maps a chart-of-accounts entry: name as title, account code as subtitle.
+    /// Maps a chart-of-accounts entry: name as title, account code as subtitle,
+    /// and the current balance (when present) as the trailing value.
     init(account: AccountDTO) {
-        self.init(id: account.id, title: account.name, subtitle: account.code)
+        self.init(
+            id: account.id,
+            title: account.name,
+            subtitle: account.code,
+            trailing: account.balance.map { $0.asCurrency(account.currencyCode) }
+        )
     }
 }
 
@@ -188,6 +197,13 @@ struct SelectionSheet: View {
                     }
                 }
                 Spacer(minLength: 12)
+                if let trailing = option.trailing, !trailing.isEmpty {
+                    Text(trailing)
+                        .customFont(.regular, Typography.subhead)
+                        .foregroundStyle(.subtitle)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 16, weight: .semibold))

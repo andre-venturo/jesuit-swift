@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct KontakScreen: View {
+    @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(ContactPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
@@ -34,9 +35,11 @@ struct KontakScreen: View {
                 content
             }
 
-            addButton
-                .padding(.trailing, 20)
-                .padding(.bottom, 24)
+            if session.can(Permission.contactCreate) {
+                addButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 24)
+            }
         }
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

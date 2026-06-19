@@ -129,7 +129,10 @@ final class PenerimaanPresenter {
         var lineId: String?
         var accountId: String?   // Akun Lawan
         var description: String   // Deskripsi
-        var amountText: String    // Jumlah (digits only)
+        var amountText: String    // Jumlah IDR (digits only) — the stored amount
+        /// Transient foreign-currency amount (e.g. USD) for the dual-field editor;
+        /// not persisted — `amountText` (Rp) is the source of truth.
+        var foreignAmountText: String
         var attachments: [CashAttachment]            // newly-picked local files
         var existingAttachments: [CashLineAttachment]  // already uploaded (server)
 
@@ -138,6 +141,7 @@ final class PenerimaanPresenter {
             accountId: String? = nil,
             description: String = "",
             amountText: String = "",
+            foreignAmountText: String = "",
             attachments: [CashAttachment] = [],
             existingAttachments: [CashLineAttachment] = []
         ) {
@@ -145,23 +149,24 @@ final class PenerimaanPresenter {
             self.accountId = accountId
             self.description = description
             self.amountText = amountText
+            self.foreignAmountText = foreignAmountText
             self.attachments = attachments
             self.existingAttachments = existingAttachments
         }
 
         var amount: Double { Double(amountText) ?? 0 }
 
+        /// Description is optional (the editor doesn't mark it required and the
+        /// API accepts empty), so a line is valid with an account and amount.
         var isValid: Bool {
-            accountId != nil
-                && amount > 0
-                && !description.trimmingCharacters(in: .whitespaces).isEmpty
+            accountId != nil && amount > 0
         }
 
         /// Detached copy for editing; changes only land via `CreateForm.commit`.
         func copy() -> LineDraft {
             LineDraft(lineId: lineId, accountId: accountId, description: description,
-                      amountText: amountText, attachments: attachments,
-                      existingAttachments: existingAttachments)
+                      amountText: amountText, foreignAmountText: foreignAmountText,
+                      attachments: attachments, existingAttachments: existingAttachments)
         }
 
         /// Overwrites fields from an edited copy (commit on "Tambah").
@@ -169,6 +174,7 @@ final class PenerimaanPresenter {
             accountId = other.accountId
             description = other.description
             amountText = other.amountText
+            foreignAmountText = other.foreignAmountText
             attachments = other.attachments
             existingAttachments = other.existingAttachments
         }
@@ -183,6 +189,8 @@ final class PenerimaanPresenter {
         var date: Date = .now
         var cashAccountId: String?          // Akun Kas/Bank (header)
         var lines: [LineDraft] = []
+        /// `base`→IDR rate for a foreign-currency cash account (1 for IDR).
+        var exchangeRate: Double = 1
 
         /// Non-nil when editing an existing transaction (PUT instead of create).
         private(set) var editId: String?
@@ -192,6 +200,13 @@ final class PenerimaanPresenter {
         private(set) var saveState: AppState<CashReceipt> = .idle
 
         var isEditing: Bool { editId != nil }
+
+        /// Currency of the selected cash account; drives the Kurs row + dual line
+        /// fields. Line amounts are always stored in IDR.
+        var selectedCurrencyCode: String {
+            accounts.first { $0.id == cashAccountId }?.currencyCode ?? "IDR"
+        }
+        var isForeign: Bool { selectedCurrencyCode.uppercased() != "IDR" }
 
         var total: Double { lines.reduce(0) { $0 + $1.amount } }
 
@@ -252,6 +267,17 @@ final class PenerimaanPresenter {
         form.setOptions(accounts: accounts, branches: branches)
     }
 
+    /// Reacts to a cash-account change: for a foreign-currency account, fetches a
+    /// fresh `currency`→IDR rate to prefill Kurs; resets to 1 for IDR. Failure is
+    /// non-fatal — the prior rate is kept (the user can still type one).
+    func onCashAccountChanged() async {
+        guard form.isForeign else { form.exchangeRate = 1; return }
+        if let rate = try? await repository.fetchExchangeRate(base: form.selectedCurrencyCode),
+           rate > 0 {
+            form.exchangeRate = rate
+        }
+    }
+
     /// Saves the form. When editing, PUTs the update; otherwise creates as draft
     /// or submitted. On success resets the form, reloads the list and returns
     /// `true` so the caller can dismiss.
@@ -267,17 +293,22 @@ final class PenerimaanPresenter {
             date: form.date,
             lines: form.lines.map {
                 .init(
+                    lineId: $0.lineId,
                     accountId: $0.accountId ?? cashAccountId,
                     description: $0.description.trimmingCharacters(in: .whitespaces),
                     amount: $0.amount
                 )
-            }
+            },
+            currencyCode: form.selectedCurrencyCode,
+            exchangeRate: form.exchangeRate
         )
         let attachments = form.lines.flatMap(\.attachments)
         do {
             let saved: CashReceipt
             if let editId = form.editId {
-                saved = try await repository.update(id: editId, request: request)
+                let detail = try await repository.update(id: editId, request: request)
+                await uploadEditAttachments(transactionId: editId, serverLines: detail.lines ?? [])
+                saved = CashReceipt(detail: detail)
             } else {
                 saved = submit
                     ? try await repository.submit(request, attachments: attachments)
@@ -290,6 +321,27 @@ final class PenerimaanPresenter {
         } catch {
             form.failSave(error)
             return false
+        }
+    }
+
+    /// Uploads each line's newly-picked local attachments after an update PUT.
+    /// The web client does this as separate `POST .../lines/{lineId}/attachments`
+    /// calls; the JSON PUT alone never carries files. Server line ids come back in
+    /// request order, so new lines (no prior `lineId`) match by index.
+    private func uploadEditAttachments(
+        transactionId: String,
+        serverLines: [CashTransactionLineDTO]
+    ) async {
+        for (index, line) in form.lines.enumerated() where !line.attachments.isEmpty {
+            let mappedId = serverLines.indices.contains(index) ? serverLines[index].id : nil
+            guard let lineId = line.lineId ?? mappedId else { continue }
+            for attachment in line.attachments {
+                _ = try? await repository.uploadLineAttachment(
+                    transactionId: transactionId,
+                    lineId: lineId,
+                    attachment: attachment
+                )
+            }
         }
     }
 }
@@ -306,15 +358,29 @@ extension PenerimaanPresenter.CreateForm {
         editId = detail.id
         date = detail.date
         cashAccountId = detail.cashAccountId
+        // Keep the transaction's stored rate so editing doesn't re-fetch/override.
+        exchangeRate = detail.exchangeRate > 0 ? detail.exchangeRate : 1
+        let rate = exchangeRate
+        let foreign = detail.currencyCode.uppercased() != "IDR"
         lines = detail.lines.map { line in
             PenerimaanPresenter.LineDraft(
                 lineId: line.id,
                 accountId: line.accountId,
                 description: line.description,
                 amountText: String(Int(line.amount)),
+                // Back-compute the foreign field from the stored Rp amount.
+                foreignAmountText: (foreign && rate > 0)
+                    ? Self.foreignString(line.amount / rate) : "",
                 existingAttachments: line.attachments
             )
         }
+    }
+
+    /// Formats a computed foreign amount for the editor field: drops the decimal
+    /// when whole (e.g. `10`), else 2 dp with a dot separator (e.g. `10.5`).
+    static func foreignString(_ value: Double) -> String {
+        if value == value.rounded() { return String(Int(value.rounded())) }
+        return String(format: "%.2f", value)
     }
 
     /// A new detached line for the "Tambah Baris" sheet, prefilled with the

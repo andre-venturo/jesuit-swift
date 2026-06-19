@@ -94,9 +94,7 @@ final class CashReceiptDetailPresenter {
         }
     }
 
-    // MARK: - Role / status gating
-
-    private var isAdmin: Bool { session.isAdministrator }
+    // MARK: - Permission / status gating
 
     private var isCreator: Bool {
         guard let detail else { return false }
@@ -104,25 +102,24 @@ final class CashReceiptDetailPresenter {
     }
 
     /// Approve/reject only make sense while waiting for approval, and only for
-    /// users who can approve (administrator).
+    /// users granted the cash-transaction approve permission.
     var canApproveOrReject: Bool {
         guard let detail else { return false }
         let waiting = detail.rawStatus == "waiting" || detail.rawStatus == "pending"
-        return isAdmin && waiting
+        return session.can(Permission.cashApprove) && waiting
     }
 
-    /// Edit is allowed in any status for admins or the creator — the edit form
-    /// itself handles whatever the API permits per status.
+    /// Edit is allowed in any status for users with the update permission (or
+    /// the creator) — the edit form handles whatever the API permits per status.
     var canEdit: Bool {
         guard detail != nil else { return false }
-        return isAdmin || isCreator
+        return session.can(Permission.cashUpdate) || isCreator
     }
 
-    /// Delete is allowed in any status (including approved/rejected) for admins
-    /// or the creator.
+    /// Delete is allowed in any status for users with the delete permission.
     var canDelete: Bool {
         guard detail != nil else { return false }
-        return isAdmin || isCreator
+        return session.can(Permission.cashDelete)
     }
 
     // MARK: - Load
@@ -200,6 +197,7 @@ final class CashReceiptDetailPresenter {
     }
 
     private func map(_ dto: CashTransactionDetailDTO) -> CashReceiptDetail {
+        let currency = dto.currencyCode ?? "IDR"
         let lines: [CashReceiptLine] = (dto.lines ?? [])
             .sorted { ($0.lineNumber ?? 0) < ($1.lineNumber ?? 0) }
             .map { line in
@@ -210,6 +208,7 @@ final class CashReceiptDetailPresenter {
                     accountName: accountName(line.accountId),
                     description: line.description ?? "",
                     amount: line.amount ?? 0,
+                    currencyCode: currency,
                     isPinned: line.isPinned ?? false,
                     attachments: (line.attachments ?? []).compactMap { att in
                         guard let url = att.fileUrl, !url.isEmpty else { return nil }
@@ -232,6 +231,8 @@ final class CashReceiptDetailPresenter {
             cashAccountName: accountName(dto.cashAccountId),
             branchName: branchName(dto.branchId),
             total: dto.totalAmount ?? 0,
+            currencyCode: currency,
+            exchangeRate: dto.exchangeRate ?? 1,
             status: ReceiptStatus(apiStatus: dto.status),
             rawStatus: (dto.status ?? "").lowercased(),
             approvalLevel: dto.currentApprovalLevel,

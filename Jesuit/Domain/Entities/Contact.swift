@@ -56,12 +56,6 @@ struct Contact: Identifiable, Sendable {
         self.isActive = isActive
     }
 
-    /// Outstanding amount the contact owes (positive balance).
-    var receivables: Double { max(balance, 0) }
-
-    /// Credit the contact holds (negative balance, shown as a positive figure).
-    var credits: Double { max(-balance, 0) }
-
     /// Initials for the avatar, e.g. "Dr. Ilham H" → "IH".
     var initials: String {
         let words = name.split(separator: " ").filter { !$0.hasSuffix(".") }

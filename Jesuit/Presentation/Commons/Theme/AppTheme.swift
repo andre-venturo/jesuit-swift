@@ -68,9 +68,10 @@ enum ListMetrics {
     static let rowLineSpacing: CGFloat = 10
 
     // Type scale (Inter weights via `customFont`), backed by `Typography`.
-    static let titleSize: CGFloat = Typography.headline // primary line + trailing amount
-    static let metaSize: CGFloat = Typography.subhead   // date / number / secondary line
-    static let statusSize: CGFloat = Typography.caption  // status caption
+    // Sizes match the Penerimaan / Pengeluaran rows, the reference for all lists.
+    static let titleSize: CGFloat = Typography.body      // primary line + trailing amount
+    static let metaSize: CGFloat = Typography.caption    // date / number / secondary line
+    static let statusSize: CGFloat = Typography.caption2 // status caption
 }
 
 // MARK: - Color from hex

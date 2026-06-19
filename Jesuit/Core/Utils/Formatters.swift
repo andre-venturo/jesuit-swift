@@ -71,6 +71,44 @@ extension Double {
         self < 0 ? "– \(abs(self).asRupiah)" : asRupiah
     }
 
+    /// Formats an amount in the given ISO currency code, id-ID style (`.`
+    /// thousands, `,` decimals). IDR has no decimals and a `Rp ` prefix; every
+    /// other currency uses its symbol (e.g. `$`) and 2 decimals — e.g.
+    /// `Rp 690.002`, `-$421.650,00`. Falls back to the code as a prefix for
+    /// unknown currencies (e.g. `SGD 1.000,00`).
+    func asCurrency(_ code: String?) -> String {
+        let currency = (code ?? "IDR").uppercased()
+        if currency == "IDR" { return asRupiah }
+
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = "."
+        f.decimalSeparator = ","
+        f.usesGroupingSeparator = true
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+
+        let sign = self < 0 ? "-" : ""
+        let value = f.string(from: NSNumber(value: abs(self))) ?? "0,00"
+        let symbol = Self.currencySymbol(currency)
+        // Symbols hug the number (`$1.000,00`); ISO-code fallbacks get a space.
+        let separator = symbol == currency ? " " : ""
+        return "\(sign)\(symbol)\(separator)\(value)"
+    }
+
+    /// Common currency symbols; unknown codes fall back to the code itself.
+    private static func currencySymbol(_ code: String) -> String {
+        switch code {
+        case "USD": return "$"
+        case "EUR": return "€"
+        case "GBP": return "£"
+        case "JPY": return "¥"
+        case "SGD": return "S$"
+        case "AUD": return "A$"
+        default:    return code
+        }
+    }
+
     /// Compact Indonesian Rupiah with magnitude suffixes (rb/jt/M/T), e.g.
     /// `Rp254,1 M`, `-Rp12,4 M`, `Rp0`. Keeps large finance figures readable on
     /// one line; `.` is the decimal mark (id-ID style).

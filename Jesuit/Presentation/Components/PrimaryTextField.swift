@@ -41,6 +41,7 @@ struct PrimaryTextField: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .keyboardType(keyboard)
+                .keyboardDoneButton()
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
                 .disableAutocorrection(true)

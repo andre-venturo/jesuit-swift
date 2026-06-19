@@ -141,6 +141,7 @@ struct FormFieldRow: View {
                 .foregroundStyle(.title)
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
+                .keyboardDoneButton()
                 .textInputAutocapitalization(keyboard == .emailAddress ? .never : .sentences)
                 .autocorrectionDisabled(keyboard == .emailAddress)
             }
@@ -174,6 +175,7 @@ struct FormCurrencyRow: View {
                     .font(.customFont(.regular, Typography.body))
                     .foregroundStyle(.title)
                     .keyboardType(.numberPad)
+                    .keyboardDoneButton()
                     .multilineTextAlignment(.trailing)
                     .fixedSize(horizontal: true, vertical: false)
                     .onChange(of: display) { _, newValue in
