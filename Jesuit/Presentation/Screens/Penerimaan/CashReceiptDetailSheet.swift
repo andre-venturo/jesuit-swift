@@ -143,30 +143,25 @@ struct CashReceiptDetailSheet: View {
     // MARK: - Content
 
     private func content(_ detail: CashReceiptDetail) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                hero(detail)
+        VStack(spacing: 16) {
+            hero(detail)
 
-                Picker("", selection: $tab) {
-                    ForEach(DetailTab.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-
-                switch tab {
-                case .detail:
-                    infoCard(detail)
-                    linesSection(detail)
-                    summaryCard(detail)
-                    if !detail.description.isEmpty {
-                        notesCard(detail.description)
-                    }
-                case .riwayat:
-                    riwayatSection
-                }
+            Picker("", selection: $tab) {
+                ForEach(DetailTab.allCases) { Text($0.rawValue).tag($0) }
             }
-            .padding(20)
-            .padding(.bottom, 90)
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+
+            // Paged TabView so the segments can also be swiped; the page
+            // selection is bound to the same `tab` as the segmented control.
+            TabView(selection: $tab) {
+                detailPage(detail).tag(DetailTab.detail)
+                riwayatPage.tag(DetailTab.riwayat)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .animation(.easeInOut, value: tab)
         }
+        .padding(.top, 20)
         .safeAreaInset(edge: .bottom) { actionBar(detail) }
         .overlay {
             if presenter.isWorking {
@@ -176,6 +171,29 @@ struct CashReceiptDetailSheet: View {
         }
         .task(id: tab) {
             if tab == .riwayat { await presenter.loadActivity() }
+        }
+    }
+
+    private func detailPage(_ detail: CashReceiptDetail) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                infoCard(detail)
+                linesSection(detail)
+                summaryCard(detail)
+                if !detail.description.isEmpty {
+                    notesCard(detail.description)
+                }
+            }
+            .padding(20)
+            .padding(.bottom, 90)
+        }
+    }
+
+    private var riwayatPage: some View {
+        ScrollView {
+            riwayatSection
+                .padding(20)
+                .padding(.bottom, 90)
         }
     }
 
