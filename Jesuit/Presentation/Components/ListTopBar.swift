@@ -70,6 +70,7 @@ struct ListTopBar: View {
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
                 .focused($searchFocused)
+                .keyboardDoneButton()
         }
         .padding(.horizontal, 14)
         .frame(height: 44)

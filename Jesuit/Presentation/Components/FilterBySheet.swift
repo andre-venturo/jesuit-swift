@@ -82,6 +82,7 @@ struct FilterBySheet: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
+                .keyboardDoneButton()
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.subtitle)
