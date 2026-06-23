@@ -52,23 +52,24 @@ struct HomeScreen: View {
         Button {
             showOrgSwitcher = true
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Image(systemName: "building.2")
-                    .font(.system(size: 17, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(.title)
-                    .frame(width: 44, height: 44)
+                    .frame(width: 34, height: 34)
                     .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
 
                 Text(presenter.organization)
-                    .customFont(.bold, Typography.title)
+                    .customFont(.bold, Typography.title2)
                     .foregroundStyle(.title)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                 if presenter.isSwitchingCompany {
                     ProgressView().tint(.title)
                 } else {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.title)
                 }
             }
@@ -88,15 +89,6 @@ struct HomeScreen: View {
             companySwitcher
 
             Spacer()
-
-            Button(action: {}) {
-                Image(systemName: "bell")
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(.title)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)

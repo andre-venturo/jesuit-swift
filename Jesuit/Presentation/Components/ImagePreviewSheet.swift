@@ -117,13 +117,25 @@ struct ImagePreviewSheet: View {
     private var drag: some Gesture {
         DragGesture()
             .onChanged { value in
-                guard scale > 1 else { return }
-                offset = CGSize(
-                    width: lastOffset.width + value.translation.width,
-                    height: lastOffset.height + value.translation.height
-                )
+                if scale > 1 {
+                    offset = CGSize(
+                        width: lastOffset.width + value.translation.width,
+                        height: lastOffset.height + value.translation.height
+                    )
+                } else {
+                    // Not zoomed: track a vertical swipe-to-dismiss.
+                    offset = CGSize(width: 0, height: value.translation.height)
+                }
             }
-            .onEnded { _ in lastOffset = offset }
+            .onEnded { value in
+                if scale > 1 {
+                    lastOffset = offset
+                } else if value.translation.height > 120 {
+                    dismiss()
+                } else {
+                    withAnimation(.easeOut(duration: 0.2)) { offset = .zero }
+                }
+            }
     }
 
     private func resetOrZoom() {

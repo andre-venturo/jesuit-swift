@@ -528,12 +528,15 @@ struct CashReceiptDetailSheet: View {
     private func actionBar(_ detail: CashReceiptDetail) -> some View {
         if presenter.canEdit || hasMoreOptions {
             HStack {
-                if presenter.canEdit {
-                    pillButton("Ubah", systemImage: "pencil") { showEdit = true }
+                if presenter.canApproveOrReject {
+                    // Approve/reject still live behind the menu alongside delete.
+                    pillButton("Opsi Lain", systemImage: "ellipsis.circle") { showMoreOptions = true }
+                } else if presenter.canDelete {
+                    pillButton("Hapus", systemImage: "trash", tint: .expense) { showDeleteConfirm = true }
                 }
                 Spacer(minLength: 12)
-                if hasMoreOptions {
-                    pillButton("Opsi Lain", systemImage: "ellipsis.circle") { showMoreOptions = true }
+                if presenter.canEdit {
+                    pillButton("Ubah", systemImage: "pencil") { showEdit = true }
                 }
             }
             .padding(.horizontal, 16)
@@ -544,13 +547,13 @@ struct CashReceiptDetailSheet: View {
 
     /// An outlined capsule action button (the reference's bottom Edit / More
     /// Options pills), sized to its content so the pair floats to the corners.
-    private func pillButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+    private func pillButton(_ title: String, systemImage: String, tint: Color = .accent, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: systemImage).font(.system(size: 15, weight: .medium))
                 Text(title).customFont(.semibold, Typography.body)
             }
-            .foregroundStyle(.accent)
+            .foregroundStyle(tint)
             .padding(.horizontal, 28)
             .padding(.vertical, 14)
             .overlay(

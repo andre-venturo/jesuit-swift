@@ -103,6 +103,11 @@ class AppDI {
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
         }
+        container.register(LaporanPresenter.self) { resolver in
+            LaporanPresenter(
+                repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
     }
 
     func resolver<T>(_ type: T.Type) -> T { container.resolve(type)! }

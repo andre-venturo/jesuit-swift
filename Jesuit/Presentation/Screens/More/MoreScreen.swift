@@ -15,6 +15,7 @@ struct MoreScreen: View {
     @State private var showProfileSaved = false
     @State private var showChangePassword = false
     @State private var showPasswordChanged = false
+    @State private var showLaporan = false
 
     var body: some View {
         ScrollView {
@@ -55,6 +56,13 @@ struct MoreScreen: View {
                         MoreRow(icon: "lock", title: "Ubah Password", value: "")
                     }
                     .buttonStyle(.plain)
+                    Divider().padding(.leading, 52)
+                    Button {
+                        showLaporan = true
+                    } label: {
+                        MoreRow(icon: "chart.bar.doc.horizontal", title: "Laporan", value: "")
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Button {
@@ -91,6 +99,9 @@ struct MoreScreen: View {
         }
         .sheet(isPresented: $showChangePassword) {
             ChangePasswordSheet(onSuccess: { showPasswordChanged = true })
+        }
+        .sheet(isPresented: $showLaporan) {
+            LaporanScreen()
         }
         .alert("Profil berhasil diperbarui", isPresented: $showProfileSaved) {
             Button("OK", role: .cancel) {}
@@ -131,5 +142,6 @@ struct MoreRow: View {
                 .foregroundStyle(.subtitle)
         }
         .padding(16)
+        .contentShape(Rectangle())
     }
 }
