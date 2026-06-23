@@ -11,7 +11,11 @@
 import SwiftUI
 
 struct CreateExpenseSheet: View {
-    let presenter: PengeluaranPresenter
+    // @State so the presenter is created once and survives view re-inits — the DI
+    // registration is `.graph`-scoped (a fresh instance per resolve), so a plain
+    // `let` resolved in init would be replaced on every re-render, dropping the
+    // seeded form (its lines) before `.task` could matter.
+    @State private var presenter: PengeluaranPresenter
     let onCreated: () -> Void
     /// When non-nil the sheet edits this transaction (PUT) instead of creating.
     private let editTarget: CashReceiptDetail?
@@ -21,14 +25,14 @@ struct CreateExpenseSheet: View {
 
     /// Create mode: caller supplies the shared presenter (its `form` is reset).
     init(presenter: PengeluaranPresenter, onCreated: @escaping () -> Void) {
-        self.presenter = presenter
+        _presenter = State(initialValue: presenter)
         self.onCreated = onCreated
         self.editTarget = nil
     }
 
     /// Edit mode: builds its own presenter and seeds the form from `editing`.
     init(editing detail: CashReceiptDetail, onCreated: @escaping () -> Void) {
-        self.presenter = AppDI.shared.resolver(PengeluaranPresenter.self)
+        _presenter = State(initialValue: AppDI.shared.resolver(PengeluaranPresenter.self))
         self.onCreated = onCreated
         self.editTarget = detail
     }

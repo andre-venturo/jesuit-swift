@@ -99,7 +99,17 @@ struct KontakScreen: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            if index == presenter.filtered.count - 1 {
+                                Task { await presenter.loadMore() }
+                            }
+                        }
                         RowDivider(index: index, count: presenter.filtered.count)
+                    }
+                    if presenter.isLoadingMore {
+                        ProgressView().tint(.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                     }
                 }
                 .padding(.top, 4)

@@ -13,7 +13,6 @@ struct PengeluaranScreen: View {
     @State private var presenter = AppDI.shared.resolver(PengeluaranPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
-    @State private var showSort = false
     @State private var selected: SelectedExpense?
 
     /// Identifiable wrapper so `sheet(item:)` can present an expense by id.
@@ -31,8 +30,7 @@ struct PengeluaranScreen: View {
                     onSelectChip: { label in
                         if let f = PengeluaranPresenter.Filter(rawValue: label) { presenter.filter = f }
                     },
-                    onOpenFilter: { showFilter = true },
-                    onOpenSort: { showSort = true }
+                    onOpenFilter: { showFilter = true }
                 )
 
                 content
@@ -66,16 +64,6 @@ struct PengeluaranScreen: View {
                 }
             )
         }
-        .sheet(isPresented: $showSort) {
-            SortBySheet(
-                field: presenter.sortField,
-                direction: presenter.sortDirection,
-                onApply: { field, direction in
-                    presenter.sortField = field
-                    presenter.sortDirection = direction
-                }
-            )
-        }
         .hotReloadable()
     }
 
@@ -101,7 +89,17 @@ struct PengeluaranScreen: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            if index == presenter.filtered.count - 1 {
+                                Task { await presenter.loadMore() }
+                            }
+                        }
                         RowDivider(index: index, count: presenter.filtered.count)
+                    }
+                    if presenter.isLoadingMore {
+                        ProgressView().tint(.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                     }
                 }
                 .padding(.top, 4)

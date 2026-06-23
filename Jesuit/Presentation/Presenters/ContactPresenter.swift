@@ -35,7 +35,9 @@ final class ContactPresenter {
     var sortOrder: SortOrder = .nameAsc
     var searchText: String = ""
 
-    private let pageSize = 25
+    private let pageSize = 10
+    private var page = 1
+    private var totalPages = 1
 
     init(contactRepository: ContactRepositoryProtocol) {
         self.contactRepository = contactRepository
@@ -74,17 +76,43 @@ final class ContactPresenter {
         return nil
     }
 
+    var isLoadingMore: Bool {
+        if case .loadmore = state { return true }
+        return false
+    }
+
+    /// More server pages remain (load-more only pages the unfiltered list).
+    var canLoadMore: Bool { page < totalPages }
+
     /// Loads the first page of contacts from the finance API.
     func load() async {
         state = .loading
         do {
-            let page = try await contactRepository.fetchContacts(page: 1, limit: pageSize)
-            contacts = page.contacts
-            state = page.contacts.isEmpty ? .empty : .success(page.contacts)
+            let result = try await contactRepository.fetchContacts(page: 1, limit: pageSize)
+            contacts = result.contacts
+            page = 1
+            totalPages = result.totalPages
+            state = result.contacts.isEmpty ? .empty : .success(result.contacts)
         } catch {
             contacts = []
             state = .error(error)
         }
+    }
+
+    /// Appends the next page; no-op while already paging or at the last page.
+    func loadMore() async {
+        guard canLoadMore, case .success = state else { return }
+        state = .loadmore
+        do {
+            let result = try await contactRepository.fetchContacts(page: page + 1, limit: pageSize)
+            page += 1
+            totalPages = result.totalPages
+            let seen = Set(contacts.map(\.id))
+            contacts += result.contacts.filter { !seen.contains($0.id) }
+        } catch {
+            // ponytail: drop the failed page silently, keep what we have
+        }
+        state = .success(contacts)
     }
 
     // MARK: - Create contact

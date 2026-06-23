@@ -21,8 +21,9 @@ struct ListTopBar: View {
 
     /// Opens the extended "Filter Berdasarkan" sheet (the chevron-down button).
     let onOpenFilter: () -> Void
-    /// Opens the "Urutkan" sort sheet (the sort button).
-    let onOpenSort: () -> Void
+    /// Opens the "Urutkan" sort sheet. Nil hides the sort button (e.g. lists the
+    /// API returns in a fixed order with no sort param).
+    var onOpenSort: (() -> Void)?
 
     @State private var showSearch = false
     @FocusState private var searchFocused: Bool
@@ -100,10 +101,12 @@ struct ListTopBar: View {
                     .overlay(Circle().stroke(Color.white.opacity(0.18), lineWidth: 1))
             }
 
-            Button(action: onOpenSort) {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.title)
+            if let onOpenSort {
+                Button(action: onOpenSort) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(.title)
+                }
             }
         }
         .padding(.horizontal, 16)

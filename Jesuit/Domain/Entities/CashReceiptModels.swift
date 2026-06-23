@@ -48,28 +48,6 @@ extension ReceiptStatus {
     }
 }
 
-/// Field the cash-transaction list is sorted by (client-side, over the loaded
-/// page — the API has no sort param). Shared by the Penerimaan and Pengeluaran
-/// Sort sheets.
-enum ReceiptSortField: String, CaseIterable, Identifiable, Sendable {
-    case createdTime  = "Waktu Dibuat"
-    case lastModified = "Terakhir Diperbarui"
-    case date         = "Tanggal"
-    case number       = "No. Transaksi"
-    case amount       = "Jumlah"
-    var id: String { rawValue }
-}
-
-/// Sort direction for a `ReceiptSortField`.
-enum SortDirection: Sendable {
-    case newToOld, oldToNew
-
-    var label: String { self == .newToOld ? "Terbaru ke Terlama" : "Terlama ke Terbaru" }
-    /// Arrow shown on the selected sort row.
-    var systemImage: String { self == .newToOld ? "arrow.down" : "arrow.up" }
-    mutating func toggle() { self = self == .newToOld ? .oldToNew : .newToOld }
-}
-
 /// A single cash-receipt transaction row.
 struct CashReceipt: Identifiable, Sendable {
     let id: String
@@ -82,6 +60,10 @@ struct CashReceipt: Identifiable, Sendable {
     let status: ReceiptStatus   // Status
     let createdAt: Date         // Dibuat Pada
     let updatedAt: Date         // Terakhir Diperbarui
+    /// Ids for client-side filtering / name resolution — the list payload carries
+    /// these but not the cash-account / branch names.
+    let cashAccountId: String?
+    let branchId: String?
 
     init(
         id: String = UUID().uuidString,
@@ -93,7 +75,9 @@ struct CashReceipt: Identifiable, Sendable {
         currencyCode: String = "IDR",
         status: ReceiptStatus,
         createdAt: Date,
-        updatedAt: Date
+        updatedAt: Date,
+        cashAccountId: String? = nil,
+        branchId: String? = nil
     ) {
         self.id = id
         self.number = number
@@ -105,27 +89,12 @@ struct CashReceipt: Identifiable, Sendable {
         self.status = status
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.cashAccountId = cashAccountId
+        self.branchId = branchId
     }
 
     /// Amount formatted in the transaction's currency.
     var amountText: String { amount.asCurrency(currencyCode) }
-}
-
-extension CashReceipt {
-    /// Orders two receipts by the given field + direction. Used by both the
-    /// Penerimaan and Pengeluaran list sorters.
-    static func isOrdered(_ lhs: CashReceipt, _ rhs: CashReceipt,
-                          by field: ReceiptSortField, _ direction: SortDirection) -> Bool {
-        let ascending: Bool
-        switch field {
-        case .createdTime:  ascending = lhs.createdAt < rhs.createdAt
-        case .lastModified: ascending = lhs.updatedAt < rhs.updatedAt
-        case .date:         ascending = lhs.date < rhs.date
-        case .number:       ascending = lhs.number.localizedStandardCompare(rhs.number) == .orderedAscending
-        case .amount:       ascending = lhs.amount < rhs.amount
-        }
-        return direction == .oldToNew ? ascending : !ascending
-    }
 }
 
 extension CashReceipt {
@@ -143,7 +112,9 @@ extension CashReceipt {
             currencyCode: dto.currencyCode ?? "IDR",
             status: ReceiptStatus(apiStatus: dto.status),
             createdAt: dto.createdAt ?? dto.transactionDate ?? .now,
-            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.transactionDate ?? .now
+            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.transactionDate ?? .now,
+            cashAccountId: dto.cashAccountId,
+            branchId: dto.branchId
         )
     }
 
@@ -159,7 +130,9 @@ extension CashReceipt {
             currencyCode: dto.currencyCode ?? "IDR",
             status: ReceiptStatus(apiStatus: dto.status),
             createdAt: dto.createdAt ?? dto.date ?? .now,
-            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.date ?? .now
+            updatedAt: dto.updatedAt ?? dto.createdAt ?? dto.date ?? .now,
+            cashAccountId: dto.cashAccountId,
+            branchId: dto.branchId
         )
     }
 }
@@ -586,6 +559,8 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
     let currencyCode: String?
     let createdAt: Date?
     let updatedAt: Date?
+    let cashAccountId: String?
+    let branchId: String?
 
     enum CodingKeys: String, CodingKey {
         case id, amount, status, description
@@ -600,6 +575,8 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
         case originalAmount    = "original_amount"
         case cashAccountName   = "cash_account_name"
         case cashAccount       = "cash_account"
+        case cashAccountId     = "cash_account_id"
+        case branchId          = "branch_id"
         case createdByName     = "created_by_name"
         case account
     }
@@ -624,6 +601,8 @@ nonisolated struct CashTransactionDTO: Codable, Sendable, Identifiable {
         date = CashTransactionDTO.decodeFlexibleDate(c, forKey: .transactionDate)
         createdAt = CashTransactionDTO.decodeFlexibleDate(c, forKey: .createdAt)
         updatedAt = CashTransactionDTO.decodeFlexibleDate(c, forKey: .updatedAt)
+        cashAccountId = try? c.decode(String.self, forKey: .cashAccountId)
+        branchId = try? c.decode(String.self, forKey: .branchId)
 
         // Account may arrive flat (cash_account_name) or nested under
         // `cash_account` / `account`.

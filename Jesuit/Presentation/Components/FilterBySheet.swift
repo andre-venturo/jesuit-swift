@@ -29,18 +29,31 @@ struct FilterBySheet: View {
     let options: [FilterOption]
     let selectedId: String
     let onSelect: (String) -> Void
+    /// Shows a search field that filters rows by label — for long option lists.
+    var searchable: Bool = false
 
     @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+
+    /// Options after the search query (label contains, case-insensitive).
+    private var visibleOptions: [FilterOption] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard searchable, !q.isEmpty else { return options }
+        return options.filter { $0.label.localizedCaseInsensitiveContains(q) }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(options) { option in
+                    ForEach(visibleOptions) { option in
                         row(option)
                     }
                 }
                 .padding(16)
+            }
+            .safeAreaInset(edge: .top) {
+                if searchable { searchBar }
             }
             .background(Color.background1.ignoresSafeArea())
             .navigationTitle(title)
@@ -59,6 +72,29 @@ struct FilterBySheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private var searchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.subtitle)
+            TextField("Cari", text: $query)
+                .font(.customFont(.regular, Typography.body))
+                .foregroundStyle(.title)
+                .autocorrectionDisabled()
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.subtitle)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 44)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .background(Color.background1)
     }
 
     private func row(_ option: FilterOption) -> some View {

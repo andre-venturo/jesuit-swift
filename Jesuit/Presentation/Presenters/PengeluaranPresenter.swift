@@ -41,8 +41,6 @@ final class PengeluaranPresenter {
     }
 
     var filter: Filter = .all
-    var sortField: ReceiptSortField = .createdTime
-    var sortDirection: SortDirection = .newToOld
     var searchText: String = ""
 
     private(set) var expenses: [CashReceipt] = []
@@ -52,7 +50,9 @@ final class PengeluaranPresenter {
     /// they reflect the full result set rather than just the loaded page.
     private(set) var serverCounts: CashTransactionCounts?
 
-    private let pageSize = 25
+    private let pageSize = 10
+    private var page = 1
+    private var totalPages = 1
 
     init(repository: CashReceiptRepositoryProtocol) {
         self.repository = repository
@@ -70,14 +70,24 @@ final class PengeluaranPresenter {
         return nil
     }
 
+    var isLoadingMore: Bool {
+        if case .loadmore = state { return true }
+        return false
+    }
+
+    /// More server pages remain (load-more only pages the unfiltered list).
+    var canLoadMore: Bool { page < totalPages }
+
     /// Loads the first page of cash disbursements from the finance API.
     func load() async {
         state = .loading
         do {
-            let page = try await repository.fetchDisbursements(page: 1, limit: pageSize)
-            expenses = page.receipts
-            serverCounts = page.counts
-            state = page.receipts.isEmpty ? .empty : .success(page.receipts)
+            let result = try await repository.fetchDisbursements(page: 1, limit: pageSize)
+            expenses = result.receipts
+            serverCounts = result.counts
+            page = 1
+            totalPages = result.totalPages
+            state = result.receipts.isEmpty ? .empty : .success(result.receipts)
         } catch {
             expenses = []
             serverCounts = nil
@@ -85,9 +95,26 @@ final class PengeluaranPresenter {
         }
     }
 
+    /// Appends the next page; no-op while already paging or at the last page.
+    func loadMore() async {
+        guard canLoadMore, case .success = state else { return }
+        state = .loadmore
+        do {
+            let result = try await repository.fetchDisbursements(page: page + 1, limit: pageSize)
+            page += 1
+            totalPages = result.totalPages
+            let seen = Set(expenses.map(\.id))
+            expenses += result.receipts.filter { !seen.contains($0.id) }
+        } catch {
+            // ponytail: drop the failed page silently, keep what we have
+        }
+        state = .success(expenses)
+    }
+
     // MARK: - Derived
 
-    /// Expenses after applying the filter chip, search and sort.
+    /// Expenses after applying the filter chip and search query. Order is kept as
+    /// the API returns it (the endpoint has no sort param).
     var filtered: [CashReceipt] {
         let query = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         let status = filter.status
@@ -96,7 +123,6 @@ final class PengeluaranPresenter {
             .filter { query.isEmpty
                 || $0.number.lowercased().contains(query)
                 || $0.description.lowercased().contains(query) }
-            .sorted { CashReceipt.isOrdered($0, $1, by: sortField, sortDirection) }
     }
 
     /// Total count for a given tab (`nil` == Semua). Prefers the server-provided

@@ -13,7 +13,6 @@ struct PenerimaanScreen: View {
     @State private var presenter = AppDI.shared.resolver(PenerimaanPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
-    @State private var showSort = false
     @State private var selected: SelectedReceipt?
 
     /// Identifiable wrapper so `sheet(item:)` can present a receipt by id.
@@ -31,8 +30,7 @@ struct PenerimaanScreen: View {
                     onSelectChip: { label in
                         if let f = PenerimaanPresenter.Filter(rawValue: label) { presenter.filter = f }
                     },
-                    onOpenFilter: { showFilter = true },
-                    onOpenSort: { showSort = true }
+                    onOpenFilter: { showFilter = true }
                 )
 
                 content
@@ -65,16 +63,6 @@ struct PenerimaanScreen: View {
                 }
             )
         }
-        .sheet(isPresented: $showSort) {
-            SortBySheet(
-                field: presenter.sortField,
-                direction: presenter.sortDirection,
-                onApply: { field, direction in
-                    presenter.sortField = field
-                    presenter.sortDirection = direction
-                }
-            )
-        }
         .hotReloadable()
     }
 
@@ -100,7 +88,17 @@ struct PenerimaanScreen: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .onAppear {
+                            if index == presenter.filtered.count - 1 {
+                                Task { await presenter.loadMore() }
+                            }
+                        }
                         RowDivider(index: index, count: presenter.filtered.count)
+                    }
+                    if presenter.isLoadingMore {
+                        ProgressView().tint(.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                     }
                 }
                 .padding(.top, 4)

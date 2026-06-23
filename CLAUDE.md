@@ -54,6 +54,17 @@ Two independent layers:
 
 `CashReceiptDetailSheet` renders **both** receipts and disbursements, switched by its `kind: .receipt | .disbursement` parameter (it decides which edit sheet — `CreateReceiptSheet` vs `CreateExpenseSheet` — to present). The two create sheets are near-duplicates with parallel `EditLineSheet` / `EditReceiptLineSheet` line editors. When changing one, check whether the other needs the same change.
 
+### List tabs: pagination, filtering — all client-side
+
+The cash-transactions and contacts list endpoints take only `page`/`limit` (+ `transaction_type`) — **no server-side sort, filter, or search params**. So the Kontak / Penerimaan / Pengeluaran presenters do all of it client-side over the loaded pages:
+- **Load-more:** presenters track `page`/`totalPages` and expose `loadMore()` + `isLoadingMore`/`canLoadMore` (reusing `AppState.loadmore`). Each screen fires `loadMore()` from the **last row's `.onAppear`** (not a footer — `RowDivider` renders nothing for the last row). Appended pages are **deduped by id** (the API can repeat a row across page boundaries when timestamps tie).
+- **Filter chips / search** in `filtered` are computed over `receipts`/`contacts`; load-more therefore pages the *unfiltered* set.
+- There is **no list sort UI** — it was removed because the endpoint can't sort and client re-sorting reshuffled rows during load-more. `ListTopBar.onOpenSort` is optional (nil hides the button).
+
+### Laporan (report)
+
+`LaporanScreen` + `LaporanPresenter` render a cash journal ("Laporan Arus Kas", Jurnal Umum-style). It sweeps **every** page of receipts + disbursements once, caches them, and re-aggregates client-side per selected period (period changes never hit the network). Output is a Debit (penerimaan) / Kredit (pengeluaran) `JournalEntry` table under a company header. Filters (Status / Cabang & Unit / Akun) live in a bottom sheet and reuse `FilterBySheet`; account/branch **names** are resolved from `fetchCashAccounts()`/`fetchBranches()` because the list payload carries only ids (`CashReceipt.cashAccountId` / `branchId`). Export to **PDF + CSV** via `ReportExporter` (`Core/Utils/` — native `UIGraphicsPDFRenderer` + RFC-4180 CSV with UTF-8 BOM, no third-party deps), shared through `ShareSheet` (a `UIActivityViewController` wrapper). Exports honor the active filters.
+
 ## UI conventions
 
 - **Fonts:** never use `.font(.system…)` for text. Use `Text(...).customFont(weight, size)` (`Commons/Extensions/CustomFont.swift`) with sizes from the `Typography` enum (`Commons/Theme/AppTheme.swift`: `display 28 → caption2 11`). Weights: `.regular/.medium/.semibold/.bold`. Note Inter's bold style is `"Semi Bold"`/`"Extra Bold"` (with space).
@@ -61,6 +72,7 @@ Two independent layers:
 - **Currency:** `Double` extensions in `Core/Utils/Formatters.swift` — `asRupiah` ("Rp 1.200.000"), `asIDR` ("IDR…"), `asSignedRupiah`, `groupedThousands` (digit-string grouping for input fields). `CurrencyField` binds a digits-only string.
 - **Grouped forms:** build with the `FormCard` primitives (`Components/FormCard.swift`): `FormPickerRow`, `FormFieldRow`, `FormCurrencyRow`, `FormTextAreaRow`, `FormDateRow`, `FormToggleRow` — Zoho-style label-left/value-right rows with inset dividers. Required-field labels render in `.expense` red.
 - **Shared list rows** (`ListMetrics` in `AppTheme`) are used by Kontak / Penerimaan / Pengeluaran rows; changing those tokens affects all three. To restyle one list only, override inline (e.g. `ListMetrics.titleSize - 2`).
+- **Selection sheets:** for a single-select picker, present `FilterBySheet` (`Components/FilterBySheet.swift`) — a `[FilterOption]` list with checkmark + optional count badge — rather than an inline `Menu` (menus get unusable with long lists). Convention: an `id == ""` option means "Semua" (clear/all). Outlined filter fields use the `.textFieldBG` fill + floating-label-on-the-border look (see `LaporanScreen`).
 - Apply `.hotReloadable()` to a screen's body for Inject live-reload in DEBUG (requires the InjectionIII app running; harmless if absent).
 
 ## Git

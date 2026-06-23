@@ -17,12 +17,45 @@ struct ReportSummary: Sendable {
     let pengeluaranTotal: Double
     let penerimaanCount: Int
     let pengeluaranCount: Int
-    /// Per cash-account breakdown (top accounts, remainder folded into "Lainnya").
-    let penerimaanByAccount: [ExpenseBreakdown]
-    let pengeluaranByAccount: [ExpenseBreakdown]
+    /// In-range transactions (newest first), for the journal table + exports.
+    let penerimaanRows: [CashReceipt]
+    let pengeluaranRows: [CashReceipt]
 
     var net: Double { penerimaanTotal - pengeluaranTotal }
     var isEmpty: Bool { penerimaanCount == 0 && pengeluaranCount == 0 }
+
+    /// All in-range transactions as journal rows, oldest first (cash-book view:
+    /// penerimaan posts to Debit, pengeluaran to Kredit). Drives both the
+    /// journal table and the PDF/CSV exports.
+    var journalEntries: [JournalEntry] {
+        let debit = penerimaanRows.map { JournalEntry(row: $0, debit: $0.amount, kredit: 0) }
+        let kredit = pengeluaranRows.map { JournalEntry(row: $0, debit: 0, kredit: $0.amount) }
+        return (debit + kredit).sorted {
+            $0.date != $1.date ? $0.date < $1.date
+                : $0.number.localizedStandardCompare($1.number) == .orderedAscending
+        }
+    }
+}
+
+/// One row of the cash journal (Jurnal Umum-style) table.
+struct JournalEntry: Identifiable, Sendable {
+    let id: String
+    let date: Date
+    let number: String
+    let account: String
+    let description: String
+    let debit: Double
+    let kredit: Double
+
+    init(row: CashReceipt, debit: Double, kredit: Double) {
+        self.id = row.id
+        self.date = row.date
+        self.number = row.number
+        self.account = row.account.isEmpty ? "Tanpa Akun" : row.account
+        self.description = row.description
+        self.debit = debit
+        self.kredit = kredit
+    }
 }
 
 @Observable
@@ -33,8 +66,6 @@ final class LaporanPresenter {
     /// Page size and safety cap for the full-pagination sweep.
     private let pageSize = 100
     private let maxPages = 50
-    /// How many accounts to show before folding the rest into "Lainnya".
-    private let topAccounts = 6
 
     // MARK: - Period selection (mirrors HomePresenter)
 
@@ -83,12 +114,48 @@ final class LaporanPresenter {
         recompute()
     }
 
+    // MARK: - Filters (client-side; the list endpoint has no filter params)
+
+    var statusFilter: ReceiptStatus? { didSet { if statusFilter != oldValue { recompute() } } }
+    /// Selected cash-account / branch ids (nil == all).
+    var accountFilter: String? { didSet { if accountFilter != oldValue { recompute() } } }
+    var branchFilter: String? { didSet { if branchFilter != oldValue { recompute() } } }
+
+    /// Id → display name, resolved from the accounts / branches endpoints (the
+    /// transaction list payload carries only ids).
+    private var accountNames: [String: String] = [:]
+    private var branchNames: [String: String] = [:]
+
+    var statusLabel: String { statusFilter?.rawValue ?? "Semua Status" }
+    var accountLabelText: String { accountFilter.flatMap { accountNames[$0] } ?? "Semua Akun" }
+    var branchLabelText: String { branchFilter.flatMap { branchNames[$0] } ?? "Semua Cabang & Unit" }
+
+    let statusOptions = ReceiptStatus.allCases
+
+    var hasActiveFilters: Bool { statusFilter != nil || branchFilter != nil || accountFilter != nil }
+
+    func resetFilters() {
+        statusFilter = nil
+        branchFilter = nil
+        accountFilter = nil
+    }
+
+    /// Distinct cash accounts / branches present in the loaded records, named.
+    var accountOptions: [(id: String, name: String)] { options(\.cashAccountId, names: accountNames) }
+    var branchOptions: [(id: String, name: String)] { options(\.branchId, names: branchNames) }
+
+    private func options(_ key: KeyPath<CashReceipt, String?>, names: [String: String]) -> [(id: String, name: String)] {
+        guard let records else { return [] }
+        let ids = Set((records.receipts + records.disbursements).compactMap { $0[keyPath: key] })
+        return ids.map { (id: $0, name: names[$0] ?? "—") }.sorted { $0.name < $1.name }
+    }
+
     // MARK: - State
 
     private(set) var state: AppState<ReportSummary> = .idle
 
-    /// The full record set, fetched once and re-aggregated per period locally.
-    /// The list endpoint has no date filter, so the data is range-independent.
+    /// The full record set, fetched once and re-aggregated per period/filter
+    /// locally. The list endpoint has no date filter, so data is range-independent.
     private var records: (receipts: [CashReceipt], disbursements: [CashReceipt])?
 
     init(repository: CashReceiptRepositoryProtocol) {
@@ -123,13 +190,37 @@ final class LaporanPresenter {
             do {
                 async let receipts = fetchAll(.receipt)
                 async let disbursements = fetchAll(.disbursement)
-                records = (try await receipts, try await disbursements)
+                async let accounts = try? repository.fetchCashAccounts()
+                async let branches = try? repository.fetchBranches()
+                await resolveNames(accounts: accounts ?? [], branches: branches ?? [])
+                // Fill each record's account column with the resolved cash-account name.
+                records = (try await receipts.map(named), try await disbursements.map(named))
             } catch {
                 if records == nil { state = .error(error) }  // keep stale data if a refresh fails
                 return
             }
         }
         recompute()
+    }
+
+    /// Builds the id → name maps. Accounts use "code — name" when a code exists.
+    private func resolveNames(accounts: [AccountDTO], branches: [BranchDTO]) {
+        accountNames = Dictionary(accounts.map { acc in
+            (acc.id, acc.code.map { "\($0) — \(acc.name)" } ?? acc.name)
+        }, uniquingKeysWith: { a, _ in a })
+        branchNames = Dictionary(branches.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a })
+    }
+
+    /// Returns a copy of the record with its account column set to the resolved
+    /// cash-account name (the list payload only carries the id).
+    private func named(_ r: CashReceipt) -> CashReceipt {
+        guard let id = r.cashAccountId, let name = accountNames[id] else { return r }
+        return CashReceipt(
+            id: r.id, number: r.number, date: r.date, description: r.description,
+            account: name, amount: r.amount, currencyCode: r.currencyCode, status: r.status,
+            createdAt: r.createdAt, updatedAt: r.updatedAt,
+            cashAccountId: r.cashAccountId, branchId: r.branchId
+        )
     }
 
     /// Re-aggregates the cached records for the active range. Instant, no network.
@@ -171,47 +262,28 @@ final class LaporanPresenter {
         disbursements: [CashReceipt],
         range: (start: Date, end: Date)
     ) -> ReportSummary {
-        let inRange: (CashReceipt) -> Bool = { $0.date >= range.start && $0.date <= range.end }
-        let receiptsInRange = receipts.filter(inRange)
-        let disbursementsInRange = disbursements.filter(inRange)
+        // Date range + the active Status / Akun / Cabang filters.
+        let matches: (CashReceipt) -> Bool = { r in
+            r.date >= range.start && r.date <= range.end
+                && (self.statusFilter == nil || r.status == self.statusFilter)
+                && (self.accountFilter == nil || r.cashAccountId == self.accountFilter)
+                && (self.branchFilter == nil || r.branchId == self.branchFilter)
+        }
+        // Newest first; ties broken by transaction number so the order is stable.
+        let byDateDesc: (CashReceipt, CashReceipt) -> Bool = {
+            $0.date != $1.date ? $0.date > $1.date
+                : $0.number.localizedStandardCompare($1.number) == .orderedDescending
+        }
+        let receiptsInRange = receipts.filter(matches).sorted(by: byDateDesc)
+        let disbursementsInRange = disbursements.filter(matches).sorted(by: byDateDesc)
 
         return ReportSummary(
             penerimaanTotal: receiptsInRange.reduce(0) { $0 + $1.amount },
             pengeluaranTotal: disbursementsInRange.reduce(0) { $0 + $1.amount },
             penerimaanCount: receiptsInRange.count,
             pengeluaranCount: disbursementsInRange.count,
-            penerimaanByAccount: breakdown(receiptsInRange),
-            pengeluaranByAccount: breakdown(disbursementsInRange)
+            penerimaanRows: receiptsInRange,
+            pengeluaranRows: disbursementsInRange
         )
-    }
-
-    /// Groups transactions by cash account, sorts by total desc, keeps the top N
-    /// and folds the remainder into a single "Lainnya" slice. Colors cycle
-    /// through the shared palette.
-    private func breakdown(_ items: [CashReceipt]) -> [ExpenseBreakdown] {
-        guard !items.isEmpty else { return [] }
-        let totals = Dictionary(grouping: items, by: \.account)
-            .map { (account: $0.key.isEmpty ? "Tanpa Akun" : $0.key, amount: $0.value.reduce(0) { $0 + $1.amount }) }
-            .sorted { $0.amount > $1.amount }
-
-        let palette = ExpenseBreakdownColor.allCases
-        var result: [ExpenseBreakdown] = []
-        let head = totals.prefix(topAccounts)
-        for (index, entry) in head.enumerated() {
-            result.append(ExpenseBreakdown(
-                category: entry.account,
-                amount: entry.amount,
-                color: palette[index % palette.count]
-            ))
-        }
-        let rest = totals.dropFirst(topAccounts)
-        if !rest.isEmpty {
-            result.append(ExpenseBreakdown(
-                category: "Lainnya",
-                amount: rest.reduce(0) { $0 + $1.amount },
-                color: .gray
-            ))
-        }
-        return result
     }
 }
