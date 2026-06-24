@@ -31,6 +31,9 @@ final class ContactPresenter {
     private(set) var contacts: [Contact] = []
     private(set) var state: AppState<[Contact]> = .idle
 
+    /// True when the last `loadMore()` page fetch failed, so the list can offer a retry.
+    private(set) var loadMoreFailed = false
+
     var filter: Filter = .all
     var sortOrder: SortOrder = .nameAsc
     var searchText: String = ""
@@ -103,6 +106,7 @@ final class ContactPresenter {
     func loadMore() async {
         guard canLoadMore, case .success = state else { return }
         state = .loadmore
+        loadMoreFailed = false
         do {
             let result = try await contactRepository.fetchContacts(page: page + 1, limit: pageSize)
             page += 1
@@ -110,7 +114,8 @@ final class ContactPresenter {
             let seen = Set(contacts.map(\.id))
             contacts += result.contacts.filter { !seen.contains($0.id) }
         } catch {
-            // ponytail: drop the failed page silently, keep what we have
+            // Keep what we have, but tell the user the next page failed so they can retry.
+            loadMoreFailed = true
         }
         state = .success(contacts)
     }

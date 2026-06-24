@@ -84,7 +84,17 @@ struct OrganizationSwitcherSheet: View {
             } message: { company in
                 Text("Hapus \(company.name)? Tindakan ini tidak dapat dibatalkan.")
             }
+            .alert("Gagal berpindah", isPresented: switchErrorBinding) {
+                Button("OK", role: .cancel) { presenter.switchError = nil }
+            } message: {
+                Text(presenter.switchError ?? "")
+            }
         }
+    }
+
+    /// Surfaces the alert while a company switch error is set (cleared on dismissal).
+    private var switchErrorBinding: Binding<Bool> {
+        Binding(get: { presenter.switchError != nil }, set: { if !$0 { presenter.switchError = nil } })
     }
 
     /// Surfaces the alert while a delete target is set (cleared on dismissal).

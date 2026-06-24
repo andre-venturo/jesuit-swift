@@ -89,6 +89,7 @@ final class HomePresenter {
     func switchCompany(to companyId: String) async -> Bool {
         guard companyId != activeCompanyId, switchingCompanyId == nil else { return false }
         switchingCompanyId = companyId
+        switchError = nil
         defer { switchingCompanyId = nil }
         do {
             let me = try await authRepository.switchCompany(to: companyId)
@@ -98,9 +99,13 @@ final class HomePresenter {
             await loadBalanceSheet()
             return true
         } catch {
+            switchError = LoginPresenter.message(for: error)
             return false
         }
     }
+
+    /// Set when a company switch fails, so the switcher can show an alert.
+    var switchError: String?
 
     // MARK: - Create / edit company
 

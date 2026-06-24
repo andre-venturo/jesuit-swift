@@ -91,6 +91,11 @@ struct CreateReceiptSheet: View {
                 onCommit: { form.commit(edit.draft, replacing: edit.original) }
             )
         }
+        .alert("Sebagian lampiran gagal", isPresented: Binding(get: { saveWarning != nil }, set: { if !$0 { saveWarning = nil } })) {
+            Button("OK") { saveWarning = nil; dismiss() }
+        } message: {
+            Text(saveWarning ?? "")
+        }
     }
 
     // MARK: - Header
@@ -272,10 +277,16 @@ struct CreateReceiptSheet: View {
         Task {
             if await presenter.save(submit: submit) {
                 onCreated()
-                dismiss()
+                if let warning = presenter.attachmentWarning {
+                    saveWarning = warning
+                } else {
+                    dismiss()
+                }
             }
         }
     }
+
+    @State private var saveWarning: String?
 
     // MARK: - Helpers
 

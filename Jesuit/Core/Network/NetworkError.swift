@@ -16,22 +16,17 @@ enum NetworkError: Error {
     case networkFailure(String)
     case unknown
 
+    // ponytail: user-facing copy is Indonesian; technical detail stays in logs, not on screen.
     var localizedDescription: String {
         switch self {
-        case .invalidURL:
-            return "Invalid URL"
-        case .noData:
-            return "No data received"
-        case .decodingError(let message):
-            return "Failed to decode: \(message)"
-        case .serverError(let code, let message):
-            return "Server error (\(code)): \(message ?? "Unknown error")"
+        case .invalidURL, .noData, .decodingError, .unknown:
+            return "Terjadi kesalahan. Coba lagi."
+        case .serverError(_, let message):
+            return message ?? "Server sedang bermasalah. Coba lagi nanti."
         case .unauthorized:
-            return "Unauthorized access"
-        case .networkFailure(let message):
-            return "Network failure: \(message)"
-        case .unknown:
-            return "Unknown error occurred"
+            return "Sesi Anda berakhir. Masuk kembali."
+        case .networkFailure:
+            return "Tidak ada koneksi internet. Periksa jaringan Anda."
         }
     }
 }

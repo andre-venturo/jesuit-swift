@@ -99,6 +99,14 @@ struct PenerimaanScreen: View {
                         ProgressView().tint(.accent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
+                    } else if presenter.loadMoreFailed {
+                        Button { Task { await presenter.loadMore() } } label: {
+                            Text("Gagal memuat. Ketuk untuk coba lagi.")
+                                .customFont(.medium, Typography.callout)
+                                .foregroundStyle(.expense)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                        }
                     }
                 }
                 .padding(.top, 4)

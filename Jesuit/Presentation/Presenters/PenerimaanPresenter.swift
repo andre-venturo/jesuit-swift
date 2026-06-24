@@ -48,6 +48,13 @@ final class PenerimaanPresenter {
     private(set) var receipts: [CashReceipt] = []
     private(set) var state: AppState<[CashReceipt]> = .idle
 
+    /// Set after an edit save when some line attachments failed to upload — the
+    /// transaction itself saved, so the caller dismisses but warns the user.
+    var attachmentWarning: String?
+
+    /// True when the last `loadMore()` page fetch failed, so the list can offer a retry.
+    private(set) var loadMoreFailed = false
+
     /// Per-status counts from the API `meta.counts`, used for the tab badges so
     /// they reflect the full result set rather than just the loaded page.
     private(set) var serverCounts: CashTransactionCounts?
@@ -101,6 +108,7 @@ final class PenerimaanPresenter {
     func loadMore() async {
         guard canLoadMore, case .success = state else { return }
         state = .loadmore
+        loadMoreFailed = false
         do {
             let result = try await repository.fetchReceipts(page: page + 1, limit: pageSize)
             page += 1
@@ -108,7 +116,8 @@ final class PenerimaanPresenter {
             let seen = Set(receipts.map(\.id))
             receipts += result.receipts.filter { !seen.contains($0.id) }
         } catch {
-            // ponytail: drop the failed page silently, keep what we have
+            // Keep what we have, but tell the user the next page failed so they can retry.
+            loadMoreFailed = true
         }
         state = .success(receipts)
     }
@@ -329,11 +338,15 @@ final class PenerimaanPresenter {
             exchangeRate: form.exchangeRate
         )
         let attachments = form.lines.flatMap(\.attachments)
+        attachmentWarning = nil
         do {
             let saved: CashReceipt
             if let editId = form.editId {
                 let detail = try await repository.update(id: editId, request: request)
-                await uploadEditAttachments(transactionId: editId, serverLines: detail.lines ?? [])
+                let failed = await uploadEditAttachments(transactionId: editId, serverLines: detail.lines ?? [])
+                if failed > 0 {
+                    attachmentWarning = "Transaksi tersimpan, tetapi \(failed) lampiran gagal diunggah. Buka kembali untuk mencoba lagi."
+                }
                 saved = CashReceipt(detail: detail)
             } else {
                 saved = submit
@@ -354,21 +367,28 @@ final class PenerimaanPresenter {
     /// The web client does this as separate `POST .../lines/{lineId}/attachments`
     /// calls; the JSON PUT alone never carries files. Server line ids come back in
     /// request order, so new lines (no prior `lineId`) match by index.
+    /// Returns the number of attachments that failed to upload.
     private func uploadEditAttachments(
         transactionId: String,
         serverLines: [CashTransactionLineDTO]
-    ) async {
+    ) async -> Int {
+        var failed = 0
         for (index, line) in form.lines.enumerated() where !line.attachments.isEmpty {
             let mappedId = serverLines.indices.contains(index) ? serverLines[index].id : nil
-            guard let lineId = line.lineId ?? mappedId else { continue }
+            guard let lineId = line.lineId ?? mappedId else { failed += line.attachments.count; continue }
             for attachment in line.attachments {
-                _ = try? await repository.uploadLineAttachment(
-                    transactionId: transactionId,
-                    lineId: lineId,
-                    attachment: attachment
-                )
+                do {
+                    _ = try await repository.uploadLineAttachment(
+                        transactionId: transactionId,
+                        lineId: lineId,
+                        attachment: attachment
+                    )
+                } catch {
+                    failed += 1
+                }
             }
         }
+        return failed
     }
 }
 

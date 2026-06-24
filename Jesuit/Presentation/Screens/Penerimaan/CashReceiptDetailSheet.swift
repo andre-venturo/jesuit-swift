@@ -130,15 +130,23 @@ struct CashReceiptDetailSheet: View {
                     if await presenter.delete() {
                         onChanged()
                         dismiss()
+                    } else {
+                        actionError = presenter.actionErrorMessage
                     }
                 }
             }
         } message: {
             Text("Tindakan ini tidak dapat dibatalkan.")
         }
+        .alert("Gagal", isPresented: Binding(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
+            Button("OK", role: .cancel) { actionError = nil }
+        } message: {
+            Text(actionError ?? "")
+        }
     }
 
     @State private var rejectReason = ""
+    @State private var actionError: String?
 
     // MARK: - Content
 
@@ -563,9 +571,9 @@ struct CashReceiptDetailSheet: View {
         .disabled(presenter.isWorking)
     }
 
-    /// Runs an action and reloads the list on success.
+    /// Runs an action and reloads the list on success; surfaces the error otherwise.
     private func act(_ op: @escaping () async -> Bool) async {
-        if await op() { onChanged() }
+        if await op() { onChanged() } else { actionError = presenter.actionErrorMessage }
     }
 
     // MARK: - Helpers
