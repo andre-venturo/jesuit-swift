@@ -108,6 +108,12 @@ class AppDI {
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
         }
+        container.register(NeracaPresenter.self) { resolver in
+            NeracaPresenter(
+                repository: resolver.resolve(DashboardRepositoryProtocol.self)!,
+                session: resolver.resolve(AuthSession.self)!
+            )
+        }
     }
 
     func resolver<T>(_ type: T.Type) -> T { container.resolve(type)! }

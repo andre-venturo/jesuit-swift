@@ -13,6 +13,7 @@ struct HomeScreen: View {
     @State private var showCustomRange = false
     @State private var showOrgSwitcher = false
     @State private var showAllCashAccounts = false
+    @State private var showNeraca = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -37,6 +38,7 @@ struct HomeScreen: View {
         }
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $showNeraca) { NeracaScreen() }
         .task {
             await presenter.loadCompanies()
             await presenter.loadCashFlow()
@@ -98,7 +100,10 @@ struct HomeScreen: View {
     // MARK: - Summary (Neraca / balance sheet)
 
     private var summarySection: some View {
-        balanceSheetCard
+        Button { showNeraca = true } label: {
+            balanceSheetCard
+        }
+        .buttonStyle(.plain)
     }
 
     private var balanceSheetCard: some View {

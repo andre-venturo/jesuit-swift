@@ -53,6 +53,30 @@ extension Double {
         return "IDR\(value)"
     }
 
+    /// Financial-statement style: grouped, two decimals, no currency symbol,
+    /// e.g. `3,500,000,000.00`. Used by the Neraca statement.
+    var asAccounting: String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        f.groupingSeparator = ","
+        f.usesGroupingSeparator = true
+        return f.string(from: NSNumber(value: self)) ?? "0.00"
+    }
+
+    /// Grouped integer, no currency symbol, id-ID `.` thousands separators,
+    /// e.g. `102.932.122`. For columnar tables where the column header already
+    /// names the currency (Debit / Kredit ledger columns).
+    var asGrouped: String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 0
+        f.groupingSeparator = "."
+        f.usesGroupingSeparator = true
+        return f.string(from: NSNumber(value: self)) ?? "0"
+    }
+
     /// Indonesian Rupiah, id-ID style, no decimals, `.` thousands separators,
     /// e.g. `Rp 241.637.282.120`, `Rp -27.155.000`.
     var asRupiah: String {

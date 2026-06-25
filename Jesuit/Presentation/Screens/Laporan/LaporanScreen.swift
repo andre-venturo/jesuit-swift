@@ -102,21 +102,42 @@ struct LaporanScreen: View {
 
     // MARK: - Journal table
 
+    /// Width of each amount column (Debit / Kredit) in the journal table.
+    private let amountColumn: CGFloat = 92
+
     private func journalCard(_ summary: ReportSummary) -> some View {
         CardContainer {
             VStack(spacing: 0) {
+                columnHeader
+                Divider()
                 ForEach(summary.journalEntries) { entry in
                     journalRow(entry)
                     Divider().opacity(0.4)
                 }
+                Divider()
                 totalsRow(summary)
             }
         }
     }
 
+    /// Ledger column titles: Keterangan | Debit | Kredit.
+    private var columnHeader: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            Text("Keterangan")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text("Debit")
+                .frame(width: amountColumn, alignment: .trailing)
+            Text("Kredit")
+                .frame(width: amountColumn, alignment: .trailing)
+        }
+        .font(.customFont(.semibold, Typography.caption))
+        .foregroundStyle(.subtitle)
+        .textCase(.uppercase)
+        .padding(.bottom, 8)
+    }
+
     private func journalRow(_ entry: JournalEntry) -> some View {
-        let isDebit = entry.debit > 0
-        return HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.number)
                     .customFont(.semibold, Typography.callout)
@@ -136,44 +157,39 @@ struct LaporanScreen: View {
                     .customFont(.regular, Typography.caption2)
                     .foregroundStyle(.subtitle)
             }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text((isDebit ? entry.debit : entry.kredit).asRupiah)
-                    .customFont(.semibold, Typography.callout)
-                    .foregroundStyle(isDebit ? Color.income : Color.expense)
-                    .lineLimit(1)
-                Text(isDebit ? "Debit" : "Kredit")
-                    .customFont(.regular, Typography.caption2)
-                    .foregroundStyle(.subtitle)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            amountCell(entry.debit)
+            amountCell(entry.kredit)
         }
         .padding(.vertical, 12)
+    }
+
+    /// One amount column cell: the grouped number when non-zero, else a blank dash.
+    private func amountCell(_ amount: Double) -> some View {
+        Text(amount > 0 ? amount.asGrouped : "–")
+            .customFont(.regular, Typography.callout)
+            .foregroundStyle(amount > 0 ? Color.title : Color.subtitle.opacity(0.5))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(width: amountColumn, alignment: .trailing)
     }
 
     private func totalsRow(_ summary: ReportSummary) -> some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("Total")
-                .customFont(.bold, Typography.body)
-                .foregroundStyle(.title)
-            Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                totalLine("Debit", summary.penerimaanTotal, tint: .income)
-                totalLine("Kredit", summary.pengeluaranTotal, tint: .expense)
-            }
-        }
-        .padding(.vertical, 12)
-    }
-
-    private func totalLine(_ label: String, _ amount: Double, tint: Color) -> some View {
-        HStack(spacing: 8) {
-            Text(label)
-                .customFont(.regular, Typography.caption)
-                .foregroundStyle(.subtitle)
-            Text(amount.asRupiah)
-                .customFont(.bold, Typography.callout)
-                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(summary.penerimaanTotal.asGrouped)
+                .frame(width: amountColumn, alignment: .trailing)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(summary.pengeluaranTotal.asGrouped)
+                .frame(width: amountColumn, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
+        .font(.customFont(.bold, Typography.body))
+        .foregroundStyle(.title)
+        .padding(.vertical, 12)
     }
 
     private func dateText(_ date: Date) -> String {
