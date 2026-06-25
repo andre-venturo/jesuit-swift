@@ -103,6 +103,11 @@ class AppDI {
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
         }
+        container.register(ApprovalInboxPresenter.self) { resolver in
+            ApprovalInboxPresenter(
+                repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
         container.register(LaporanPresenter.self) { resolver in
             LaporanPresenter(
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!

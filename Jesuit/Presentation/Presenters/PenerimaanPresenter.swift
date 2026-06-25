@@ -68,8 +68,12 @@ final class PenerimaanPresenter {
     }
 
     var isLoading: Bool {
-        if case .loading = state { return true }
-        return false
+        // .idle counts as loading: load() runs on appear, so before it flips to
+        // .loading the screen must show the spinner, not flash the empty state.
+        switch state {
+        case .idle, .loading: return true
+        default: return false
+        }
     }
 
     var errorMessage: String? {
@@ -98,6 +102,9 @@ final class PenerimaanPresenter {
             totalPages = result.totalPages
             state = result.receipts.isEmpty ? .empty : .success(result.receipts)
         } catch {
+            // TabView appear/disappear churn cancels the .task mid-load; that's not
+            // a real failure, so leave .loading for the immediate re-run.
+            if error is CancellationError || (error as? URLError)?.code == .cancelled { return }
             receipts = []
             serverCounts = nil
             state = .error(error)

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MoreScreen: View {
     @Injected private var navigation: NavigationService
+    @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var isLoggingOut = false
     @State private var showEditProfile = false
@@ -16,6 +17,8 @@ struct MoreScreen: View {
     @State private var showChangePassword = false
     @State private var showPasswordChanged = false
     @State private var showLaporan = false
+    @State private var showApproval = false
+    @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
 
     var body: some View {
         ScrollView {
@@ -56,6 +59,15 @@ struct MoreScreen: View {
                         MoreRow(icon: "lock", title: "Ubah Password", value: "")
                     }
                     .buttonStyle(.plain)
+                    if session.can(Permission.cashApprove) {
+                        Divider().padding(.leading, 52)
+                        Button {
+                            showApproval = true
+                        } label: {
+                            MoreRow(icon: "checkmark.seal", title: "Persetujuan", value: "", badge: approval.badgeCount)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     Divider().padding(.leading, 52)
                     Button {
                         showLaporan = true
@@ -103,6 +115,12 @@ struct MoreScreen: View {
         .sheet(isPresented: $showLaporan) {
             LaporanScreen()
         }
+        .sheet(isPresented: $showApproval, onDismiss: { Task { await approval.loadBadge() } }) {
+            ApprovalInboxScreen()
+        }
+        .task {
+            if session.can(Permission.cashApprove) { await approval.loadBadge() }
+        }
         .alert("Profil berhasil diperbarui", isPresented: $showProfileSaved) {
             Button("OK", role: .cancel) {}
         }
@@ -122,6 +140,7 @@ struct MoreRow: View {
     let icon: String
     let title: LocalizedStringKey
     let value: String
+    var badge: Int = 0
 
     var body: some View {
         HStack(spacing: 16) {
@@ -132,6 +151,14 @@ struct MoreRow: View {
                 .customFont(.medium, Typography.body)
                 .foregroundStyle(.title)
             Spacer()
+            if badge > 0 {
+                Text("\(badge)")
+                    .customFont(.semibold, Typography.caption2)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(ReceiptStatus.pendingApproval.tint))
+            }
             if !value.isEmpty {
                 Text(value)
                     .customFont(.regular, Typography.callout)

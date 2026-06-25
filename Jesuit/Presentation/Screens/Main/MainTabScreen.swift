@@ -10,6 +10,8 @@ import SwiftUI
 
 struct MainTabScreen: View {
     @State private var router = AppDI.shared.resolver(AppTabRouter.self)
+    @Injected private var session: AuthSession
+    @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
 
     var body: some View {
         TabView(selection: $router.selection) {
@@ -32,9 +34,13 @@ struct MainTabScreen: View {
             MoreScreen()
                 .tabItem { Label("Lainnya", systemImage: "ellipsis") }
                 .tag(MainTab.more)
+                .badge(approval.badgeCount)  // 0 hides it automatically
         }
         .tint(.accent)
         .toolbar(.hidden, for: .navigationBar)
+        .task {
+            if session.can(Permission.cashApprove) { await approval.loadBadge() }
+        }
         .hotReloadable()
     }
 }
