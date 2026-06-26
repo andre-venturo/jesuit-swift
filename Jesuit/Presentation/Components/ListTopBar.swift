@@ -25,6 +25,11 @@ struct ListTopBar: View {
     /// API returns in a fixed order with no sort param).
     var onOpenSort: (() -> Void)?
 
+    /// Opens a period picker (a calendar button beside the search icon). Nil hides
+    /// it. `periodActive` tints it when a period filter is applied.
+    var onOpenPeriod: (() -> Void)?
+    var periodActive: Bool = false
+
     @State private var showSearch = false
     @FocusState private var searchFocused: Bool
 
@@ -40,11 +45,20 @@ struct ListTopBar: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 10) {
             Text(title)
                 .customFont(.bold, Typography.display)
                 .foregroundStyle(.title)
             Spacer()
+            if let onOpenPeriod {
+                Button(action: onOpenPeriod) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(periodActive ? Color.accentColor : .title)
+                        .frame(width: 44, height: 44)
+                        .overlay(Circle().stroke(periodActive ? Color.accentColor : Color.white.opacity(0.12), lineWidth: 1))
+                }
+            }
             Button {
                 withAnimation { showSearch.toggle() }
                 searchFocused = showSearch

@@ -14,6 +14,8 @@ struct TransferScreen: View {
     @State private var presenter = AppDI.shared.resolver(TransferPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
+    @State private var showPeriod = false
+    @State private var showCustomRange = false
     @State private var selected: SelectedTransfer?
     @Environment(\.dismiss) private var dismiss
 
@@ -32,7 +34,9 @@ struct TransferScreen: View {
                         onSelectChip: { label in
                             if let f = TransferPresenter.Filter(rawValue: label) { presenter.filter = f }
                         },
-                        onOpenFilter: { showFilter = true }
+                        onOpenFilter: { showFilter = true },
+                        onOpenPeriod: { showPeriod = true },
+                        periodActive: presenter.periodFrom != nil
                     )
 
                     content
@@ -72,7 +76,34 @@ struct TransferScreen: View {
                 }
             )
         }
+        .sheet(isPresented: $showPeriod) {
+            FilterBySheet(
+                title: "Periode",
+                options: periodOptions,
+                selectedId: presenter.periodId,
+                onSelect: { id in
+                    switch id {
+                    case "": presenter.clearPeriod()
+                    case "custom": showCustomRange = true
+                    default:
+                        if let p = CashFlowPeriod(rawValue: id) { presenter.selectPeriod(p) }
+                    }
+                }
+            )
+        }
+        .sheet(isPresented: $showCustomRange) {
+            CashFlowRangeSheet(
+                initialRange: (presenter.periodFrom ?? .now, presenter.periodTo ?? .now),
+                onApply: { start, end in presenter.applyCustomPeriod(start: start, end: end) }
+            )
+        }
         .hotReloadable()
+    }
+
+    private var periodOptions: [FilterOption] {
+        [FilterOption(id: "", label: "Semua Periode")]
+            + CashFlowPeriod.allCases.map { FilterOption(id: $0.rawValue, label: $0.rawValue) }
+            + [FilterOption(id: "custom", label: "Rentang Khusus…")]
     }
 
     // MARK: - Content

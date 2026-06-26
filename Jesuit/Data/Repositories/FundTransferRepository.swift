@@ -18,12 +18,15 @@ struct FundTransferRepository: FundTransferRepositoryProtocol {
 
     // MARK: - List
 
-    func fetchTransfers(page: Int, limit: Int) async throws -> FundTransferPage {
+    func fetchTransfers(page: Int, limit: Int, dateFrom: String?, dateTo: String?) async throws -> FundTransferPage {
+        var params = ["page": String(page), "limit": String(limit)]
+        if let dateFrom, !dateFrom.isEmpty { params["date_from"] = dateFrom }
+        if let dateTo, !dateTo.isEmpty { params["date_to"] = dateTo }
         let endpoint = Endpoint(
             baseURL: AppURLConstants.financeBaseURL,
             path: AppURLConstants.Finance.fundTransfers,
             method: .get,
-            parameters: ["page": String(page), "limit": String(limit)]
+            parameters: params
         )
         let response = try await network.requestDecoded(
             endpoint: endpoint,

@@ -19,8 +19,9 @@ struct FundTransferPage: Sendable {
 
 protocol FundTransferRepositoryProtocol: Sendable {
     /// Fetches a page of fund transfers, mapped to the UI `FundTransfer` entity,
-    /// with the per-status counts used by the filter tabs.
-    func fetchTransfers(page: Int, limit: Int) async throws -> FundTransferPage
+    /// with the per-status counts used by the filter tabs. `dateFrom`/`dateTo`
+    /// (yyyy-MM-dd) optionally bound the period; nil for all dates.
+    func fetchTransfers(page: Int, limit: Int, dateFrom: String?, dateTo: String?) async throws -> FundTransferPage
 
     /// Creates a transfer as a draft (POST `/fund-transfers`).
     @discardableResult

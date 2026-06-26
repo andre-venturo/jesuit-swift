@@ -44,6 +44,50 @@ final class TransferPresenter {
     var filter: Filter = .all
     var searchText: String = ""
 
+    // Period filter (server-side date_from/date_to).
+    private(set) var periodFrom: Date?
+    private(set) var periodTo: Date?
+    private(set) var periodLabel: String = "Semua Periode"
+
+    /// Id for the period sheet's current selection: "" (all), a `CashFlowPeriod`
+    /// raw value, or "custom".
+    var periodId: String {
+        guard periodFrom != nil else { return "" }
+        return CashFlowPeriod.allCases.first { $0.rawValue == periodLabel }?.rawValue ?? "custom"
+    }
+
+    func selectPeriod(_ period: CashFlowPeriod) {
+        let range = period.dateRange()
+        periodFrom = range.start
+        periodTo = range.end
+        periodLabel = period.rawValue
+        Task { await load() }
+    }
+
+    func applyCustomPeriod(start: Date, end: Date) {
+        let s = min(start, end), e = max(start, end)
+        periodFrom = s
+        periodTo = e
+        let f = DateFormatter(); f.locale = Locale(identifier: "id_ID"); f.dateFormat = "d MMM"
+        let ef = DateFormatter(); ef.locale = Locale(identifier: "id_ID"); ef.dateFormat = "d MMM yyyy"
+        periodLabel = "\(f.string(from: s)) – \(ef.string(from: e))"
+        Task { await load() }
+    }
+
+    func clearPeriod() {
+        periodFrom = nil
+        periodTo = nil
+        periodLabel = "Semua Periode"
+        Task { await load() }
+    }
+
+    private static func ymd(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.dateFormat = "yyyy-MM-dd"
+        return df.string(from: date)
+    }
+
     private(set) var transfers: [FundTransfer] = []
     private(set) var state: AppState<[FundTransfer]> = .idle
 
@@ -90,7 +134,10 @@ final class TransferPresenter {
     func load() async {
         state = .loading
         do {
-            let result = try await repository.fetchTransfers(page: 1, limit: pageSize)
+            let result = try await repository.fetchTransfers(
+                page: 1, limit: pageSize,
+                dateFrom: periodFrom.map(Self.ymd), dateTo: periodTo.map(Self.ymd)
+            )
             transfers = result.transfers
             serverCounts = result.counts
             page = 1
@@ -109,7 +156,10 @@ final class TransferPresenter {
         state = .loadmore
         loadMoreFailed = false
         do {
-            let result = try await repository.fetchTransfers(page: page + 1, limit: pageSize)
+            let result = try await repository.fetchTransfers(
+                page: page + 1, limit: pageSize,
+                dateFrom: periodFrom.map(Self.ymd), dateTo: periodTo.map(Self.ymd)
+            )
             page += 1
             totalPages = result.totalPages
             let seen = Set(transfers.map(\.id))
