@@ -54,6 +54,16 @@ class AppDI {
             return DashboardRepository(network: networkService)
         }.inObjectScope(.container)
 
+        container.register(FundTransferRepositoryProtocol.self) { resolver in
+            let networkService = resolver.resolve(NetworkServiceProtocol.self)!
+            return FundTransferRepository(network: networkService)
+        }.inObjectScope(.container)
+
+        container.register(AssetRepositoryProtocol.self) { resolver in
+            let networkService = resolver.resolve(NetworkServiceProtocol.self)!
+            return AssetRepository(network: networkService)
+        }.inObjectScope(.container)
+
         // Register Presenter
         container.register(LoginPresenter.self) { resolver in
             LoginPresenter(
@@ -103,6 +113,18 @@ class AppDI {
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
         }
+        container.register(TransferPresenter.self) { resolver in
+            TransferPresenter(
+                repository: resolver.resolve(FundTransferRepositoryProtocol.self)!,
+                lookups: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
+        container.register(AssetPresenter.self) { resolver in
+            AssetPresenter(
+                repository: resolver.resolve(AssetRepositoryProtocol.self)!,
+                lookups: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
         container.register(ApprovalInboxPresenter.self) { resolver in
             ApprovalInboxPresenter(
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
@@ -130,6 +152,27 @@ class AppDI {
         CashReceiptDetailPresenter(
             id: id,
             repository: container.resolve(CashReceiptRepositoryProtocol.self)!,
+            session: container.resolve(AuthSession.self)!
+        )
+    }
+
+    /// Builds a fund-transfer detail presenter for a specific transfer id.
+    @MainActor
+    func transferDetailPresenter(id: String) -> TransferDetailPresenter {
+        TransferDetailPresenter(
+            id: id,
+            repository: container.resolve(FundTransferRepositoryProtocol.self)!,
+            lookups: container.resolve(CashReceiptRepositoryProtocol.self)!,
+            session: container.resolve(AuthSession.self)!
+        )
+    }
+
+    /// Builds an asset detail presenter for a specific asset id.
+    @MainActor
+    func assetDetailPresenter(id: String) -> AssetDetailPresenter {
+        AssetDetailPresenter(
+            id: id,
+            repository: container.resolve(AssetRepositoryProtocol.self)!,
             session: container.resolve(AuthSession.self)!
         )
     }

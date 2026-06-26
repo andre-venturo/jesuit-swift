@@ -17,6 +17,8 @@ struct MoreScreen: View {
     @State private var showChangePassword = false
     @State private var showPasswordChanged = false
     @State private var showLaporan = false
+    @State private var showTransfer = false
+    @State private var showAsset = false
     @State private var showApproval = false
     @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
 
@@ -70,6 +72,20 @@ struct MoreScreen: View {
                     }
                     Divider().padding(.leading, 52)
                     Button {
+                        showTransfer = true
+                    } label: {
+                        MoreRow(icon: "arrow.left.arrow.right", title: "Transfer Dana", value: "")
+                    }
+                    .buttonStyle(.plain)
+                    Divider().padding(.leading, 52)
+                    Button {
+                        showAsset = true
+                    } label: {
+                        MoreRow(icon: "shippingbox", title: "Aset", value: "")
+                    }
+                    .buttonStyle(.plain)
+                    Divider().padding(.leading, 52)
+                    Button {
                         showLaporan = true
                     } label: {
                         MoreRow(icon: "chart.bar.doc.horizontal", title: "Laporan", value: "")
@@ -114,6 +130,12 @@ struct MoreScreen: View {
         }
         .sheet(isPresented: $showLaporan) {
             LaporanScreen()
+        }
+        .sheet(isPresented: $showTransfer) {
+            TransferScreen()
+        }
+        .sheet(isPresented: $showAsset) {
+            AssetScreen()
         }
         .sheet(isPresented: $showApproval, onDismiss: { Task { await approval.loadBadge() } }) {
             ApprovalInboxScreen()

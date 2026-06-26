@@ -48,6 +48,28 @@ enum AppURLConstants {
         static func cashTransactionLineAttachments(_ id: String, _ lineId: String) -> String {
             "/cash-transactions/\(id)/lines/\(lineId)/attachments"
         }
+
+        // MARK: Fund transfers (Transfer Dana)
+
+        static let fundTransfers = "/fund-transfers"
+        static let fundTransfersSubmit = "/fund-transfers/submit"
+
+        /// `/fund-transfers/{id}` — GET detail, PUT update, DELETE.
+        static func fundTransfer(_ id: String) -> String { "/fund-transfers/\(id)" }
+        static func fundTransferApprove(_ id: String) -> String { "/fund-transfers/\(id)/approve" }
+        static func fundTransferReject(_ id: String) -> String { "/fund-transfers/\(id)/reject" }
+        /// `POST /fund-transfers/{id}/attachments` — upload a `file` to a transfer.
+        static func fundTransferAttachments(_ id: String) -> String { "/fund-transfers/\(id)/attachments" }
+
+        // MARK: Assets (Aset)
+
+        static let assets = "/assets"
+        static let assetCategories = "/asset-categories"
+
+        /// `/assets/{id}` — GET detail, PUT update, DELETE.
+        static func asset(_ id: String) -> String { "/assets/\(id)" }
+        /// `GET/POST /assets/{id}/attachments` — list / upload a `file` photo.
+        static func assetAttachments(_ id: String) -> String { "/assets/\(id)/attachments" }
     }
 
     enum Core {

@@ -41,6 +41,12 @@ protocol CashReceiptRepositoryProtocol: Sendable {
     /// Active cash/bank accounts, for the create-transaction cash-account picker.
     func fetchCashAccounts() async throws -> [AccountDTO]
 
+    /// Active, non-header **asset** accounts (with balance) — the set offered as
+    /// fund-transfer legs (which include cash/bank *and* other asset accounts such
+    /// as receivables, unlike the cash/bank-only `fetchCashAccounts`). Also used to
+    /// resolve transfer-leg account names.
+    func fetchAssetAccounts() async throws -> [AccountDTO]
+
     /// Active company branches, for the create-transaction branch picker.
     func fetchBranches() async throws -> [BranchDTO]
 

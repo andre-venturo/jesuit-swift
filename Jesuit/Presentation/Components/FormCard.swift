@@ -189,6 +189,12 @@ struct FormCurrencyRow: View {
             if showDivider { FormRowDivider() }
         }
         .onAppear { display = digits.groupedThousands }
+        // Reflect external changes to `digits` (e.g. seeding an edit form after
+        // the row has appeared, or an FX recompute) — not just the initial value.
+        .onChange(of: digits) { _, newDigits in
+            let grouped = newDigits.groupedThousands
+            if grouped != display { display = grouped }
+        }
     }
 }
 

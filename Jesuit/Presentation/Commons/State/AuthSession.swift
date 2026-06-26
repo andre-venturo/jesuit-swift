@@ -17,6 +17,9 @@ enum Permission {
     static let cashDelete    = "finance.cash_transactions:delete"
     static let cashApprove   = "finance.cash_transactions:approve"
     static let contactCreate = "finance.contacts:create"
+    static let assetCreate   = "finance.assets:create"
+    static let assetUpdate   = "finance.assets:update"
+    static let assetDelete   = "finance.assets:delete"
 }
 
 @Observable

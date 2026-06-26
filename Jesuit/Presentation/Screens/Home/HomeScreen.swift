@@ -14,6 +14,8 @@ struct HomeScreen: View {
     @State private var showOrgSwitcher = false
     @State private var showAllCashAccounts = false
     @State private var showNeraca = false
+    @State private var showTransfer = false
+    @State private var showAsset = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -39,6 +41,8 @@ struct HomeScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showNeraca) { NeracaScreen() }
+        .sheet(isPresented: $showTransfer) { TransferScreen() }
+        .sheet(isPresented: $showAsset) { AssetScreen() }
         .task {
             await presenter.loadCompanies()
             await presenter.loadCashFlow()
@@ -210,8 +214,50 @@ struct HomeScreen: View {
                 ForEach(presenter.quickActions) { action in
                     quickTile(action)
                 }
+                transferTile
+                assetTile
             }
         }
+    }
+
+    /// Transfer Dana shortcut — opens the transfer list as a sheet (no bottom tab).
+    private var transferTile: some View {
+        Button { showTransfer = true } label: {
+            VStack(spacing: 10) {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 64)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Text("Transfer Dana")
+                    .customFont(.medium, Typography.body)
+                    .foregroundStyle(.title)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Aset shortcut — opens the asset list as a sheet (no bottom tab).
+    private var assetTile: some View {
+        Button { showAsset = true } label: {
+            VStack(spacing: 10) {
+                Image(systemName: "shippingbox")
+                    .font(.system(size: 24))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 64)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+                Text("Aset")
+                    .customFont(.medium, Typography.body)
+                    .foregroundStyle(.title)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func quickTile(_ action: QuickAction) -> some View {

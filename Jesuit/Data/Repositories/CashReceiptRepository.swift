@@ -163,6 +163,29 @@ struct CashReceiptRepository: CashReceiptRepositoryProtocol {
         return (response.data?.accounts ?? []).filter { $0.isCashBank }
     }
 
+    func fetchAssetAccounts() async throws -> [AccountDTO] {
+        // Mirrors the web transfer form's `useCashAccountsWithBalance`:
+        // listAccounts({ account_type: 'asset', is_active, is_header: false, include_balance }).
+        let endpoint = Endpoint(
+            baseURL: AppURLConstants.financeBaseURL,
+            path: AppURLConstants.Finance.accounts,
+            method: .get,
+            parameters: [
+                "account_type": "asset",
+                "is_active": "true",
+                "is_header": "false",
+                "include_balance": "true",
+                "limit": "500"
+            ]
+        )
+        let response = try await network.requestDecoded(
+            endpoint: endpoint,
+            body: Optional<EmptyResponse>.none,
+            responseType: AccountsResponse.self
+        )
+        return response.data?.accounts ?? []
+    }
+
     /// FX response from `api.frankfurter.dev/v1/latest?base=…&symbols=IDR`.
     private nonisolated struct FrankfurterResponse: Decodable, Sendable {
         let rates: [String: Double]?
