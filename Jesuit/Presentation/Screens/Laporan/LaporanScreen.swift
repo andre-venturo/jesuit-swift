@@ -18,8 +18,9 @@ struct LaporanScreen: View {
     @State private var showFilters = false
     @State private var activeFilter: FilterKind?
     @State private var exportItem: ExportItem?
+    @State private var previewItem: ExportItem?
 
-    /// Identifiable wrapper so `sheet(item:)` can present the share sheet by URL.
+    /// Identifiable wrapper so `sheet(item:)` can present the share/preview by URL.
     private struct ExportItem: Identifiable { let id = UUID(); let url: URL }
 
     /// Which filter's selection sheet is open.
@@ -62,6 +63,10 @@ struct LaporanScreen: View {
             .sheet(item: $exportItem) { item in
                 ShareSheet(items: [item.url])
             }
+            .fullScreenCover(item: $previewItem) { item in
+                PDFPreviewSheet(url: item.url) { previewItem = nil }
+                    .ignoresSafeArea()
+            }
         }
         .task { await presenter.load() }
         .hotReloadable()
@@ -70,26 +75,21 @@ struct LaporanScreen: View {
     // MARK: - Report header (company + title + date range)
 
     private var reportHeader: some View {
-        CardContainer {
-            VStack(spacing: 6) {
-                Image("LogoSerikatJesus")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 40)
-                Text(session.organization)
-                    .customFont(.medium, Typography.subhead)
-                    .foregroundStyle(.subtitle)
-                    .multilineTextAlignment(.center)
-                Text(ReportExporter.title)
-                    .customFont(.bold, Typography.title2)
-                    .foregroundStyle(.title)
-                Text(rangeText)
-                    .customFont(.regular, Typography.subhead)
-                    .foregroundStyle(.subtitle)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
+        VStack(spacing: 4) {
+            Text(session.organization)
+                .customFont(.medium, Typography.subhead)
+                .foregroundStyle(.subtitle)
+            Text(ReportExporter.title)
+                .customFont(.semibold, Typography.title2)
+                .foregroundStyle(.title)
+            Text(rangeText)
+                .customFont(.regular, Typography.subhead)
+                .foregroundStyle(.subtitle)
         }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     private var rangeText: String {
@@ -102,94 +102,119 @@ struct LaporanScreen: View {
 
     // MARK: - Journal table
 
-    /// Width of each amount column (Debit / Kredit) in the journal table.
-    private let amountColumn: CGFloat = 92
+    // Ledger columns — the whole table scrolls horizontally (no frozen column).
+    private let wTanggal: CGFloat = 84
+    private let wNumber: CGFloat = 152
+    private let wAkun: CGFloat = 124
+    private let wDeskripsi: CGFloat = 168
+    private let wAmount: CGFloat = 112
+    private let colGap: CGFloat = 14
+    /// Single font size for the whole ledger table — hierarchy comes from weight/colour.
+    private let ledgerSize: CGFloat = Typography.body
+
+    private var labelSpan: CGFloat { wTanggal + wNumber + wAkun + wDeskripsi }
 
     private func journalCard(_ summary: ReportSummary) -> some View {
-        CardContainer {
+        ScrollView(.horizontal, showsIndicators: true) {
             VStack(spacing: 0) {
                 columnHeader
                 Divider()
                 ForEach(summary.journalEntries) { entry in
                     journalRow(entry)
-                    Divider().opacity(0.4)
+                    Divider().opacity(0.35)
                 }
-                Divider()
                 totalsRow(summary)
+                saldoRow(summary)
             }
         }
     }
 
-    /// Ledger column titles: Keterangan | Debit | Kredit.
     private var columnHeader: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            Text("Keterangan")
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text("Debit")
-                .frame(width: amountColumn, alignment: .trailing)
-            Text("Kredit")
-                .frame(width: amountColumn, alignment: .trailing)
+        HStack(spacing: 0) {
+            headerCell("Tanggal", width: wTanggal, align: .leading)
+            headerCell("No. Transaksi", width: wNumber, align: .leading)
+            headerCell("Akun", width: wAkun, align: .leading)
+            headerCell("Deskripsi", width: wDeskripsi, align: .leading)
+            headerCell("Debit", width: wAmount, align: .trailing)
+            headerCell("Kredit", width: wAmount, align: .trailing)
         }
-        .font(.customFont(.semibold, Typography.caption))
-        .foregroundStyle(.subtitle)
-        .textCase(.uppercase)
         .padding(.bottom, 8)
     }
 
-    private func journalRow(_ entry: JournalEntry) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(entry.number)
-                    .customFont(.semibold, Typography.callout)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                Text(entry.account)
-                    .customFont(.regular, Typography.subhead)
-                    .foregroundStyle(.subtitle)
-                    .lineLimit(2)
-                if !entry.description.isEmpty {
-                    Text(entry.description)
-                        .customFont(.regular, Typography.caption)
-                        .foregroundStyle(.subtitle)
-                        .lineLimit(2)
-                }
-                Text(dateText(entry.date))
-                    .customFont(.regular, Typography.caption2)
-                    .foregroundStyle(.subtitle)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            amountCell(entry.debit)
-            amountCell(entry.kredit)
-        }
-        .padding(.vertical, 12)
+    private func headerCell(_ text: String, width: CGFloat, align: Alignment) -> some View {
+        Text(text)
+            .font(.customFont(.semibold, ledgerSize))
+            .foregroundStyle(.subtitle)
+            .textCase(.uppercase)
+            .lineLimit(1)
+            .frame(width: width - colGap, alignment: align)
+            .padding(.trailing, colGap)
     }
 
-    /// One amount column cell: the grouped number when non-zero, else a blank dash.
-    private func amountCell(_ amount: Double) -> some View {
-        Text(amount > 0 ? amount.asGrouped : "–")
-            .customFont(.regular, Typography.callout)
-            .foregroundStyle(amount > 0 ? Color.title : Color.subtitle.opacity(0.5))
+    private func journalRow(_ entry: JournalEntry) -> some View {
+        HStack(spacing: 0) {
+            textCell(dateText(entry.date), width: wTanggal, weight: .regular, color: .subtitle)
+            textCell(entry.number, width: wNumber, weight: .semibold, color: .title)
+            textCell(entry.account, width: wAkun, weight: .regular, color: .subtitle)
+            textCell(entry.description.isEmpty ? "–" : entry.description, width: wDeskripsi, weight: .regular, color: .subtitle)
+            amountCell(entry.debit, width: wAmount)
+            amountCell(entry.kredit, width: wAmount)
+        }
+        .padding(.vertical, 14)
+    }
+
+    private func textCell(_ text: String, width: CGFloat, weight: CustomFontWeight, color: Color) -> some View {
+        Text(text)
+            .customFont(weight, ledgerSize)
+            .foregroundStyle(color)
+            .lineLimit(1)
+            .monospacedDigit()
+            .frame(width: width - colGap, alignment: .leading)
+            .padding(.trailing, colGap)
+    }
+
+    /// One amount cell: the grouped number when non-zero, else a blank dash.
+    private func amountCell(_ amount: Double, width: CGFloat, bold: Bool = false) -> some View {
+        Text(amount != 0 ? amount.asGrouped : "–")
+            .customFont(bold ? .bold : .regular, ledgerSize)
+            .monospacedDigit()
+            .foregroundStyle(amount == 0 ? Color.subtitle.opacity(0.5) : .title)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
-            .frame(width: amountColumn, alignment: .trailing)
+            .frame(width: width - colGap, alignment: .trailing)
+            .padding(.trailing, colGap)
     }
 
+    /// Column subtotals on a soft shaded band (the reference's "Total" row).
     private func totalsRow(_ summary: ReportSummary) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(spacing: 0) {
             Text("Total")
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(summary.penerimaanTotal.asGrouped)
-                .frame(width: amountColumn, alignment: .trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(summary.pengeluaranTotal.asGrouped)
-                .frame(width: amountColumn, alignment: .trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .font(.customFont(.bold, ledgerSize))
+                .foregroundStyle(.title)
+                .frame(width: labelSpan - colGap, alignment: .leading)
+                .padding(.trailing, colGap)
+            amountCell(summary.penerimaanTotal, width: wAmount, bold: true)
+            amountCell(summary.pengeluaranTotal, width: wAmount, bold: true)
         }
-        .font(.customFont(.bold, Typography.body))
-        .foregroundStyle(.title)
         .padding(.vertical, 12)
+        .background(Color.title.opacity(0.05))
+        .padding(.top, 8)
+    }
+
+    /// The balancing figure (Debit − Kredit) on a stronger band — the grand total.
+    private func saldoRow(_ summary: ReportSummary) -> some View {
+        HStack(spacing: 0) {
+            Text("Saldo")
+                .font(.customFont(.bold, ledgerSize))
+                .textCase(.uppercase)
+                .foregroundStyle(.title)
+                .frame(width: labelSpan - colGap, alignment: .leading)
+                .padding(.trailing, colGap)
+            amountCell(summary.net, width: wAmount * 2, bold: true)
+        }
+        .padding(.vertical, 12)
+        .background(Color.title.opacity(0.09))
+        .padding(.top, 4)
     }
 
     private func dateText(_ date: Date) -> String {
@@ -220,11 +245,15 @@ struct LaporanScreen: View {
         let org = session.organization
         let label = presenter.steppedLabel
         do {
-            let url = switch kind {
-            case .pdf: try ReportExporter.pdfURL(summary: summary, orgName: org, periodLabel: label)
-            case .csv: try ReportExporter.csvURL(summary: summary, orgName: org, periodLabel: label)
+            switch kind {
+            case .pdf:
+                // Preview first (QuickLook's share button handles the actual print/share).
+                let url = try ReportExporter.pdfURL(summary: summary, orgName: org, periodLabel: label)
+                previewItem = ExportItem(url: url)
+            case .csv:
+                let url = try ReportExporter.csvURL(summary: summary, orgName: org, periodLabel: label)
+                exportItem = ExportItem(url: url)
             }
-            exportItem = ExportItem(url: url)
         } catch {
             // ponytail: export-to-temp failure is not worth a dialog; user can retry
         }

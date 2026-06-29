@@ -15,6 +15,11 @@ struct AppCoordinator: View {
     @State private var didLaunch = false
 
     var body: some View {
+        content.dismissKeyboardOnTap()
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if !didLaunch {
             SplashScreen()
                 .task { await launch() }

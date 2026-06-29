@@ -15,6 +15,10 @@ struct PrimaryTextField: View {
     var hint: LocalizedStringKey
     var keyboard: UIKeyboardType
     var isSecure: Bool
+    /// Return-key label (Android `imeOptions` equivalent): `.done` / `.next` / `.go`…
+    var submitLabel: SubmitLabel = .done
+    /// Fired when the return key is pressed — e.g. advance focus or submit the form.
+    var onSubmit: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -41,7 +45,9 @@ struct PrimaryTextField: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .keyboardType(keyboard)
-                .keyboardDoneButton()
+                .submitLabel(submitLabel)
+                .onSubmit { onSubmit?() }
+                .keyboardDoneButton(for: keyboard)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
                 .disableAutocorrection(true)

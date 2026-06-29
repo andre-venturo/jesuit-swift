@@ -158,7 +158,7 @@ struct SelectionSheet: View {
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-                .keyboardDoneButton()
+                .submitLabel(.search)
             if !query.isEmpty {
                 Button {
                     query = ""

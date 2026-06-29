@@ -24,6 +24,7 @@ struct SearchPeriodBar: View {
                     .foregroundStyle(.title)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .submitLabel(.search)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)

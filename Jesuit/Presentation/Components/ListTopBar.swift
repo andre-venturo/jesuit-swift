@@ -97,8 +97,8 @@ struct ListTopBar: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
+                .submitLabel(.search)
                 .focused($searchFocused)
-                .keyboardDoneButton()
         }
         .padding(.horizontal, 14)
         .frame(height: 44)

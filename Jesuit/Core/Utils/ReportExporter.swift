@@ -63,8 +63,9 @@ enum ReportExporter {
 
     private static let pageSize = CGSize(width: 595, height: 842)  // A4 @ 72dpi
     private static let margin: CGFloat = 40
-    /// Relative column widths: Tanggal, No, Akun, Deskripsi, Debit, Kredit.
-    private static let colWeights: [CGFloat] = [0.12, 0.18, 0.24, 0.22, 0.12, 0.12]
+    /// Akun and Deskripsi are free text, so they share the leftover width and may
+    /// truncate; the rest (date, number, amounts) are sized to content and never clip.
+    private static let flexColumns = [2, 3]
 
     static func pdfURL(summary: ReportSummary, orgName: String, periodLabel: String) throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(fileName(periodLabel, ext: "pdf"))
@@ -78,21 +79,36 @@ enum ReportExporter {
             cursor.centered(periodLabel, font: .systemFont(ofSize: 11), color: .darkGray)
             cursor.gap(14)
 
-            let widths = cursor.columnWidths(colWeights)
-            cursor.row(columns, widths: widths, font: .boldSystemFont(ofSize: 9), color: .darkGray, rightCols: [4, 5])
+            let headFont = UIFont.boldSystemFont(ofSize: 9)
+            let bodyFont = UIFont.systemFont(ofSize: 9)
+
+            // Build the rows once, then size every structured column to its widest
+            // value so numbers/accounts/amounts never clip — only Deskripsi flexes.
+            let dataRows: [[String]] = summary.journalEntries.map { e in
+                [dateString(e.date), e.number, e.account, e.description,
+                 e.debit > 0 ? e.debit.asGroupedInt : "—",
+                 e.kredit > 0 ? e.kredit.asGroupedInt : "—"]
+            }
+            let totalRow = ["Total (Rp)", "", "", "",
+                            summary.penerimaanTotal.asGroupedInt,
+                            summary.pengeluaranTotal.asGroupedInt]
+
+            let contentWidths = (0..<columns.count).map { col -> CGFloat in
+                let head = (columns[col] as NSString).size(withAttributes: [.font: headFont]).width
+                let body = (dataRows + [totalRow])
+                    .map { ($0[col] as NSString).size(withAttributes: [.font: bodyFont]).width }
+                    .max() ?? 0
+                return max(head, body) + 8
+            }
+            let widths = cursor.columnWidths(content: contentWidths, flex: flexColumns)
+
+            cursor.row(columns, widths: widths, font: headFont, color: .darkGray, rightCols: [4, 5])
             cursor.rule()
-            for e in summary.journalEntries {
-                cursor.row([
-                    dateString(e.date), e.number, e.account, e.description,
-                    e.debit > 0 ? e.debit.asGroupedInt : "—",
-                    e.kredit > 0 ? e.kredit.asGroupedInt : "—"
-                ], widths: widths, font: .systemFont(ofSize: 9), rightCols: [4, 5])
+            for r in dataRows {
+                cursor.row(r, widths: widths, font: bodyFont, rightCols: [4, 5])
             }
             cursor.rule()
-            cursor.row(["Total (Rp)", "", "", "",
-                        summary.penerimaanTotal.asGroupedInt,
-                        summary.pengeluaranTotal.asGroupedInt],
-                       widths: widths, font: .boldSystemFont(ofSize: 9), rightCols: [4, 5])
+            cursor.row(totalRow, widths: widths, font: headFont, rightCols: [4, 5])
         }
         return url
     }
@@ -140,7 +156,32 @@ private struct PDFCursor {
         y += height
     }
 
-    func columnWidths(_ weights: [CGFloat]) -> [CGFloat] { weights.map { $0 * width } }
+    /// Column widths for a fixed/flex table. Columns NOT in `flex` are pinned to their
+    /// content width so they never clip (dates, numbers, amounts). The `flex` columns
+    /// (free text — account, description) share whatever's left: a short one keeps its
+    /// content and frees space; the long ones split the remainder evenly and truncate,
+    /// so no single long value can squeeze the others to nothing.
+    func columnWidths(content c: [CGFloat], flex: [Int]) -> [CGFloat] {
+        var w = c
+        let fixed = c.enumerated().filter { !flex.contains($0.offset) }.map(\.element).reduce(0, +)
+        var remaining = max(0, width - fixed)
+        var pending = flex
+        while let share = pending.isEmpty ? nil : remaining / CGFloat(pending.count),
+              let shortIdx = pending.first(where: { c[$0] <= share }) {
+            w[shortIdx] = c[shortIdx]
+            remaining -= c[shortIdx]
+            pending.removeAll { $0 == shortIdx }
+        }
+        if pending.isEmpty {
+            // Everything fit — give the leftover to the last flex column (description)
+            // so the table fills the row instead of leaving a gap.
+            if let last = flex.last { w[last] += remaining }
+        } else {
+            let share = remaining / CGFloat(pending.count)
+            for idx in pending { w[idx] = share }
+        }
+        return w
+    }
 
     mutating func rule() {
         ensure(6)

@@ -127,6 +127,10 @@ struct FormFieldRow: View {
     @Binding var text: String
     var placeholder: String = "Ketik"
     var keyboard: UIKeyboardType = .default
+    /// Return-key label (Android `imeOptions` equivalent): `.done` / `.next` / `.search` / `.go`…
+    var submitLabel: SubmitLabel = .done
+    /// Fired when the return key is pressed — e.g. `{ focus = .nextField }` for `.next`.
+    var onSubmit: (() -> Void)? = nil
     var showDivider: Bool = true
 
     var body: some View {
@@ -141,7 +145,9 @@ struct FormFieldRow: View {
                 .foregroundStyle(.title)
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
-                .keyboardDoneButton()
+                .submitLabel(submitLabel)
+                .onSubmit { onSubmit?() }
+                .keyboardDoneButton(for: keyboard)
                 .textInputAutocapitalization(keyboard == .emailAddress ? .never : .sentences)
                 .autocorrectionDisabled(keyboard == .emailAddress)
             }
@@ -221,6 +227,7 @@ struct FormTextAreaRow: View {
                 )
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
+                .keyboardDoneButton(force: true)
                 .lineLimit(3, reservesSpace: true)
                 .padding(12)
                 .background(Color.background1)

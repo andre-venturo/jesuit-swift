@@ -124,7 +124,7 @@ struct AssetFilterSheet: View {
                 .font(.customFont(.regular, Typography.body))
                 .foregroundStyle(.title)
                 .autocorrectionDisabled()
-                .keyboardDoneButton()
+                .submitLabel(.search)
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.subtitle)

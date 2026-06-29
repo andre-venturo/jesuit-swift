@@ -79,7 +79,7 @@ struct CreateCompanySheet: View {
             .font(.customFont(.regular, Typography.body))
             .foregroundStyle(Color.title)
             .textInputAutocapitalization(.words)
-            .keyboardDoneButton()
+            .submitLabel(.done)
             .padding(.horizontal, 14)
             .padding(.vertical, 14)
             .background(Color.textFieldBG)
