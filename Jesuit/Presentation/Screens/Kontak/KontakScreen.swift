@@ -44,10 +44,10 @@ struct KontakScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await presenter.load() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateContactSheet(presenter: presenter, onCreated: {})
         }
-        .sheet(item: $editingContact) { contact in
+        .navigationDestination(item: $editingContact) { contact in
             CreateContactSheet(editing: contact, onCreated: { Task { await presenter.load() } })
         }
         .sheet(isPresented: $showFilter) {

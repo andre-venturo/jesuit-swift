@@ -15,8 +15,8 @@ struct PengeluaranScreen: View {
     @State private var showFilter = false
     @State private var selected: SelectedExpense?
 
-    /// Identifiable wrapper so `sheet(item:)` can present an expense by id.
-    private struct SelectedExpense: Identifiable { let id: String }
+    /// Identifiable wrapper so `navigationDestination(item:)` can push an expense by id.
+    private struct SelectedExpense: Identifiable, Hashable { let id: String }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -45,10 +45,10 @@ struct PengeluaranScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await presenter.load() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateExpenseSheet(presenter: presenter, onCreated: {})
         }
-        .sheet(item: $selected) { item in
+        .navigationDestination(item: $selected) { item in
             CashReceiptDetailSheet(id: item.id, kind: .disbursement,
                                    onChanged: { Task { await presenter.load() } })
         }

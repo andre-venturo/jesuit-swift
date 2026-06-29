@@ -10,28 +10,21 @@
 import SwiftUI
 
 struct ApprovalInboxScreen: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var presenter = AppDI.shared.resolver(ApprovalInboxPresenter.self)
     @State private var selected: ApprovalInboxPresenter.InboxItem?
 
     var body: some View {
-        NavigationStack {
-            content
-                .background(Color.background1.ignoresSafeArea())
-                .navigationTitle("Persetujuan")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                    }
-                }
-        }
-        .task { await presenter.load() }
-        .sheet(item: $selected) { item in
-            CashReceiptDetailSheet(id: item.id, kind: item.kind,
-                                   onChanged: { Task { await presenter.load() } })
-        }
-        .hotReloadable()
+        content
+            .background(Color.background1.ignoresSafeArea())
+            .navigationTitle("Persetujuan")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
+            .task { await presenter.load() }
+            .navigationDestination(item: $selected) { item in
+                CashReceiptDetailSheet(id: item.id, kind: item.kind,
+                                       onChanged: { Task { await presenter.load() } })
+            }
+            .hotReloadable()
     }
 
     @ViewBuilder

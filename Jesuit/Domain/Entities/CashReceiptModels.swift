@@ -466,7 +466,7 @@ nonisolated struct CashTransactionDetailResponse: Codable, Sendable {
 }
 
 /// A stored attachment shown in the detail sheet (downloaded from `fileUrl`).
-struct CashLineAttachment: Identifiable, Sendable {
+struct CashLineAttachment: Identifiable, Hashable, Sendable {
     let id: String
     let fileName: String
     let fileUrl: String
@@ -483,7 +483,7 @@ struct CashLineAttachment: Identifiable, Sendable {
 }
 
 /// One line in the detail's "Detail Lines" table (names resolved client-side).
-struct CashReceiptLine: Identifiable, Sendable {
+struct CashReceiptLine: Identifiable, Hashable, Sendable {
     let id: String
     let lineNumber: Int
     let accountId: String?

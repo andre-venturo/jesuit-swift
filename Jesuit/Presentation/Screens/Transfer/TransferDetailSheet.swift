@@ -39,30 +39,24 @@ struct TransferDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if presenter.isLoading {
-                    ProgressView().tint(.accent)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = presenter.errorMessage {
-                    stateMessage(error, systemImage: "exclamationmark.triangle")
-                } else if let detail = presenter.detail {
-                    content(detail)
-                } else {
-                    stateMessage("Detail tidak tersedia.", systemImage: "doc")
-                }
-            }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(presenter.detail?.number ?? "Detail")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                }
+        Group {
+            if presenter.isLoading {
+                ProgressView().tint(.accent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = presenter.errorMessage {
+                stateMessage(error, systemImage: "exclamationmark.triangle")
+            } else if let detail = presenter.detail {
+                content(detail)
+            } else {
+                stateMessage("Detail tidak tersedia.", systemImage: "doc")
             }
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(presenter.detail?.number ?? "Detail")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task { await presenter.load() }
-        .sheet(isPresented: $showEdit) {
+        .navigationDestination(isPresented: $showEdit) {
             if let detail = presenter.detail {
                 CreateTransferSheet(editing: detail, onCreated: {
                     onChanged()

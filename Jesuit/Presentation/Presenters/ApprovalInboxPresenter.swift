@@ -17,10 +17,13 @@ import Observation
 final class ApprovalInboxPresenter {
     /// A pending transaction tagged with its kind, so the row can open the right
     /// edit form in the shared detail sheet (receipts and disbursements differ).
-    struct InboxItem: Identifiable, Sendable {
+    struct InboxItem: Identifiable, Hashable, Sendable {
         let receipt: CashReceipt
         let kind: CashReceiptDetailSheet.Kind
         var id: String { receipt.id }
+
+        static func == (lhs: InboxItem, rhs: InboxItem) -> Bool { lhs.id == rhs.id && lhs.kind == rhs.kind }
+        func hash(into hasher: inout Hasher) { hasher.combine(id); hasher.combine(kind) }
     }
 
     private let repository: CashReceiptRepositoryProtocol

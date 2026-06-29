@@ -15,8 +15,8 @@ struct PenerimaanScreen: View {
     @State private var showFilter = false
     @State private var selected: SelectedReceipt?
 
-    /// Identifiable wrapper so `sheet(item:)` can present a receipt by id.
-    private struct SelectedReceipt: Identifiable { let id: String }
+    /// Identifiable wrapper so `navigationDestination(item:)` can push a receipt by id.
+    private struct SelectedReceipt: Identifiable, Hashable { let id: String }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -45,10 +45,10 @@ struct PenerimaanScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await presenter.load() }
-        .sheet(isPresented: $showCreate) {
+        .navigationDestination(isPresented: $showCreate) {
             CreateReceiptSheet(presenter: presenter, onCreated: {})
         }
-        .sheet(item: $selected) { item in
+        .navigationDestination(item: $selected) { item in
             CashReceiptDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
         }
         .sheet(isPresented: $showFilter) {

@@ -138,8 +138,11 @@ struct MoreScreen: View {
         .navigationDestination(isPresented: $showAsset) {
             AssetScreen()
         }
-        .sheet(isPresented: $showApproval, onDismiss: { Task { await approval.loadBadge() } }) {
+        .navigationDestination(isPresented: $showApproval) {
             ApprovalInboxScreen()
+        }
+        .onChange(of: showApproval) { _, shown in
+            if !shown { Task { await approval.loadBadge() } }  // refresh badge after the inbox pops
         }
         .task {
             if session.can(Permission.cashApprove) { await approval.loadBadge() }

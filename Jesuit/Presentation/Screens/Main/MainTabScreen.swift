@@ -19,15 +19,15 @@ struct MainTabScreen: View {
                 .tabItem { Label("Beranda", systemImage: "house.fill") }
                 .tag(MainTab.home)
 
-            KontakScreen()
+            NavigationStack { KontakScreen() }
                 .tabItem { Label("Kontak", systemImage: "person.2.fill") }
                 .tag(MainTab.kontak)
 
-            PenerimaanScreen()
+            NavigationStack { PenerimaanScreen() }
                 .tabItem { Label("Penerimaan", systemImage: "arrow.down.circle.fill") }
                 .tag(MainTab.penerimaan)
 
-            PengeluaranScreen()
+            NavigationStack { PengeluaranScreen() }
                 .tabItem { Label("Pengeluaran", systemImage: "arrow.up.circle.fill") }
                 .tag(MainTab.pengeluaran)
 

@@ -50,32 +50,25 @@ struct CreateExpenseSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    linesSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                linesSection
 
-                    if let error = form.errorMessage {
-                        Text(error)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.expense)
-                    }
+                if let error = form.errorMessage {
+                    Text(error)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.expense)
+                }
 
-                    actions
-                }
-                .padding(20)
+                actions
             }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Ubah Pengeluaran Kas" : "Pengeluaran Kas Baru")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }
-                        .foregroundStyle(.subtitle)
-                }
-            }
+            .padding(20)
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(isEditing ? "Ubah Pengeluaran Kas" : "Pengeluaran Kas Baru")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             if let editTarget {
                 presenter.startEditing(editTarget)

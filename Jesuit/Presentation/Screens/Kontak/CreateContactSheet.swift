@@ -36,75 +36,68 @@ struct CreateContactSheet: View {
     private var form: ContactPresenter.CreateForm { presenter.form }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    FormCard("Detail Kontak") {
-                        FormFieldRow(label: "Nama", required: true, text: bind(\.name),
-                                     placeholder: "Nama kontak")
-                        FormPickerRow(
-                            label: "Kategori", required: true,
-                            options: form.categories.map { SelectionOption(id: $0.id, title: $0.name) },
-                            selectedId: form.categoryId.isEmpty ? nil : form.categoryId,
-                            placeholder: "Pilih kategori",
-                            sheetTitle: "Kategori",
-                            searchPrompt: "Cari kategori…",
-                            onSelect: { form.categoryId = $0 }
-                        )
-                        FormFieldRow(label: "Email", text: bind(\.email),
-                                     placeholder: "name@email.com", keyboard: .emailAddress)
-                        FormFieldRow(label: "Telepon", text: bind(\.phone),
-                                     placeholder: "08xxxxxxxxxx", keyboard: .phonePad)
-                        FormFieldRow(label: "Alamat", text: bind(\.address),
-                                     placeholder: "Alamat", showDivider: false)
-                    }
-
-                    FormCard("Narahubung (PIC)") {
-                        FormFieldRow(label: "Nama PIC", text: bind(\.picName), placeholder: "Nama PIC")
-                        FormFieldRow(label: "Jabatan PIC", text: bind(\.picPosition),
-                                     placeholder: "Jabatan", showDivider: false)
-                    }
-
-                    FormCard {
-                        FormToggleRow(label: "Aktif", isOn: bind(\.isActive))
-                    }
-
-                    if let error = form.errorMessage {
-                        Text(error)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.expense)
-                    }
-
-                    saveButton
-
-                    if isEditing {
-                        deleteButton
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                FormCard("Detail Kontak") {
+                    FormFieldRow(label: "Nama", required: true, text: bind(\.name),
+                                 placeholder: "Nama kontak")
+                    FormPickerRow(
+                        label: "Kategori", required: true,
+                        options: form.categories.map { SelectionOption(id: $0.id, title: $0.name) },
+                        selectedId: form.categoryId.isEmpty ? nil : form.categoryId,
+                        placeholder: "Pilih kategori",
+                        sheetTitle: "Kategori",
+                        searchPrompt: "Cari kategori…",
+                        onSelect: { form.categoryId = $0 }
+                    )
+                    FormFieldRow(label: "Email", text: bind(\.email),
+                                 placeholder: "name@email.com", keyboard: .emailAddress)
+                    FormFieldRow(label: "Telepon", text: bind(\.phone),
+                                 placeholder: "08xxxxxxxxxx", keyboard: .phonePad)
+                    FormFieldRow(label: "Alamat", text: bind(\.address),
+                                 placeholder: "Alamat", showDivider: false)
                 }
-                .padding(20)
-            }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Ubah Kontak" : "Kontak Baru")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }
-                        .foregroundStyle(.subtitle)
+
+                FormCard("Narahubung (PIC)") {
+                    FormFieldRow(label: "Nama PIC", text: bind(\.picName), placeholder: "Nama PIC")
+                    FormFieldRow(label: "Jabatan PIC", text: bind(\.picPosition),
+                                 placeholder: "Jabatan", showDivider: false)
+                }
+
+                FormCard {
+                    FormToggleRow(label: "Aktif", isOn: bind(\.isActive))
+                }
+
+                if let error = form.errorMessage {
+                    Text(error)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.expense)
+                }
+
+                saveButton
+
+                if isEditing {
+                    deleteButton
                 }
             }
-            .alert("Hapus Kontak", isPresented: $showDeleteConfirm) {
-                Button("Batal", role: .cancel) {}
-                Button("Hapus", role: .destructive) {
-                    Task {
-                        if let editTarget, await presenter.deleteContact(id: editTarget.id) {
-                            onCreated()
-                            dismiss()
-                        }
+            .padding(20)
+        }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(isEditing ? "Ubah Kontak" : "Kontak Baru")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+        .alert("Hapus Kontak", isPresented: $showDeleteConfirm) {
+            Button("Batal", role: .cancel) {}
+            Button("Hapus", role: .destructive) {
+                Task {
+                    if let editTarget, await presenter.deleteContact(id: editTarget.id) {
+                        onCreated()
+                        dismiss()
                     }
                 }
-            } message: {
-                Text("Hapus \(editTarget?.name ?? "kontak ini")? Tindakan ini tidak dapat dibatalkan.")
             }
+        } message: {
+            Text("Hapus \(editTarget?.name ?? "kontak ini")? Tindakan ini tidak dapat dibatalkan.")
         }
         .task {
             if let editTarget {

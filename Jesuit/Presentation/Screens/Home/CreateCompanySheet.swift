@@ -35,32 +35,25 @@ struct CreateCompanySheet: View {
     private var isEditing: Bool { if case .edit = mode { return true }; return false }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    nameField
-                    typeAndParent
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                nameField
+                typeAndParent
 
-                    if let error = form.errorMessage {
-                        Text(error)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.expense)
-                    }
+                if let error = form.errorMessage {
+                    Text(error)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.expense)
+                }
 
-                    saveButton
-                }
-                .padding(20)
+                saveButton
             }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Ubah Perusahaan" : "Perusahaan Baru")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }
-                        .foregroundStyle(.subtitle)
-                }
-            }
+            .padding(20)
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(isEditing ? "Ubah Perusahaan" : "Perusahaan Baru")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             switch mode {
             case .create:

@@ -82,7 +82,7 @@ struct HomeScreen: View {
         }
         .buttonStyle(.plain)
         .disabled(presenter.companies.isEmpty || presenter.isSwitchingCompany)
-        .sheet(isPresented: $showOrgSwitcher) {
+        .navigationDestination(isPresented: $showOrgSwitcher) {
             OrganizationSwitcherSheet(
                 presenter: presenter,
                 onSelect: { await presenter.switchCompany(to: $0) }

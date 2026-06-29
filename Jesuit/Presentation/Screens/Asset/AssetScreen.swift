@@ -16,7 +16,7 @@ struct AssetScreen: View {
     @State private var showFilter = false
     @State private var selected: SelectedAsset?
 
-    private struct SelectedAsset: Identifiable { let id: String }
+    private struct SelectedAsset: Identifiable, Hashable { let id: String }
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
 
@@ -52,7 +52,7 @@ struct AssetScreen: View {
         .sheet(isPresented: $showCreate) {
             CreateAssetSheet(presenter: presenter, onCreated: {})
         }
-        .sheet(item: $selected) { item in
+        .navigationDestination(item: $selected) { item in
             AssetDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
         }
         .sheet(isPresented: $showFilter) {

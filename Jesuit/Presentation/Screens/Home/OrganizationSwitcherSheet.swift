@@ -16,8 +16,9 @@ struct OrganizationSwitcherSheet: View {
     /// Switches to `companyId`; returns `true` on success so the sheet can dismiss.
     let onSelect: (String) async -> Bool
 
-    /// Drives the create/edit/subsidiary form sheet via `.sheet(item:)`.
-    private enum FormRoute: Identifiable {
+    /// Drives the create/edit/subsidiary form page via `.navigationDestination(item:)`.
+    /// Hashable by `id` so it can drive a navigation push without making `CompanyDTO` Hashable.
+    private enum FormRoute: Identifiable, Hashable {
         case create
         case edit(CompanyDTO)
         case subsidiary(CompanyDTO)
@@ -29,6 +30,9 @@ struct OrganizationSwitcherSheet: View {
             case .subsidiary(let c): return "sub-\(c.id)"
             }
         }
+
+        static func == (lhs: FormRoute, rhs: FormRoute) -> Bool { lhs.id == rhs.id }
+        func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
         var sheetMode: CreateCompanySheet.Mode {
             switch self {
@@ -48,47 +52,42 @@ struct OrganizationSwitcherSheet: View {
     private var switchingCompanyId: String? { presenter.switchingCompanyId }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(companies.enumerated()), id: \.element.id) { index, company in
-                        row(company)
-                        RowDivider(index: index, count: companies.count, inset: 72)
-                    }
-                }
-                .background(Color(.systemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .padding(16)
-            }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Organisasi")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Batalkan") { dismiss() }
-                        .foregroundStyle(.accent)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Kelola") { formRoute = .create }
-                        .foregroundStyle(.accent)
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(companies.enumerated()), id: \.element.id) { index, company in
+                    row(company)
+                    RowDivider(index: index, count: companies.count, inset: 72)
                 }
             }
-            .sheet(item: $formRoute) { route in
-                CreateCompanySheet(presenter: presenter, mode: route.sheetMode, onSaved: {})
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(16)
+        }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle("Organisasi")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Kelola") { formRoute = .create }
+                    .foregroundStyle(.accent)
             }
-            .alert("Hapus Perusahaan", isPresented: deleteAlertBinding, presenting: deleteTarget) { company in
-                Button("Batal", role: .cancel) {}
-                Button("Hapus", role: .destructive) {
-                    Task { await presenter.deleteCompany(id: company.id) }
-                }
-            } message: { company in
-                Text("Hapus \(company.name)? Tindakan ini tidak dapat dibatalkan.")
+        }
+        .navigationDestination(item: $formRoute) { route in
+            CreateCompanySheet(presenter: presenter, mode: route.sheetMode, onSaved: {})
+        }
+        .alert("Hapus Perusahaan", isPresented: deleteAlertBinding, presenting: deleteTarget) { company in
+            Button("Batal", role: .cancel) {}
+            Button("Hapus", role: .destructive) {
+                Task { await presenter.deleteCompany(id: company.id) }
             }
-            .alert("Gagal berpindah", isPresented: switchErrorBinding) {
-                Button("OK", role: .cancel) { presenter.switchError = nil }
-            } message: {
-                Text(presenter.switchError ?? "")
-            }
+        } message: { company in
+            Text("Hapus \(company.name)? Tindakan ini tidak dapat dibatalkan.")
+        }
+        .alert("Gagal berpindah", isPresented: switchErrorBinding) {
+            Button("OK", role: .cancel) { presenter.switchError = nil }
+        } message: {
+            Text(presenter.switchError ?? "")
         }
     }
 

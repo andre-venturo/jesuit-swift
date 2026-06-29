@@ -42,36 +42,30 @@ struct CreateAssetSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    AttachmentsField(
-                        attachments: Binding(get: { form.attachments }, set: { form.attachments = $0 }),
-                        existing: form.existingAttachments
-                    )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                AttachmentsField(
+                    attachments: Binding(get: { form.attachments }, set: { form.attachments = $0 }),
+                    existing: form.existingAttachments
+                )
 
-                    infoCard
-                    purchaseCard
+                infoCard
+                purchaseCard
 
-                    if let error = form.errorMessage {
-                        Text(error)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.expense)
-                    }
-
-                    actions
+                if let error = form.errorMessage {
+                    Text(error)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.expense)
                 }
-                .padding(20)
+
+                actions
             }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Ubah Aset" : "Aset Baru")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                }
-            }
+            .padding(20)
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(isEditing ? "Ubah Aset" : "Aset Baru")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             if let editTarget {
                 presenter.startEditing(editTarget)

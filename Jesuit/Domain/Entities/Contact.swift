@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Contact: Identifiable, Sendable {
+struct Contact: Identifiable, Hashable, Sendable {
     enum Kind: String, Sendable {
         case customer = "Customer"
         case vendor = "Vendor"

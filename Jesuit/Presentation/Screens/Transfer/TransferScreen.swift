@@ -18,7 +18,7 @@ struct TransferScreen: View {
     @State private var showCustomRange = false
     @State private var selected: SelectedTransfer?
 
-    private struct SelectedTransfer: Identifiable { let id: String }
+    private struct SelectedTransfer: Identifiable, Hashable { let id: String }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -54,7 +54,7 @@ struct TransferScreen: View {
         .sheet(isPresented: $showCreate) {
             CreateTransferSheet(presenter: presenter, onCreated: {})
         }
-        .sheet(item: $selected) { item in
+        .navigationDestination(item: $selected) { item in
             TransferDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
         }
         .sheet(isPresented: $showFilter) {

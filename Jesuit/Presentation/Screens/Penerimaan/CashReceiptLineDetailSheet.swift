@@ -19,7 +19,6 @@ struct CashReceiptLineDetailSheet: View {
     /// Called after a successful upload so the parent detail reloads.
     let onChanged: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
 
     private let repository = AppDI.shared.resolver(CashReceiptRepositoryProtocol.self)
 
@@ -44,44 +43,38 @@ struct CashReceiptLineDetailSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(line.accountName)
-                            .customFont(.semibold, Typography.headline)
-                            .foregroundStyle(.title)
-                        if line.isPinned {
-                            Text("Utama")
-                                .customFont(.medium, Typography.caption2)
-                                .foregroundStyle(.accent)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Color.accentColor.opacity(0.14))
-                                .clipShape(Capsule())
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(line.accountName)
+                        .customFont(.semibold, Typography.headline)
+                        .foregroundStyle(.title)
+                    if line.isPinned {
+                        Text("Utama")
+                            .customFont(.medium, Typography.caption2)
+                            .foregroundStyle(.accent)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.accentColor.opacity(0.14))
+                            .clipShape(Capsule())
                     }
-
-                    field("Jumlah", line.amount.asCurrency(line.currencyCode))
-
-                    if !line.description.isEmpty {
-                        field("Deskripsi", line.description)
-                    }
-
-                    attachmentsSection
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(20)
-            }
-            .frame(maxWidth: .infinity)
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Baris \(line.lineNumber)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
+
+                field("Jumlah", line.amount.asCurrency(line.currencyCode))
+
+                if !line.description.isEmpty {
+                    field("Deskripsi", line.description)
                 }
+
+                attachmentsSection
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
         }
+        .frame(maxWidth: .infinity)
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle("Baris \(line.lineNumber)")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .onChange(of: pickerItems) { _, items in
             guard !items.isEmpty else { return }
             Task { await upload(items) }

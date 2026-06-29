@@ -37,43 +37,37 @@ struct CreateTransferSheet: View {
     private var form: TransferPresenter.CreateForm { presenter.form }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    detailCard
-                    sourceCard
-                    destinationCard
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                detailCard
+                sourceCard
+                destinationCard
 
-                    if form.sameAccount {
-                        validationNote("Akun tujuan harus berbeda dari akun sumber.")
-                    }
-
-                    amountCard
-
-                    AttachmentsField(
-                        attachments: Binding(get: { form.attachments }, set: { form.attachments = $0 }),
-                        existing: form.existingAttachments
-                    )
-
-                    if let error = form.errorMessage {
-                        Text(error)
-                            .customFont(.medium, Typography.callout)
-                            .foregroundStyle(.expense)
-                    }
-
-                    actions
+                if form.sameAccount {
+                    validationNote("Akun tujuan harus berbeda dari akun sumber.")
                 }
-                .padding(20)
-            }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle(isEditing ? "Ubah Transfer Dana" : "Transfer Dana Baru")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
+
+                amountCard
+
+                AttachmentsField(
+                    attachments: Binding(get: { form.attachments }, set: { form.attachments = $0 }),
+                    existing: form.existingAttachments
+                )
+
+                if let error = form.errorMessage {
+                    Text(error)
+                        .customFont(.medium, Typography.callout)
+                        .foregroundStyle(.expense)
                 }
+
+                actions
             }
+            .padding(20)
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle(isEditing ? "Ubah Transfer Dana" : "Transfer Dana Baru")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             if let editTarget {
                 presenter.startEditing(editTarget)
