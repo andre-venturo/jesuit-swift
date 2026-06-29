@@ -4,7 +4,7 @@
 //
 //  Aset (fixed assets): category chips, a combined filter sheet, a 2-column
 //  photo-card grid and a floating "add asset" button. Plain CRUD list.
-//  Presented as a sheet from Home / More rather than a bottom tab.
+//  Presented as a full-screen page from Home / More rather than a bottom tab.
 //
 
 import SwiftUI
@@ -15,43 +15,36 @@ struct AssetScreen: View {
     @State private var showCreate = false
     @State private var showFilter = false
     @State private var selected: SelectedAsset?
-    @Environment(\.dismiss) private var dismiss
 
     private struct SelectedAsset: Identifiable { let id: String }
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    ListTopBar(
-                        title: "Aset",
-                        searchPlaceholder: "Cari aset",
-                        searchText: $presenter.searchText,
-                        chips: presenter.categoryChips,
-                        selectedChip: presenter.categoryLabel,
-                        onSelectChip: { presenter.selectCategory(label: $0) },
-                        onOpenFilter: { showFilter = true }
-                    )
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                ListTopBar(
+                    title: "Aset",
+                    searchPlaceholder: "Cari aset",
+                    searchText: $presenter.searchText,
+                    chips: presenter.categoryChips,
+                    selectedChip: presenter.categoryLabel,
+                    onSelectChip: { presenter.selectCategory(label: $0) },
+                    onOpenFilter: { showFilter = true }
+                )
 
-                    content
-                }
-
-                if session.can(Permission.assetCreate) {
-                    addButton
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 24)
-                }
+                content
             }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                }
+
+            if session.can(Permission.assetCreate) {
+                addButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 24)
             }
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task {
             await presenter.loadCategories()
             await presenter.load()

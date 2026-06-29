@@ -122,6 +122,7 @@ struct MoreScreen: View {
         }
         .background(Color.background1.ignoresSafeArea())
         .navigationTitle("Lainnya")
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showEditProfile) {
             EditProfileSheet(onSuccess: { showProfileSaved = true })
         }
@@ -131,10 +132,10 @@ struct MoreScreen: View {
         .sheet(isPresented: $showLaporan) {
             LaporanScreen()
         }
-        .sheet(isPresented: $showTransfer) {
+        .navigationDestination(isPresented: $showTransfer) {
             TransferScreen()
         }
-        .sheet(isPresented: $showAsset) {
+        .navigationDestination(isPresented: $showAsset) {
             AssetScreen()
         }
         .sheet(isPresented: $showApproval, onDismiss: { Task { await approval.loadBadge() } }) {

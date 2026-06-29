@@ -41,8 +41,8 @@ struct HomeScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showNeraca) { NeracaScreen() }
-        .sheet(isPresented: $showTransfer) { TransferScreen() }
-        .sheet(isPresented: $showAsset) { AssetScreen() }
+        .navigationDestination(isPresented: $showTransfer) { TransferScreen() }
+        .navigationDestination(isPresented: $showAsset) { AssetScreen() }
         .task {
             await presenter.loadCompanies()
             await presenter.loadCashFlow()
@@ -220,7 +220,7 @@ struct HomeScreen: View {
         }
     }
 
-    /// Transfer Dana shortcut — opens the transfer list as a sheet (no bottom tab).
+    /// Transfer Dana shortcut — opens the transfer list as a full page (no bottom tab).
     private var transferTile: some View {
         Button { showTransfer = true } label: {
             VStack(spacing: 10) {
@@ -240,7 +240,7 @@ struct HomeScreen: View {
         .buttonStyle(.plain)
     }
 
-    /// Aset shortcut — opens the asset list as a sheet (no bottom tab).
+    /// Aset shortcut — opens the asset list as a full page (no bottom tab).
     private var assetTile: some View {
         Button { showAsset = true } label: {
             VStack(spacing: 10) {

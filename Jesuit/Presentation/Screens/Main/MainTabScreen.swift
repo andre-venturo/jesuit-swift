@@ -15,7 +15,7 @@ struct MainTabScreen: View {
 
     var body: some View {
         TabView(selection: $router.selection) {
-            HomeScreen()
+            NavigationStack { HomeScreen() }
                 .tabItem { Label("Beranda", systemImage: "house.fill") }
                 .tag(MainTab.home)
 
@@ -31,7 +31,7 @@ struct MainTabScreen: View {
                 .tabItem { Label("Pengeluaran", systemImage: "arrow.up.circle.fill") }
                 .tag(MainTab.pengeluaran)
 
-            MoreScreen()
+            NavigationStack { MoreScreen() }
                 .tabItem { Label("Lainnya", systemImage: "ellipsis") }
                 .tag(MainTab.more)
                 .badge(approval.badgeCount)  // 0 hides it automatically

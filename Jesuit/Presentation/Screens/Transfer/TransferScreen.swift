@@ -3,8 +3,8 @@
 //  Jesuit
 //
 //  Transfer Dana (fund transfers): filter chips, transfer rows and a floating
-//  "add transfer" button. Mirrors the Penerimaan list. Presented as a sheet from
-//  Home / More rather than a bottom tab.
+//  "add transfer" button. Mirrors the Penerimaan list. Presented as a full-screen
+//  page from Home / More rather than a bottom tab.
 //
 
 import SwiftUI
@@ -17,45 +17,38 @@ struct TransferScreen: View {
     @State private var showPeriod = false
     @State private var showCustomRange = false
     @State private var selected: SelectedTransfer?
-    @Environment(\.dismiss) private var dismiss
 
     private struct SelectedTransfer: Identifiable { let id: String }
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                VStack(spacing: 0) {
-                    ListTopBar(
-                        title: "Transfer Dana",
-                        searchPlaceholder: "Cari transfer",
-                        searchText: $presenter.searchText,
-                        chips: TransferPresenter.Filter.quickChips.map(\.rawValue),
-                        selectedChip: presenter.filter.rawValue,
-                        onSelectChip: { label in
-                            if let f = TransferPresenter.Filter(rawValue: label) { presenter.filter = f }
-                        },
-                        onOpenFilter: { showFilter = true },
-                        onOpenPeriod: { showPeriod = true },
-                        periodActive: presenter.periodFrom != nil
-                    )
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                ListTopBar(
+                    title: "Transfer Dana",
+                    searchPlaceholder: "Cari transfer",
+                    searchText: $presenter.searchText,
+                    chips: TransferPresenter.Filter.quickChips.map(\.rawValue),
+                    selectedChip: presenter.filter.rawValue,
+                    onSelectChip: { label in
+                        if let f = TransferPresenter.Filter(rawValue: label) { presenter.filter = f }
+                    },
+                    onOpenFilter: { showFilter = true },
+                    onOpenPeriod: { showPeriod = true },
+                    periodActive: presenter.periodFrom != nil
+                )
 
-                    content
-                }
-
-                if session.can(Permission.cashCreate) {
-                    addButton
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 24)
-                }
+                content
             }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                }
+
+            if session.can(Permission.cashCreate) {
+                addButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 24)
             }
         }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task { await presenter.load() }
         .task { await presenter.loadAccounts() }
         .sheet(isPresented: $showCreate) {
