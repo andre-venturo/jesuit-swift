@@ -10,6 +10,7 @@ import SwiftUI
 struct MoreScreen: View {
     @Injected private var navigation: NavigationService
     @Injected private var session: AuthSession
+    @State private var tabRouter = AppDI.shared.resolver(AppTabRouter.self)
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var isLoggingOut = false
     @State private var showEditProfile = false
@@ -17,9 +18,6 @@ struct MoreScreen: View {
     @State private var showChangePassword = false
     @State private var showPasswordChanged = false
     @State private var showLaporan = false
-    @State private var showTransfer = false
-    @State private var showAsset = false
-    @State private var showApproval = false
     @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
 
     var body: some View {
@@ -48,47 +46,39 @@ struct MoreScreen: View {
                 }
 
                 ListCard {
-                    Button {
-                        showEditProfile = true
-                    } label: {
-                        MoreRow(icon: "person.crop.circle", title: "Ubah Profil", value: "")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                    Button {
-                        showChangePassword = true
-                    } label: {
-                        MoreRow(icon: "lock", title: "Ubah Password", value: "")
-                    }
-                    .buttonStyle(.plain)
-                    if session.can(Permission.cashApprove) {
-                        Divider().padding(.leading, 52)
+                    // Rows render in the user-chosen order (edited in "Atur Navigasi"),
+                    // filtered by permission. Dividers go between rows, not after the last.
+                    let items = tabRouter.menuOrder.filter { $0.isVisible(session) }
+                    ForEach(Array(items.enumerated()), id: \.element) { index, item in
                         Button {
-                            showApproval = true
+                            handle(item)
                         } label: {
-                            MoreRow(icon: "checkmark.seal", title: "Persetujuan", value: "", badge: approval.badgeCount)
+                            MoreRow(
+                                icon: item.systemImage,
+                                title: item.title,
+                                value: "",
+                                badge: item == .persetujuan ? approval.badgeCount : 0
+                            )
                         }
                         .buttonStyle(.plain)
+                        if index < items.count - 1 {
+                            Divider().padding(.leading, 52)
+                        }
                     }
-                    Divider().padding(.leading, 52)
+                }
+
+                // "Atur Navigasi" sits in its own card, styled prominently — it's the
+                // entry point to customize the tabs and this menu's order.
+                ListCard {
                     Button {
-                        showTransfer = true
+                        handle(.aturNavigasi)
                     } label: {
-                        MoreRow(icon: "arrow.left.arrow.right", title: "Transfer Dana", value: "")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                    Button {
-                        showAsset = true
-                    } label: {
-                        MoreRow(icon: "shippingbox", title: "Aset", value: "")
-                    }
-                    .buttonStyle(.plain)
-                    Divider().padding(.leading, 52)
-                    Button {
-                        showLaporan = true
-                    } label: {
-                        MoreRow(icon: "chart.bar.doc.horizontal", title: "Laporan", value: "")
+                        MoreRow(
+                            icon: MoreMenuItem.aturNavigasi.systemImage,
+                            title: MoreMenuItem.aturNavigasi.title,
+                            value: "",
+                            prominent: true
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -122,6 +112,7 @@ struct MoreScreen: View {
         }
         .background(Color.background1.ignoresSafeArea())
         .navigationTitle("Lainnya")
+        .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showEditProfile) {
             EditProfileSheet(onSuccess: { showProfileSaved = true })
@@ -131,18 +122,6 @@ struct MoreScreen: View {
         }
         .sheet(isPresented: $showLaporan) {
             LaporanScreen()
-        }
-        .navigationDestination(isPresented: $showTransfer) {
-            TransferScreen()
-        }
-        .navigationDestination(isPresented: $showAsset) {
-            AssetScreen()
-        }
-        .navigationDestination(isPresented: $showApproval) {
-            ApprovalInboxScreen()
-        }
-        .onChange(of: showApproval) { _, shown in
-            if !shown { Task { await approval.loadBadge() } }  // refresh badge after the inbox pops
         }
         .task {
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
@@ -156,6 +135,21 @@ struct MoreScreen: View {
         .hotReloadable()
     }
 
+    private func handle(_ item: MoreMenuItem) {
+        switch item {
+        case .ubahProfil: showEditProfile = true
+        case .ubahPassword: showChangePassword = true
+        case .laporan: showLaporan = true
+        case .persetujuan: navigation.navigate(to: .approval)
+        case .transferDana: navigation.navigate(to: .transfer)
+        case .aset: navigation.navigate(to: .asset)
+        // Pushed as a top-level UIPilot route, NOT inside this tab's NavigationStack, so
+        // the editor occludes the TabView while the reorder rebuilds the UITabBarController
+        // (no tab-bar blink on close) with a native back chevron + swipe-back.
+        case .aturNavigasi: navigation.navigate(to: .editNavigation)
+        }
+    }
+
     private var initials: String {
         presenter.userName.split(separator: " ").prefix(2)
             .compactMap { $0.first }.map(String.init).joined().uppercased()
@@ -164,9 +158,11 @@ struct MoreScreen: View {
 
 struct MoreRow: View {
     let icon: String
-    let title: LocalizedStringKey
+    let title: String
     let value: String
     var badge: Int = 0
+    /// Accent-tinted, semibold styling to make a row stand out (e.g. "Atur Navigasi").
+    var prominent: Bool = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -174,8 +170,8 @@ struct MoreRow: View {
                 .foregroundStyle(.accent)
                 .frame(width: 24)
             Text(title)
-                .customFont(.medium, Typography.body)
-                .foregroundStyle(.title)
+                .customFont(prominent ? .semibold : .medium, Typography.body)
+                .foregroundStyle(prominent ? Color.accentColor : .title)
             Spacer()
             if badge > 0 {
                 Text("\(badge)")

@@ -43,6 +43,7 @@ struct PengeluaranScreen: View {
             }
         }
         .background(Color.background1.ignoresSafeArea())
+        .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
         .task { await presenter.load() }
         .navigationDestination(isPresented: $showCreate) {

@@ -10,10 +10,12 @@
 import SwiftUI
 
 struct AssetScreen: View {
+    @Injected private var navigation: NavigationService
     @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(AssetPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
+    @State private var showSearch = false
     @State private var selected: SelectedAsset?
 
     private struct SelectedAsset: Identifiable, Hashable { let id: String }
@@ -21,48 +23,72 @@ struct AssetScreen: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 2)
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                ListTopBar(
-                    title: "Aset",
-                    searchPlaceholder: "Cari aset",
-                    searchText: $presenter.searchText,
-                    chips: presenter.categoryChips,
-                    selectedChip: presenter.categoryLabel,
-                    onSelectChip: { presenter.selectCategory(label: $0) },
-                    onOpenFilter: { showFilter = true }
+        // Pushed as a top-level UIPilot route (sibling of MainTabScreen), so this owns
+        // its OWN NavigationStack for the title + detail pushes; UIPilot keeps its bar
+        // hidden. Being outside the TabView is what stops the tab bar blinking on pop.
+        NavigationStack {
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    ListTopBar(
+                        title: "Aset",
+                        searchPlaceholder: "Cari aset",
+                        searchText: $presenter.searchText,
+                        chips: presenter.categoryChips,
+                        selectedChip: presenter.categoryLabel,
+                        onSelectChip: { presenter.selectCategory(label: $0) },
+                        onOpenFilter: { showFilter = true },
+                        showTitle: false,
+                        showSearchButton: false,
+                        externalShowSearch: $showSearch
+                    )
+
+                    content
+                }
+
+                if session.can(Permission.assetCreate) {
+                    addButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 24)
+                }
+            }
+            .background(Color.background1.ignoresSafeArea())
+            .navigationTitle("Aset")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { navigation.pop() } label: {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.title)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { withAnimation { showSearch.toggle() } } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.title)
+                    }
+                }
+            }
+            .task {
+                await presenter.loadCategories()
+                await presenter.load()
+            }
+            .sheet(isPresented: $showCreate) {
+                CreateAssetSheet(presenter: presenter, onCreated: {})
+            }
+            .navigationDestination(item: $selected) { item in
+                AssetDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
+            }
+            .sheet(isPresented: $showFilter) {
+                AssetFilterSheet(
+                    categoryOptions: presenter.categoryFilterOptions,
+                    statusOptions: presenter.statusFilterOptions,
+                    selectedCategoryId: presenter.categoryFilterId ?? "",
+                    selectedStatusId: presenter.statusFilter?.apiCode ?? "",
+                    onApply: { presenter.applyFilters(categoryId: $0, status: $1) }
                 )
-
-                content
             }
-
-            if session.can(Permission.assetCreate) {
-                addButton
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 24)
-            }
-        }
-        .background(Color.background1.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
-        .task {
-            await presenter.loadCategories()
-            await presenter.load()
-        }
-        .sheet(isPresented: $showCreate) {
-            CreateAssetSheet(presenter: presenter, onCreated: {})
-        }
-        .navigationDestination(item: $selected) { item in
-            AssetDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
-        }
-        .sheet(isPresented: $showFilter) {
-            AssetFilterSheet(
-                categoryOptions: presenter.categoryFilterOptions,
-                statusOptions: presenter.statusFilterOptions,
-                selectedCategoryId: presenter.categoryFilterId ?? "",
-                selectedStatusId: presenter.statusFilter?.apiCode ?? "",
-                onApply: { presenter.applyFilters(categoryId: $0, status: $1) }
-            )
         }
         .hotReloadable()
     }

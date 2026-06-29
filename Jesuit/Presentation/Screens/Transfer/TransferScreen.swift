@@ -10,85 +10,111 @@
 import SwiftUI
 
 struct TransferScreen: View {
+    @Injected private var navigation: NavigationService
     @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(TransferPresenter.self)
     @State private var showCreate = false
     @State private var showFilter = false
     @State private var showPeriod = false
     @State private var showCustomRange = false
+    @State private var showSearch = false
     @State private var selected: SelectedTransfer?
 
     private struct SelectedTransfer: Identifiable, Hashable { let id: String }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                ListTopBar(
-                    title: "Transfer Dana",
-                    searchPlaceholder: "Cari transfer",
-                    searchText: $presenter.searchText,
-                    chips: TransferPresenter.Filter.quickChips.map(\.rawValue),
-                    selectedChip: presenter.filter.rawValue,
-                    onSelectChip: { label in
-                        if let f = TransferPresenter.Filter(rawValue: label) { presenter.filter = f }
-                    },
-                    onOpenFilter: { showFilter = true },
-                    onOpenPeriod: { showPeriod = true },
-                    periodActive: presenter.periodFrom != nil
-                )
+        // Pushed as a top-level UIPilot route (sibling of MainTabScreen), so this owns
+        // its OWN NavigationStack for the title + detail pushes; UIPilot keeps its bar
+        // hidden. Being outside the TabView is what stops the tab bar blinking on pop.
+        NavigationStack {
+            ZStack(alignment: .bottomTrailing) {
+                VStack(spacing: 0) {
+                    ListTopBar(
+                        title: "Transfer Dana",
+                        searchPlaceholder: "Cari transfer",
+                        searchText: $presenter.searchText,
+                        chips: TransferPresenter.Filter.quickChips.map(\.rawValue),
+                        selectedChip: presenter.filter.rawValue,
+                        onSelectChip: { label in
+                            if let f = TransferPresenter.Filter(rawValue: label) { presenter.filter = f }
+                        },
+                        onOpenFilter: { showFilter = true },
+                        onOpenPeriod: { showPeriod = true },
+                        periodActive: presenter.periodFrom != nil,
+                        showTitle: false,
+                        showSearchButton: false,
+                        externalShowSearch: $showSearch
+                    )
 
-                content
-            }
-
-            if session.can(Permission.cashCreate) {
-                addButton
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 24)
-            }
-        }
-        .background(Color.background1.ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
-        .task { await presenter.load() }
-        .task { await presenter.loadAccounts() }
-        .sheet(isPresented: $showCreate) {
-            CreateTransferSheet(presenter: presenter, onCreated: {})
-        }
-        .navigationDestination(item: $selected) { item in
-            TransferDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
-        }
-        .sheet(isPresented: $showFilter) {
-            FilterBySheet(
-                title: "Filter Berdasarkan",
-                options: TransferPresenter.Filter.allCases.map {
-                    FilterOption(id: $0.rawValue, label: $0.rawValue, count: presenter.count(for: $0.status))
-                },
-                selectedId: presenter.filter.rawValue,
-                onSelect: { id in
-                    if let f = TransferPresenter.Filter(rawValue: id) { presenter.filter = f }
+                    content
                 }
-            )
-        }
-        .sheet(isPresented: $showPeriod) {
-            FilterBySheet(
-                title: "Periode",
-                options: periodOptions,
-                selectedId: presenter.periodId,
-                onSelect: { id in
-                    switch id {
-                    case "": presenter.clearPeriod()
-                    case "custom": showCustomRange = true
-                    default:
-                        if let p = CashFlowPeriod(rawValue: id) { presenter.selectPeriod(p) }
+
+                if session.can(Permission.cashCreate) {
+                    addButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 24)
+                }
+            }
+            .background(Color.background1.ignoresSafeArea())
+            .navigationTitle("Transfer Dana")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { navigation.pop() } label: {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.title)
                     }
                 }
-            )
-        }
-        .sheet(isPresented: $showCustomRange) {
-            CashFlowRangeSheet(
-                initialRange: (presenter.periodFrom ?? .now, presenter.periodTo ?? .now),
-                onApply: { start, end in presenter.applyCustomPeriod(start: start, end: end) }
-            )
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { withAnimation { showSearch.toggle() } } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.title)
+                    }
+                }
+            }
+            .task { await presenter.load() }
+            .task { await presenter.loadAccounts() }
+            .sheet(isPresented: $showCreate) {
+                CreateTransferSheet(presenter: presenter, onCreated: {})
+            }
+            .navigationDestination(item: $selected) { item in
+                TransferDetailSheet(id: item.id, onChanged: { Task { await presenter.load() } })
+            }
+            .sheet(isPresented: $showFilter) {
+                FilterBySheet(
+                    title: "Filter Berdasarkan",
+                    options: TransferPresenter.Filter.allCases.map {
+                        FilterOption(id: $0.rawValue, label: $0.rawValue, count: presenter.count(for: $0.status))
+                    },
+                    selectedId: presenter.filter.rawValue,
+                    onSelect: { id in
+                        if let f = TransferPresenter.Filter(rawValue: id) { presenter.filter = f }
+                    }
+                )
+            }
+            .sheet(isPresented: $showPeriod) {
+                FilterBySheet(
+                    title: "Periode",
+                    options: periodOptions,
+                    selectedId: presenter.periodId,
+                    onSelect: { id in
+                        switch id {
+                        case "": presenter.clearPeriod()
+                        case "custom": showCustomRange = true
+                        default:
+                            if let p = CashFlowPeriod(rawValue: id) { presenter.selectPeriod(p) }
+                        }
+                    }
+                )
+            }
+            .sheet(isPresented: $showCustomRange) {
+                CashFlowRangeSheet(
+                    initialRange: (presenter.periodFrom ?? .now, presenter.periodTo ?? .now),
+                    onApply: { start, end in presenter.applyCustomPeriod(start: start, end: end) }
+                )
+            }
         }
         .hotReloadable()
     }
@@ -192,11 +218,7 @@ private struct TransferRow: View {
         transfer.description.isEmpty ? "Transfer Dana" : transfer.description
     }
 
-    private var dateLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "dd/MM/yyyy"
-        return f.string(from: transfer.date)
-    }
+    private var dateLabel: String { transfer.date.dayMonthYear }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ListMetrics.rowLineSpacing) {

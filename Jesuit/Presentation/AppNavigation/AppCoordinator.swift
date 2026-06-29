@@ -7,7 +7,6 @@
 
 import SwiftUI
 import Swinject
-import UIPilot
 
 struct AppCoordinator: View {
     @Injected private var navigation: NavigationService
@@ -32,6 +31,26 @@ struct AppCoordinator: View {
                     ForgotPasswordScreen()
                 case .resetPassword:
                     ResetPasswordScreen()
+                case .editNavigation:
+                    // Pushed onto UIPilot's UIKit UINavigationController as a sibling of
+                    // the MainTabScreen host. The pushed VC fully occludes the TabView /
+                    // UITabBarController while a reorder rebuilds it, so there is no
+                    // tab-bar blink on close, and UIKit gives a native back chevron +
+                    // swipe-back for free. Rendered BARE (no NavigationStack wrapper) —
+                    // wrapping it would create a duplicate/nested nav bar over UIPilot's.
+                    EditNavigationScreen()
+                case .transfer:
+                    // Pushed as a top-level UIPilot route (sibling of MainTabScreen) so
+                    // the pushed VC occludes the TabView and the tab bar doesn't blink on
+                    // pop — same reason as .editNavigation. (A push inside the tab's own
+                    // NavigationStack blinked the tab bar restoring on close.)
+                    TransferScreen()
+                case .asset:
+                    AssetScreen()
+                case .approval:
+                    ApprovalInboxScreen()
+                case .organizationSwitcher:
+                    OrganizationSwitcherSheet()
                 default:
                     Text("Halaman tidak ditemukan.")
                 }

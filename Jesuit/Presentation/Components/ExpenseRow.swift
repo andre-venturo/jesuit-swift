@@ -10,11 +10,7 @@ import SwiftUI
 struct ExpenseRow: View {
     let expense: Expense
 
-    private var dateLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "dd/MM/yyyy"
-        return f.string(from: expense.date)
-    }
+    private var dateLabel: String { expense.date.dayMonthYear }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ListMetrics.rowLineSpacing) {

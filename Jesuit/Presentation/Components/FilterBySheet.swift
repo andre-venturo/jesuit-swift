@@ -60,13 +60,7 @@ struct FilterBySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.subtitle)
-                    }
+                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
                 }
             }
         }

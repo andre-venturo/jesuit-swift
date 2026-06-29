@@ -15,32 +15,36 @@ struct MainTabScreen: View {
 
     var body: some View {
         TabView(selection: $router.selection) {
-            NavigationStack { HomeScreen() }
-                .tabItem { Label("Beranda", systemImage: "house.fill") }
-                .tag(MainTab.home)
-
-            NavigationStack { KontakScreen() }
-                .tabItem { Label("Kontak", systemImage: "person.2.fill") }
-                .tag(MainTab.kontak)
-
-            NavigationStack { PenerimaanScreen() }
-                .tabItem { Label("Penerimaan", systemImage: "arrow.down.circle.fill") }
-                .tag(MainTab.penerimaan)
-
-            NavigationStack { PengeluaranScreen() }
-                .tabItem { Label("Pengeluaran", systemImage: "arrow.up.circle.fill") }
-                .tag(MainTab.pengeluaran)
-
-            NavigationStack { MoreScreen() }
-                .tabItem { Label("Lainnya", systemImage: "ellipsis") }
-                .tag(MainTab.more)
-                .badge(approval.badgeCount)  // 0 hides it automatically
+            // Rendered from the user's persisted order (More pinned last). `id: \.self`
+            // keeps each tab's NavigationStack identity stable across reorders.
+            ForEach(router.tabs, id: \.self) { tab in
+                NavigationStack { destination(tab) }
+                    .tabItem { Label(tab.title, systemImage: tab.systemImage) }
+                    .tag(tab)
+                    .badge(tab == .more ? approval.badgeCount : 0)  // 0 hides it automatically
+            }
         }
         .tint(.accent)
         .toolbar(.hidden, for: .navigationBar)
+        // The "Atur Navigasi" editor is NOT presented here. It is pushed as a top-level
+        // UIPilot route (AppRoute.editNavigation) from MoreScreen, so at the UIKit level
+        // it lands on UIPilot's UINavigationController as a sibling of this whole
+        // TabView host — fully occluding the UITabBarController while a reorder rebuilds
+        // it (no blink) and getting a native back chevron + swipe-back for free.
         .task {
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
         }
         .hotReloadable()
+    }
+
+    @ViewBuilder
+    private func destination(_ tab: MainTab) -> some View {
+        switch tab {
+        case .home: HomeScreen()
+        case .kontak: KontakScreen()
+        case .penerimaan: PenerimaanScreen()
+        case .pengeluaran: PengeluaranScreen()
+        case .more: MoreScreen()
+        }
     }
 }

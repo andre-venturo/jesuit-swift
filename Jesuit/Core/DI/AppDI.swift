@@ -90,6 +90,9 @@ class AppDI {
                 session: resolver.resolve(AuthSession.self)!
             )
         }
+        // Shared singleton so the dashboard and the organisation switcher (now a
+        // top-level route, no longer handed Home's instance) act on one presenter —
+        // switching company there updates the dashboard live.
         container.register(HomePresenter.self) { resolver in
             HomePresenter(
                 authRepository: resolver.resolve(AuthRepositoryProtocol.self)!,
@@ -97,7 +100,7 @@ class AppDI {
                 session: resolver.resolve(AuthSession.self)!,
                 tabRouter: resolver.resolve(AppTabRouter.self)!
             )
-        }
+        }.inObjectScope(.container)
         container.register(ContactPresenter.self) { resolver in
             ContactPresenter(
                 contactRepository: resolver.resolve(ContactRepositoryProtocol.self)!
@@ -125,11 +128,15 @@ class AppDI {
                 lookups: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
         }
+        // Shared singleton: the More-row badge, the tab-bar badge and the inbox
+        // screen all read one instance, so loading/approving in the inbox updates
+        // both badges live (the inbox is now a top-level route, so there's no
+        // isPresented binding to refresh the badge on dismiss).
         container.register(ApprovalInboxPresenter.self) { resolver in
             ApprovalInboxPresenter(
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
             )
-        }
+        }.inObjectScope(.container)
         container.register(LaporanPresenter.self) { resolver in
             LaporanPresenter(
                 repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!

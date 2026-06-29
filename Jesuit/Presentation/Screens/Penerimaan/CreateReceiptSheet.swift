@@ -347,7 +347,7 @@ private struct EditReceiptLineSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
+                    Button("Batal") { dismiss() }.foregroundStyle(.subtitle)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Tambah") {

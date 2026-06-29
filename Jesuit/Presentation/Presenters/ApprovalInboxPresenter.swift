@@ -83,6 +83,7 @@ final class ApprovalInboxPresenter {
                         ? $0.receipt.date > $1.receipt.date
                         : $0.receipt.number.localizedStandardCompare($1.receipt.number) == .orderedDescending
                 }
+            badgeCount = items.count  // keep the badges in sync with the full sweep
             state = items.isEmpty ? .empty : .success(items)
         } catch {
             items = []

@@ -11,11 +11,8 @@ struct HomeScreen: View {
     @Injected private var navigation: NavigationService
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var showCustomRange = false
-    @State private var showOrgSwitcher = false
     @State private var showAllCashAccounts = false
     @State private var showNeraca = false
-    @State private var showTransfer = false
-    @State private var showAsset = false
     private let quickColumns = Array(
         repeating: GridItem(.flexible(), spacing: 12),
         count: 3
@@ -39,10 +36,9 @@ struct HomeScreen: View {
             .refreshable { await presenter.refresh() }
         }
         .background(Color.background1.ignoresSafeArea())
+        .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showNeraca) { NeracaScreen() }
-        .navigationDestination(isPresented: $showTransfer) { TransferScreen() }
-        .navigationDestination(isPresented: $showAsset) { AssetScreen() }
         .task {
             await presenter.loadCompanies()
             await presenter.loadCashFlow()
@@ -56,7 +52,7 @@ struct HomeScreen: View {
 
     private var companySwitcher: some View {
         Button {
-            showOrgSwitcher = true
+            navigation.navigate(to: .organizationSwitcher)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "building.2")
@@ -82,12 +78,6 @@ struct HomeScreen: View {
         }
         .buttonStyle(.plain)
         .disabled(presenter.companies.isEmpty || presenter.isSwitchingCompany)
-        .navigationDestination(isPresented: $showOrgSwitcher) {
-            OrganizationSwitcherSheet(
-                presenter: presenter,
-                onSelect: { await presenter.switchCompany(to: $0) }
-            )
-        }
     }
 
     private var header: some View {
@@ -222,7 +212,7 @@ struct HomeScreen: View {
 
     /// Transfer Dana shortcut — opens the transfer list as a full page (no bottom tab).
     private var transferTile: some View {
-        Button { showTransfer = true } label: {
+        Button { navigation.navigate(to: .transfer) } label: {
             VStack(spacing: 10) {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 24))
@@ -242,7 +232,7 @@ struct HomeScreen: View {
 
     /// Aset shortcut — opens the asset list as a full page (no bottom tab).
     private var assetTile: some View {
-        Button { showAsset = true } label: {
+        Button { navigation.navigate(to: .asset) } label: {
             VStack(spacing: 10) {
                 Image(systemName: "shippingbox")
                     .font(.system(size: 24))

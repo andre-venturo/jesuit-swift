@@ -12,9 +12,10 @@
 import SwiftUI
 
 struct OrganizationSwitcherSheet: View {
-    let presenter: HomePresenter
-    /// Switches to `companyId`; returns `true` on success so the sheet can dismiss.
-    let onSelect: (String) async -> Bool
+    @Injected private var navigation: NavigationService
+    /// Shared singleton — the same instance the dashboard uses, so switching here
+    /// updates Home live.
+    @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
 
     /// Drives the create/edit/subsidiary form page via `.navigationDestination(item:)`.
     /// Hashable by `id` so it can drive a navigation push without making `CompanyDTO` Hashable.
@@ -43,7 +44,6 @@ struct OrganizationSwitcherSheet: View {
         }
     }
 
-    @Environment(\.dismiss) private var dismiss
     @State private var formRoute: FormRoute?
     @State private var deleteTarget: CompanyDTO?
 
@@ -52,42 +52,53 @@ struct OrganizationSwitcherSheet: View {
     private var switchingCompanyId: String? { presenter.switchingCompanyId }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(companies.enumerated()), id: \.element.id) { index, company in
-                    row(company)
-                    RowDivider(index: index, count: companies.count, inset: 72)
+        // Pushed as a top-level UIPilot route (sibling of MainTabScreen), so it owns
+        // its OWN NavigationStack and stays outside the TabView — which is what stops
+        // the tab bar blinking on pop.
+        NavigationStack {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(companies.enumerated()), id: \.element.id) { index, company in
+                        row(company)
+                        RowDivider(index: index, count: companies.count, inset: 72)
+                    }
+                }
+                .background(Color(.systemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(16)
+            }
+            .background(Color.background1.ignoresSafeArea())
+            .navigationTitle("Organisasi")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { navigation.pop() } label: {
+                        Image(systemName: "chevron.backward")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.title)
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Kelola") { formRoute = .create }
+                        .foregroundStyle(.accent)
                 }
             }
-            .background(Color(.systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .padding(16)
-        }
-        .background(Color.background1.ignoresSafeArea())
-        .navigationTitle("Organisasi")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("Kelola") { formRoute = .create }
-                    .foregroundStyle(.accent)
+            .navigationDestination(item: $formRoute) { route in
+                CreateCompanySheet(presenter: presenter, mode: route.sheetMode, onSaved: {})
             }
-        }
-        .navigationDestination(item: $formRoute) { route in
-            CreateCompanySheet(presenter: presenter, mode: route.sheetMode, onSaved: {})
-        }
-        .alert("Hapus Perusahaan", isPresented: deleteAlertBinding, presenting: deleteTarget) { company in
-            Button("Batal", role: .cancel) {}
-            Button("Hapus", role: .destructive) {
-                Task { await presenter.deleteCompany(id: company.id) }
+            .alert("Hapus Perusahaan", isPresented: deleteAlertBinding, presenting: deleteTarget) { company in
+                Button("Batal", role: .cancel) {}
+                Button("Hapus", role: .destructive) {
+                    Task { await presenter.deleteCompany(id: company.id) }
+                }
+            } message: { company in
+                Text("Hapus \(company.name)? Tindakan ini tidak dapat dibatalkan.")
             }
-        } message: { company in
-            Text("Hapus \(company.name)? Tindakan ini tidak dapat dibatalkan.")
-        }
-        .alert("Gagal berpindah", isPresented: switchErrorBinding) {
-            Button("OK", role: .cancel) { presenter.switchError = nil }
-        } message: {
-            Text(presenter.switchError ?? "")
+            .alert("Gagal berpindah", isPresented: switchErrorBinding) {
+                Button("OK", role: .cancel) { presenter.switchError = nil }
+            } message: {
+                Text(presenter.switchError ?? "")
+            }
         }
     }
 
@@ -110,7 +121,7 @@ struct OrganizationSwitcherSheet: View {
         return Button {
             guard !isActive, !isBusy else { return }
             Task {
-                if await onSelect(company.id) { dismiss() }
+                if await presenter.switchCompany(to: company.id) { navigation.pop() }
             }
         } label: {
             HStack(spacing: 16) {

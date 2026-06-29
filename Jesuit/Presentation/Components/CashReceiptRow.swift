@@ -16,11 +16,7 @@ struct CashReceiptRow: View {
         receipt.description.isEmpty ? receipt.account : receipt.description
     }
 
-    private var dateLabel: String {
-        let f = DateFormatter()
-        f.dateFormat = "dd/MM/yyyy"
-        return f.string(from: receipt.date)
-    }
+    private var dateLabel: String { receipt.date.dayMonthYear }
 
     var body: some View {
         VStack(alignment: .leading, spacing: ListMetrics.rowLineSpacing) {

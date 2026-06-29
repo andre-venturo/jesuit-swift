@@ -10,21 +10,35 @@
 import SwiftUI
 
 struct ApprovalInboxScreen: View {
+    @Injected private var navigation: NavigationService
     @State private var presenter = AppDI.shared.resolver(ApprovalInboxPresenter.self)
     @State private var selected: ApprovalInboxPresenter.InboxItem?
 
     var body: some View {
-        content
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Persetujuan")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .tabBar)
-            .task { await presenter.load() }
-            .navigationDestination(item: $selected) { item in
-                CashReceiptDetailSheet(id: item.id, kind: item.kind,
-                                       onChanged: { Task { await presenter.load() } })
-            }
-            .hotReloadable()
+        // Pushed as a top-level UIPilot route (sibling of MainTabScreen), so it owns
+        // its OWN NavigationStack and stays outside the TabView — which is what stops
+        // the tab bar blinking on pop.
+        NavigationStack {
+            content
+                .background(Color.background1.ignoresSafeArea())
+                .navigationTitle("Persetujuan")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button { navigation.pop() } label: {
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.title)
+                        }
+                    }
+                }
+                .task { await presenter.load() }
+                .navigationDestination(item: $selected) { item in
+                    CashReceiptDetailSheet(id: item.id, kind: item.kind,
+                                           onChanged: { Task { await presenter.load() } })
+                }
+        }
+        .hotReloadable()
     }
 
     @ViewBuilder

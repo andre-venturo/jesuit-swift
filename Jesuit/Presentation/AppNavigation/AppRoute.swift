@@ -13,5 +13,10 @@ enum AppRoute: Equatable {
     case register
     case forgotPassword
     case resetPassword
+    case editNavigation
+    case transfer
+    case asset
+    case approval
+    case organizationSwitcher
     case err
 }

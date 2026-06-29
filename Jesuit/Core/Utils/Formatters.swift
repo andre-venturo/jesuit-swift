@@ -7,13 +7,37 @@
 
 import Foundation
 
+// Cached, configured-once formatters. `NumberFormatter`/`DateFormatter` `init` loads
+// ICU data and is expensive; the extensions below run per-row/per-render in lists, so
+// reusing shared instances avoids thousands of allocations on scroll. Their formatting
+// methods are thread-safe on iOS as long as the formatter isn't mutated after setup —
+// none of these are.
+private enum NF {
+    static let currencyUSD = make { $0.numberStyle = .currency; $0.currencySymbol = "$"; $0.maximumFractionDigits = 2 }
+    static let idr = make { $0.numberStyle = .decimal; $0.minimumFractionDigits = 2; $0.maximumFractionDigits = 2; $0.groupingSeparator = "," }
+    static let accounting = make { $0.numberStyle = .decimal; $0.minimumFractionDigits = 2; $0.maximumFractionDigits = 2; $0.groupingSeparator = ","; $0.usesGroupingSeparator = true }
+    /// Grouped integer, id-ID "." thousands (shared by asGrouped / asRupiah / groupedThousands).
+    static let groupedDot = make { $0.numberStyle = .decimal; $0.maximumFractionDigits = 0; $0.groupingSeparator = "."; $0.usesGroupingSeparator = true }
+    /// Foreign currency: "." thousands, "," decimals, 2 fraction digits.
+    static let foreign = make { $0.numberStyle = .decimal; $0.groupingSeparator = "."; $0.decimalSeparator = ","; $0.usesGroupingSeparator = true; $0.minimumFractionDigits = 2; $0.maximumFractionDigits = 2 }
+
+    private static func make(_ configure: (NumberFormatter) -> Void) -> NumberFormatter {
+        let f = NumberFormatter(); configure(f); return f
+    }
+}
+
+private enum DF {
+    static let monthDay = make("MMM d")
+    static let dayMonthYear = make("dd/MM/yyyy")
+
+    private static func make(_ format: String) -> DateFormatter {
+        let f = DateFormatter(); f.dateFormat = format; return f
+    }
+}
+
 extension Double {
     var asCurrency: String {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.currencySymbol = "$"
-        f.maximumFractionDigits = 2
-        return f.string(from: NSNumber(value: self)) ?? "$0"
+        NF.currencyUSD.string(from: NSNumber(value: self)) ?? "$0"
     }
 
     var asCompactCurrency: String {
@@ -44,48 +68,27 @@ extension Double {
 
     /// Indonesian Rupiah, e.g. `IDR0.00`.
     var asIDR: String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        f.groupingSeparator = ","
-        let value = f.string(from: NSNumber(value: self)) ?? "0.00"
+        let value = NF.idr.string(from: NSNumber(value: self)) ?? "0.00"
         return "IDR\(value)"
     }
 
     /// Financial-statement style: grouped, two decimals, no currency symbol,
     /// e.g. `3,500,000,000.00`. Used by the Neraca statement.
     var asAccounting: String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        f.groupingSeparator = ","
-        f.usesGroupingSeparator = true
-        return f.string(from: NSNumber(value: self)) ?? "0.00"
+        NF.accounting.string(from: NSNumber(value: self)) ?? "0.00"
     }
 
     /// Grouped integer, no currency symbol, id-ID `.` thousands separators,
     /// e.g. `102.932.122`. For columnar tables where the column header already
     /// names the currency (Debit / Kredit ledger columns).
     var asGrouped: String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.maximumFractionDigits = 0
-        f.groupingSeparator = "."
-        f.usesGroupingSeparator = true
-        return f.string(from: NSNumber(value: self)) ?? "0"
+        NF.groupedDot.string(from: NSNumber(value: self)) ?? "0"
     }
 
     /// Indonesian Rupiah, id-ID style, no decimals, `.` thousands separators,
     /// e.g. `Rp 241.637.282.120`, `Rp -27.155.000`.
     var asRupiah: String {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.maximumFractionDigits = 0
-        f.groupingSeparator = "."
-        f.usesGroupingSeparator = true
-        let value = f.string(from: NSNumber(value: self)) ?? "0"
+        let value = NF.groupedDot.string(from: NSNumber(value: self)) ?? "0"
         return "Rp \(value)"
     }
 
@@ -104,16 +107,8 @@ extension Double {
         let currency = (code ?? "IDR").uppercased()
         if currency == "IDR" { return asRupiah }
 
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.groupingSeparator = "."
-        f.decimalSeparator = ","
-        f.usesGroupingSeparator = true
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-
         let sign = self < 0 ? "-" : ""
-        let value = f.string(from: NSNumber(value: abs(self))) ?? "0,00"
+        let value = NF.foreign.string(from: NSNumber(value: abs(self))) ?? "0,00"
         let symbol = Self.currencySymbol(currency)
         // Symbols hug the number (`$1.000,00`); ISO-code fallbacks get a space.
         let separator = symbol == currency ? " " : ""
@@ -163,18 +158,14 @@ extension String {
     var groupedThousands: String {
         let digits = filter(\.isNumber)
         guard let value = Int(digits) else { return "" }
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.groupingSeparator = "."
-        f.usesGroupingSeparator = true
-        return f.string(from: NSNumber(value: value)) ?? digits
+        return NF.groupedDot.string(from: NSNumber(value: value)) ?? digits
     }
 }
 
 extension Date {
-    var short: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d"
-        return f.string(from: self)
-    }
+    /// `MMM d`, e.g. `Jun 9` — chart axes / compact labels.
+    var short: String { DF.monthDay.string(from: self) }
+
+    /// `dd/MM/yyyy`, e.g. `09/06/2026` — the transaction list rows.
+    var dayMonthYear: String { DF.dayMonthYear.string(from: self) }
 }

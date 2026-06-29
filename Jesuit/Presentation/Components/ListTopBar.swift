@@ -25,20 +25,40 @@ struct ListTopBar: View {
     /// API returns in a fixed order with no sort param).
     var onOpenSort: (() -> Void)?
 
-    /// Opens a period picker (a calendar button beside the search icon). Nil hides
+    /// Opens a period picker (a calendar button beside the filter chevron). Nil hides
     /// it. `periodActive` tints it when a period filter is applied.
     var onOpenPeriod: (() -> Void)?
     var periodActive: Bool = false
 
-    @State private var showSearch = false
+    /// Hide the big in-content title when the screen shows it in a native nav bar
+    /// instead (pushed pages like Transfer/Asset, which get a system inline title
+    /// + native back chevron). The search/filter row still renders.
+    var showTitle: Bool = true
+
+    /// Hide the in-bar magnifier button — used when the screen puts a search action in
+    /// its native nav bar instead (Asset/Transfer). The search FIELD still toggles.
+    var showSearchButton: Bool = true
+
+    /// External control of the search field's visibility, for screens that toggle it
+    /// from the nav bar. Nil = manage it internally via the in-bar button.
+    var externalShowSearch: Binding<Bool>? = nil
+
+    @State private var internalShowSearch = false
     @FocusState private var searchFocused: Bool
+
+    private var showSearch: Binding<Bool> { externalShowSearch ?? $internalShowSearch }
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            if showSearch { searchBar }
+            if showTitle || showSearchButton {
+                header
+            }
+            if showSearch.wrappedValue { searchBar }
             filterChips
             Divider().opacity(0.4)
+        }
+        .onChange(of: showSearch.wrappedValue) { _, visible in
+            searchFocused = visible
         }
     }
 
@@ -46,28 +66,22 @@ struct ListTopBar: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text(title)
-                .customFont(.bold, Typography.display)
-                .foregroundStyle(.title)
-            Spacer()
-            if let onOpenPeriod {
-                Button(action: onOpenPeriod) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(periodActive ? Color.accentColor : .title)
-                        .frame(width: 44, height: 44)
-                        .overlay(Circle().stroke(periodActive ? Color.accentColor : Color.white.opacity(0.12), lineWidth: 1))
-                }
-            }
-            Button {
-                withAnimation { showSearch.toggle() }
-                searchFocused = showSearch
-            } label: {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 18, weight: .medium))
+            if showTitle {
+                Text(title)
+                    .customFont(.bold, Typography.display)
                     .foregroundStyle(.title)
-                    .frame(width: 44, height: 44)
-                    .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+            }
+            Spacer()
+            if showSearchButton {
+                Button {
+                    withAnimation { showSearch.wrappedValue.toggle() }
+                } label: {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.title)
+                        .frame(width: 44, height: 44)
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -105,6 +119,16 @@ struct ListTopBar: View {
                     ForEach(chips, id: \.self) { label in
                         chip(label)
                     }
+                }
+            }
+
+            if let onOpenPeriod {
+                Button(action: onOpenPeriod) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(periodActive ? Color.accentColor : .title)
+                        .frame(width: 32, height: 32)
+                        .overlay(Circle().stroke(periodActive ? Color.accentColor : Color.white.opacity(0.18), lineWidth: 1))
                 }
             }
 
