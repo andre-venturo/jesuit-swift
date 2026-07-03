@@ -32,6 +32,10 @@ struct MainTabScreen: View {
         // TabView host — fully occluding the UITabBarController while a reorder rebuilds
         // it (no blink) and getting a native back chevron + swipe-back for free.
         .task {
+            // AppTabRouter is a singleton, so the last-selected tab survives a
+            // logout/login in the same process — a fresh tab bar (new sign-in or
+            // session restore) should always open on Home.
+            router.select(.home)
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
         }
         .hotReloadable()

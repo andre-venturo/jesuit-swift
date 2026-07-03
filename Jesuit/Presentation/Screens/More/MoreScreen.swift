@@ -21,6 +21,8 @@ struct MoreScreen: View {
     @State private var showLaporan = false
     @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
     @State private var faceIDEnabled = BiometricAuth.isEnabled
+    /// Non-nil shows an alert explaining why enabling Face ID failed.
+    @State private var faceIDEnableError: String?
 
     var body: some View {
         ScrollView {
@@ -69,9 +71,10 @@ struct MoreScreen: View {
                     }
                 }
 
-                // Face ID launch lock — only shown when the device supports & is
-                // enrolled in biometrics. Enabling confirms the owner can pass it.
-                if BiometricAuth.canEvaluate {
+                // Face ID — shown whenever the device has biometric hardware
+                // (canEvaluate would also hide it during a lockout / unenrollment).
+                // Enabling still confirms the owner can pass a scan.
+                if BiometricAuth.hasBiometrics {
                     FormCard("Keamanan") {
                         FormToggleRow(
                             label: "Gunakan \(BiometricAuth.label)",
@@ -138,10 +141,18 @@ struct MoreScreen: View {
             if on {
                 // Confirm the owner can pass biometrics before relying on it at launch.
                 Task {
-                    if await BiometricAuth.authenticate(reason: "Aktifkan \(BiometricAuth.label)") == .success {
+                    switch await BiometricAuth.authenticate(reason: "Aktifkan \(BiometricAuth.label)") {
+                    case .success:
                         BiometricAuth.isEnabled = true
-                    } else {
-                        faceIDEnabled = false   // revert on cancel/failure/lockout
+                    case .lockout:
+                        faceIDEnabled = false
+                        faceIDEnableError = BiometricAuth.lockoutMessage
+                    case .failed:
+                        faceIDEnabled = false
+                        // Not enrolled or the scan failed/cancelled — say which.
+                        faceIDEnableError = BiometricAuth.canEvaluate
+                            ? "Pemindaian \(BiometricAuth.label) gagal atau dibatalkan. Coba lagi."
+                            : "\(BiometricAuth.label) belum diatur di perangkat ini. Atur di Pengaturan → \(BiometricAuth.label) & Kode Sandi terlebih dahulu."
                     }
                 }
             } else {
@@ -150,6 +161,17 @@ struct MoreScreen: View {
         }
         .alert("Profil berhasil diperbarui", isPresented: $showProfileSaved) {
             Button("OK", role: .cancel) {}
+        }
+        .alert(
+            "Tidak dapat mengaktifkan \(BiometricAuth.label)",
+            isPresented: Binding(
+                get: { faceIDEnableError != nil },
+                set: { if !$0 { faceIDEnableError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(faceIDEnableError ?? "")
         }
         .alert("Kata sandi berhasil diubah", isPresented: $showPasswordChanged) {
             Button("OK", role: .cancel) {}

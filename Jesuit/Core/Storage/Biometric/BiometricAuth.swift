@@ -29,9 +29,17 @@ enum BiometricAuth {
     }
 
     /// Device supports biometrics AND the user is enrolled. False on the simulator
-    /// until a face is enrolled (Features → Face ID → Enrolled).
+    /// until a face is enrolled (Features → Face ID → Enrolled). Also false during
+    /// a biometry lockout — use `hasBiometrics` for UI visibility instead.
     static var canEvaluate: Bool {
         LAContext().canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+    }
+
+    /// Biometric *hardware* exists, regardless of enrollment or lockout. Drives
+    /// whether biometric UI (the settings toggle) shows at all — a lockout or a
+    /// re-enrollment shouldn't make the setting vanish.
+    static var hasBiometrics: Bool {
+        biometryType != .none
     }
 
     /// `.faceID` / `.touchID` / `.none` — drives the toggle & lock-screen copy.
