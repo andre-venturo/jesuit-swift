@@ -15,6 +15,9 @@ final class LoginPresenter {
     var passText: String = ""
     var errorMessage: String?
     var isLoading: Bool = false
+    /// True when "Masuk dengan Face ID" should show: the feature is on, biometrics
+    /// are enrolled, and a kept token pair exists (soft sign-out keeps it).
+    private(set) var canBiometricLogin = false
 
     private let authRepository: AuthRepositoryProtocol
     private let session: AuthSession
@@ -56,6 +59,44 @@ final class LoginPresenter {
             errorMessage = Self.message(for: error)
             return false
         }
+    }
+
+    /// Refreshes `canBiometricLogin` (async — keychain read goes through the actor).
+    func checkBiometricLogin() async {
+        guard BiometricAuth.isEnabled, BiometricAuth.canEvaluate else {
+            canBiometricLogin = false
+            return
+        }
+        let tokens = (try? await TokenKeychainActor.shared.getTokens()) ?? nil
+        canBiometricLogin = tokens != nil
+    }
+
+    /// Face-ID sign-in: biometric gate + restore of the kept session. No password
+    /// is stored anywhere — this reuses the token pair a soft sign-out left behind.
+    func biometricLogin() async -> Bool {
+        switch await BiometricAuth.authenticate(reason: "Masuk dengan \(BiometricAuth.label)") {
+        case .success:
+            break
+        case .lockout:
+            // Too many failed scans: iOS blocks biometrics until the device passcode
+            // clears it. Tell the user instead of failing silently.
+            errorMessage = BiometricAuth.lockoutMessage
+            await checkBiometricLogin()   // canEvaluate is false now — hides the button
+            return false
+        case .failed:
+            return false   // cancelled/wrong face: stay on login, no error banner
+        }
+        isLoading = true
+        defer { isLoading = false }
+
+        if let me = await authRepository.restoreSession() {
+            session.update(with: me)
+            return true
+        }
+        // Token expired or was revoked; the failed restore cleared the keychain.
+        errorMessage = "Sesi berakhir. Masuk dengan kata sandi."
+        await checkBiometricLogin()
+        return false
     }
 
     static func message(for error: Error) -> String {

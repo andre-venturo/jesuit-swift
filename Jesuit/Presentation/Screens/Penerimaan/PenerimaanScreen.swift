@@ -45,6 +45,12 @@ struct PenerimaanScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
+        // Tab-bar visibility is driven from HERE, not (only) the pushed detail: a
+        // `.toolbar(.hidden, for: .tabBar)` owned by the pushed view is torn down
+        // mid-pop, so the bar flashed back in before the transition finished. This
+        // root never leaves the hierarchy, so the bar stays hidden through the whole
+        // pop and reappears once when the push state clears — no blink.
+        .toolbar(selected == nil && !showCreate ? .visible : .hidden, for: .tabBar)
         .task { await presenter.load() }
         .navigationDestination(isPresented: $showCreate) {
             CreateReceiptSheet(presenter: presenter, onCreated: {})

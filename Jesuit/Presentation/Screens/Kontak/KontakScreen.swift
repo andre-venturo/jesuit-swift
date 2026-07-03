@@ -44,6 +44,9 @@ struct KontakScreen: View {
         .background(Color.background1.ignoresSafeArea())
         .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
+        // Root-driven tab-bar visibility — see PenerimaanScreen: a `.hidden` owned by
+        // the pushed view is torn down mid-pop and the bar blinks back in early.
+        .toolbar(editingContact == nil && !showCreate ? .visible : .hidden, for: .tabBar)
         .task { await presenter.load() }
         .navigationDestination(isPresented: $showCreate) {
             CreateContactSheet(presenter: presenter, onCreated: {})

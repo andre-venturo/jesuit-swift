@@ -13,12 +13,14 @@ struct MoreScreen: View {
     @State private var tabRouter = AppDI.shared.resolver(AppTabRouter.self)
     @State private var presenter = AppDI.shared.resolver(HomePresenter.self)
     @State private var isLoggingOut = false
+    @State private var showLogoutConfirm = false
     @State private var showEditProfile = false
     @State private var showProfileSaved = false
     @State private var showChangePassword = false
     @State private var showPasswordChanged = false
     @State private var showLaporan = false
     @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
+    @State private var faceIDEnabled = BiometricAuth.isEnabled
 
     var body: some View {
         ScrollView {
@@ -67,6 +69,17 @@ struct MoreScreen: View {
                     }
                 }
 
+                // Face ID launch lock — only shown when the device supports & is
+                // enrolled in biometrics. Enabling confirms the owner can pass it.
+                if BiometricAuth.canEvaluate {
+                    FormCard("Keamanan") {
+                        FormToggleRow(
+                            label: "Gunakan \(BiometricAuth.label)",
+                            isOn: $faceIDEnabled
+                        )
+                    }
+                }
+
                 // "Atur Navigasi" sits in its own card, styled prominently — it's the
                 // entry point to customize the tabs and this menu's order.
                 ListCard {
@@ -85,12 +98,7 @@ struct MoreScreen: View {
 
                 Button {
                     guard !isLoggingOut else { return }
-                    isLoggingOut = true
-                    Task {
-                        await presenter.logout()
-                        isLoggingOut = false
-                        navigation.popTo(root: .login)
-                    }
+                    showLogoutConfirm = true
                 } label: {
                     Group {
                         if isLoggingOut {
@@ -126,11 +134,42 @@ struct MoreScreen: View {
         .task {
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
         }
+        .onChange(of: faceIDEnabled) { _, on in
+            if on {
+                // Confirm the owner can pass biometrics before relying on it at launch.
+                Task {
+                    if await BiometricAuth.authenticate(reason: "Aktifkan \(BiometricAuth.label)") == .success {
+                        BiometricAuth.isEnabled = true
+                    } else {
+                        faceIDEnabled = false   // revert on cancel/failure/lockout
+                    }
+                }
+            } else {
+                BiometricAuth.isEnabled = false
+            }
+        }
         .alert("Profil berhasil diperbarui", isPresented: $showProfileSaved) {
             Button("OK", role: .cancel) {}
         }
         .alert("Kata sandi berhasil diubah", isPresented: $showPasswordChanged) {
             Button("OK", role: .cancel) {}
+        }
+        // .alert, not .confirmationDialog — iOS 26 renders dialogs as a popover
+        // anchored to the button (tooltip-ish); an alert stays a centered modal.
+        .alert("Keluar dari akun?", isPresented: $showLogoutConfirm) {
+            Button("Batal", role: .cancel) {}
+            Button("Keluar", role: .destructive) {
+                isLoggingOut = true
+                Task {
+                    await presenter.logout()
+                    isLoggingOut = false
+                    navigation.popTo(root: .login)
+                }
+            }
+        } message: {
+            Text(BiometricAuth.isEnabled && BiometricAuth.canEvaluate
+                 ? "Anda dapat masuk kembali dengan \(BiometricAuth.label)."
+                 : "Anda harus masuk kembali dengan kata sandi.")
         }
         .hotReloadable()
     }

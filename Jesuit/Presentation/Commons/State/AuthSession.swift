@@ -56,6 +56,9 @@ final class AuthSession {
         company = me.company
         roles = me.roles ?? []
         permissions = Set(me.permissions ?? [])
+        // Any successful sign-in (password, biometric, register, restore) ends a
+        // prior soft sign-out — single choke point for every auth path.
+        BiometricAuth.didSoftSignOut = false
     }
 
     func clear() {

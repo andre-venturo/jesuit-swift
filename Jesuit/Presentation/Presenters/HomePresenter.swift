@@ -37,9 +37,16 @@ final class HomePresenter {
     var userName: String { session.isAuthenticated ? session.displayName : "Andre" }
     var organization: String { session.isAuthenticated ? session.organization : "Venturo" }
 
-    /// Revokes the refresh token, clears local credentials and the session.
+    /// Signs out. With biometric login enabled this is a *soft* sign-out: the token
+    /// pair stays in the Keychain so "Masuk dengan Face ID" can restore the session
+    /// without a password. Otherwise the classic hard logout: revoke the refresh
+    /// token server-side and clear local credentials.
     func logout() async {
-        try? await authRepository.logout()
+        if BiometricAuth.isEnabled && BiometricAuth.canEvaluate {
+            BiometricAuth.didSoftSignOut = true
+        } else {
+            try? await authRepository.logout()
+        }
         session.clear()
     }
 
