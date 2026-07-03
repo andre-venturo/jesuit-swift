@@ -28,10 +28,6 @@ class AppDI {
             AuthSession()
         }.inObjectScope(.container)
 
-        // Banking-style Face ID auto-lock (background + inactivity).
-        container.register(AppLock.self) { resolver in
-            AppLock(session: resolver.resolve(AuthSession.self)!)
-        }.inObjectScope(.container)
 
         // Shared root tab selection (drives the tab bar + Quick Create tiles).
         container.register(AppTabRouter.self) { _ in

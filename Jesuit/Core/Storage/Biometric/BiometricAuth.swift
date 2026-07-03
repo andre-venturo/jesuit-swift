@@ -2,10 +2,11 @@
 //  BiometricAuth.swift
 //  Jesuit
 //
-//  Opt-in Face ID / Touch ID lock for the launch auto-restore. Stateless helper
-//  around LAContext — biometrics only (no device-passcode fallback), matching the
-//  pragmatic `TokenKeychainActor.shared` singleton style. No credentials are stored;
-//  this only gates access to the already-persisted session (see AppCoordinator).
+//  Opt-in Face ID / Touch ID sign-in. Stateless helper around LAContext —
+//  biometrics only (no device-passcode fallback), matching the pragmatic
+//  `TokenKeychainActor.shared` singleton style. No credentials are stored: with
+//  the toggle on, logout is *soft* (token pair kept) and the login screen offers
+//  a biometric re-entry that restores the kept session (see LoginPresenter).
 //
 
 import LocalAuthentication
@@ -13,7 +14,7 @@ import LocalAuthentication
 enum BiometricAuth {
     private static let enabledKey = "face_id_enabled"   // UserDefaults, same pattern as AppTabRouter
 
-    /// Whether the user has turned the launch lock on in Settings.
+    /// Whether the user has turned biometric sign-in on in Settings.
     static var isEnabled: Bool {
         get { UserDefaults.standard.bool(forKey: enabledKey) }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }

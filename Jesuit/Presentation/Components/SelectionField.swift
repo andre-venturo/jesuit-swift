@@ -56,6 +56,12 @@ struct SelectionField: View {
         options.first { $0.id == selectedId }?.title
     }
 
+    /// The single option when the list has exactly one entry. Such a field is
+    /// auto-selected and locked (no chevron, no sheet) — there's nothing to pick.
+    private var onlyOption: SelectionOption? {
+        options.count == 1 ? options.first : nil
+    }
+
     var body: some View {
         Button {
             showSheet = true
@@ -66,14 +72,18 @@ struct SelectionField: View {
                     .foregroundStyle(selectedTitle == nil ? .subtitle : .title)
                     .lineLimit(1)
                 Spacer()
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.subtitle)
+                if onlyOption == nil {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.subtitle)
+                }
             }
             .coreTextFieldStyle()
         }
         .buttonStyle(.plain)
-        .disabled(options.isEmpty)
+        .disabled(options.isEmpty || onlyOption != nil)
+        .onAppear { autoSelectOnlyOption() }
+        .onChange(of: options) { autoSelectOnlyOption() }   // lists load async
         .sheet(isPresented: $showSheet) {
             SelectionSheet(
                 title: sheetTitle,
@@ -86,6 +96,10 @@ struct SelectionField: View {
                 }
             )
         }
+    }
+
+    private func autoSelectOnlyOption() {
+        if let only = onlyOption, selectedId != only.id { onSelect(only.id) }
     }
 }
 

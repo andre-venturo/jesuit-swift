@@ -77,7 +77,7 @@ struct MoreScreen: View {
                 if BiometricAuth.hasBiometrics {
                     FormCard("Keamanan") {
                         FormToggleRow(
-                            label: "Gunakan \(BiometricAuth.label)",
+                            label: "Masuk dengan \(BiometricAuth.label)",
                             isOn: $faceIDEnabled
                         )
                     }

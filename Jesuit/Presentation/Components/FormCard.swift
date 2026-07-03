@@ -97,10 +97,16 @@ struct FormPickerRow: View {
         options.first { $0.id == selectedId }?.title
     }
 
+    /// The single option when the list has exactly one entry. Such a field is
+    /// auto-selected and locked (no chevron, no sheet) — there's nothing to pick.
+    private var onlyOption: SelectionOption? {
+        options.count == 1 ? options.first : nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            FormRowShell(label: label, required: required, showChevron: true,
-                         onTap: { if !options.isEmpty { showSheet = true } }) {
+            FormRowShell(label: label, required: required, showChevron: onlyOption == nil,
+                         onTap: { if !options.isEmpty && onlyOption == nil { showSheet = true } }) {
                 Text(selectedTitle ?? placeholder)
                     .customFont(.regular, Typography.body)
                     .foregroundStyle(selectedTitle == nil ? .subtitle : .accent)
@@ -108,6 +114,8 @@ struct FormPickerRow: View {
             }
             if showDivider { FormRowDivider() }
         }
+        .onAppear { autoSelectOnlyOption() }
+        .onChange(of: options) { autoSelectOnlyOption() }   // lists load async
         .sheet(isPresented: $showSheet) {
             SelectionSheet(
                 title: sheetTitle,
@@ -117,6 +125,10 @@ struct FormPickerRow: View {
                 onSelect: { id in onSelect(id); showSheet = false }
             )
         }
+    }
+
+    private func autoSelectOnlyOption() {
+        if let only = onlyOption, selectedId != only.id { onSelect(only.id) }
     }
 }
 

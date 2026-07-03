@@ -12,29 +12,10 @@ struct AppCoordinator: View {
     @Injected private var navigation: NavigationService
     @Injected private var authRepository: AuthRepositoryProtocol
     @Injected private var session: AuthSession
-    @Injected private var appLock: AppLock
-    @Environment(\.scenePhase) private var scenePhase
     @State private var didLaunch = false
 
     var body: some View {
-        ZStack {
-            content
-
-            // Banking-style lock overlay, shown whenever AppLock is engaged — cold
-            // launch, return from background, or idle timeout.
-            // ponytail: this gates the live UI, not the app-switcher snapshot. Add a
-            // resign-active privacy blur if hiding the backgrounded snapshot matters.
-            if didLaunch && appLock.isLocked {
-                BiometricLockView(
-                    onUnlocked: { appLock.unlocked() },
-                    onUsePassword: { logoutFromLock() }
-                )
-                .transition(.opacity)
-            }
-        }
-        .background(ActivityDetector { appLock.noteActivity() })
-        .onChange(of: scenePhase) { _, phase in appLock.scenePhaseChanged(to: phase) }
-        .dismissKeyboardOnTap()
+        content.dismissKeyboardOnTap()
     }
 
     @ViewBuilder
@@ -84,9 +65,7 @@ struct AppCoordinator: View {
     }
 
     /// Restores a stored session (if any) before revealing the UI, so a
-    /// returning user with valid credentials skips the login screen. When the
-    /// Face ID lock is armed, the session is restored but immediately locked so
-    /// the biometric overlay gates access on cold launch.
+    /// returning user with valid credentials skips the login screen.
     @MainActor
     private func launch() async {
         async let minimumSplash: Void = Task.sleep(nanoseconds: 1_000_000_000)
@@ -100,27 +79,9 @@ struct AppCoordinator: View {
             // Mirror the login flow's `navigate(to: .home)` so the stack shape
             // matches an interactive sign-in.
             navigation.navigate(to: .home)
-            appLock.lock()   // no-op unless armed; covers home until biometrics pass
         }
 
         try? await minimumSplash
         didLaunch = true
-    }
-
-    /// Lock-screen escape back to the login screen. Soft sign-out (tokens kept) so
-    /// the user can still enter with Face ID or a fresh password — mirrors
-    /// `HomePresenter.logout()`.
-    @MainActor
-    private func logoutFromLock() {
-        Task {
-            if BiometricAuth.isEnabled && BiometricAuth.canEvaluate {
-                BiometricAuth.didSoftSignOut = true
-            } else {
-                try? await authRepository.logout()
-            }
-            session.clear()
-            appLock.reset()
-            navigation.popTo(root: .login)
-        }
     }
 }
