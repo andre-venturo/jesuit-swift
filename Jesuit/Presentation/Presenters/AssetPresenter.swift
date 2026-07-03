@@ -116,7 +116,10 @@ final class AssetPresenter {
     }
 
     func load() async {
-        state = .loading
+        // Keep showing the current grid while re-fetching (pop-back refires the
+        // screen's .task — a NavigationStack detaches the root during a push, so
+        // its .task reruns on return). Only blank to a spinner on first load.
+        state = assets.isEmpty ? .loading : .refreshing
         do {
             let result = try await repository.fetchAssets(
                 page: 1, limit: pageSize, search: nil,

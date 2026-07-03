@@ -93,7 +93,9 @@ final class PenerimaanPresenter {
 
     /// Loads the first page of cash receipts from the finance API.
     func load() async {
-        state = .loading
+        // Keep the current list visible while re-fetching (pop-back refires the
+        // screen's .task). Spinner only on first load.
+        state = receipts.isEmpty ? .loading : .refreshing
         do {
             let result = try await repository.fetchReceipts(page: 1, limit: pageSize)
             receipts = result.receipts

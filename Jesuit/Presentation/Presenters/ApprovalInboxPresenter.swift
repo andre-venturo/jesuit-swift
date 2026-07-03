@@ -63,7 +63,9 @@ final class ApprovalInboxPresenter {
     }
 
     func load() async {
-        state = .loading
+        // Keep the current list visible while re-fetching (pop-back refires the
+        // screen's .task). Spinner only on first load.
+        state = items.isEmpty ? .loading : .refreshing
         do {
             async let receipts = fetchAll(.receipt)
             async let disbursements = fetchAll(.disbursement)

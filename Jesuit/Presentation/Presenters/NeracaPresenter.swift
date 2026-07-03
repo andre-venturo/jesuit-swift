@@ -57,7 +57,9 @@ final class NeracaPresenter {
     }
 
     func load() async {
-        state = .loading
+        // `summary` derives from `.success` — keep the current sheet visible while
+        // re-fetching (e.g. a date change). Spinner only on first load.
+        if summary == nil { state = .loading }
         do {
             state = .success(try await repository.fetchBalanceSheet(asOf: asOf))
         } catch {

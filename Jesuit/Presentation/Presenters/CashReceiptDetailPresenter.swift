@@ -125,7 +125,10 @@ final class CashReceiptDetailPresenter {
     // MARK: - Load
 
     func load() async {
-        state = .loading
+        // `detail` derives from `.success`, so don't blank it while re-fetching
+        // (pop-back from the pushed edit screen refires .task). The previous
+        // detail stays visible until the fresh one lands.
+        if detail == nil { state = .loading }
         do {
             // Names for the cash account, counter accounts and branch.
             async let accountsResult = try? repository.fetchCashAccounts()

@@ -93,7 +93,9 @@ final class ContactPresenter {
 
     /// Loads the first page of contacts from the finance API.
     func load() async {
-        state = .loading
+        // Keep the current list visible while re-fetching (pop-back refires the
+        // screen's .task). Spinner only on first load.
+        state = contacts.isEmpty ? .loading : .refreshing
         do {
             let result = try await contactRepository.fetchContacts(page: 1, limit: pageSize)
             contacts = result.contacts

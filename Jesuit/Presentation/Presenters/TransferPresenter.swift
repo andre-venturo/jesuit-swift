@@ -132,7 +132,9 @@ final class TransferPresenter {
     var canLoadMore: Bool { page < totalPages }
 
     func load() async {
-        state = .loading
+        // Keep the current list visible while re-fetching (pop-back refires the
+        // screen's .task). Spinner only on first load.
+        state = transfers.isEmpty ? .loading : .refreshing
         do {
             let result = try await repository.fetchTransfers(
                 page: 1, limit: pageSize,
