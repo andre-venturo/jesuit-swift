@@ -1,49 +1,43 @@
 //
-//  PDFPreviewSheet.swift
+//  PDFPreviewPage.swift
 //  Jesuit
 //
-//  Full-screen QuickLook preview for an exported file (the report PDF). QuickLook
-//  renders the document and already provides the native share/print button, so this
-//  doubles as the "Cetak PDF" entry point — preview first, then print/share.
+//  Pushed full-page preview for an exported report PDF. PDFKit renders the
+//  document; the share toolbar button (which includes Print) doubles as the
+//  "Cetak PDF" action — preview first, then print/share.
 //
 
 import SwiftUI
-import QuickLook
+import PDFKit
 
-struct PDFPreviewSheet: UIViewControllerRepresentable {
+struct PDFPreviewPage: View {
     let url: URL
-    var onClose: () -> Void
 
-    func makeUIViewController(context: Context) -> UINavigationController {
-        let preview = QLPreviewController()
-        preview.dataSource = context.coordinator
-        // QuickLook adds its own share/print button on the right; we add Tutup on the
-        // left since a fullScreenCover can't be swiped away.
-        preview.navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "Tutup", style: .plain, target: context.coordinator, action: #selector(Coordinator.close)
-        )
-        return UINavigationController(rootViewController: preview)
+    var body: some View {
+        PDFKitView(url: url)
+            .ignoresSafeArea(edges: .bottom)
+            .navigationTitle(ReportExporter.title)
+            .navigationBarTitleDisplayMode(.inline)
+            // Tab bar stays hidden via the push root (MoreScreen) — no modifier here.
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up").foregroundStyle(.accent)
+                    }
+                }
+            }
+    }
+}
+
+private struct PDFKitView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.document = PDFDocument(url: url)
+        view.autoScales = true
+        return view
     }
 
-    func updateUIViewController(_ controller: UINavigationController, context: Context) {}
-
-    func makeCoordinator() -> Coordinator { Coordinator(url: url, onClose: onClose) }
-
-    final class Coordinator: NSObject, QLPreviewControllerDataSource {
-        let url: URL
-        let onClose: () -> Void
-
-        init(url: URL, onClose: @escaping () -> Void) {
-            self.url = url
-            self.onClose = onClose
-        }
-
-        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
-
-        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
-            url as NSURL
-        }
-
-        @objc func close() { onClose() }
-    }
+    func updateUIView(_ view: PDFView, context: Context) {}
 }

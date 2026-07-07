@@ -49,25 +49,14 @@ struct MoreScreen: View {
                     }
                 }
 
-                ListCard {
-                    // Rows render in the user-chosen order (edited in "Atur Navigasi"),
-                    // filtered by permission. Dividers go between rows, not after the last.
-                    let items = tabRouter.menuOrder.filter { $0.isVisible(session) }
-                    ForEach(Array(items.enumerated()), id: \.element) { index, item in
-                        Button {
-                            handle(item)
-                        } label: {
-                            MoreRow(
-                                icon: item.systemImage,
-                                title: item.title,
-                                value: "",
-                                badge: item == .persetujuan ? approval.badgeCount : 0
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        if index < items.count - 1 {
-                            Divider().padding(.leading, 52)
-                        }
+                // One card per section (Fitur / Pengaturan). Rows render in the
+                // user-chosen order within their section (edited in "Atur Navigasi"),
+                // filtered by permission.
+                let items = tabRouter.menuOrder.filter { $0.isVisible(session) }
+                ForEach(MoreMenuItem.Section.allCases, id: \.self) { section in
+                    let rows = items.filter { $0.section == section }
+                    if !rows.isEmpty {
+                        menuSection(section.rawValue, rows: rows)
                     }
                 }
 
@@ -125,13 +114,19 @@ struct MoreScreen: View {
         .navigationTitle("Lainnya")
         .exitAppOnLeftEdgeSwipe()
         .toolbar(.hidden, for: .navigationBar)
+        // Tab-bar visibility is driven from HERE, not the pushed Laporan page: a
+        // `.toolbar(.hidden, for: .tabBar)` owned by the pushed view is torn down
+        // mid-pop, so the bar flashed back in before the transition finished (see
+        // PenerimaanScreen). This root never leaves the hierarchy, so the bar stays
+        // hidden through the whole pop and reappears once — no blink.
+        .toolbar(showLaporan ? .hidden : .visible, for: .tabBar)
         .sheet(isPresented: $showEditProfile) {
             EditProfileSheet(onSuccess: { showProfileSaved = true })
         }
         .sheet(isPresented: $showChangePassword) {
             ChangePasswordSheet(onSuccess: { showPasswordChanged = true })
         }
-        .sheet(isPresented: $showLaporan) {
+        .navigationDestination(isPresented: $showLaporan) {
             LaporanScreen()
         }
         .task {
@@ -194,6 +189,32 @@ struct MoreScreen: View {
                  : "Anda harus masuk kembali dengan kata sandi.")
         }
         .hotReloadable()
+    }
+
+    /// A section header (FormCard-style uppercased caption) above a ListCard of rows.
+    private func menuSection(_ title: String, rows: [MoreMenuItem]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .customFont(.semibold, Typography.caption)
+                .foregroundStyle(.subtitle)
+                .padding(.leading, 4)
+            ListCard {
+                ForEach(Array(rows.enumerated()), id: \.element) { index, item in
+                    Button {
+                        handle(item)
+                    } label: {
+                        MoreRow(
+                            icon: item.systemImage,
+                            title: item.title,
+                            value: "",
+                            badge: item == .persetujuan ? approval.badgeCount : 0
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    RowDivider(index: index, count: rows.count, inset: 52)
+                }
+            }
+        }
     }
 
     private func handle(_ item: MoreMenuItem) {

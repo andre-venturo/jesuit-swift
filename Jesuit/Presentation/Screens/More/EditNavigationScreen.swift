@@ -21,8 +21,10 @@ struct EditNavigationScreen: View {
     /// Working copy edited while dragging; committed to `router` as moves happen
     /// (the pushed editor occludes the TabView, so the rebuild is never visible).
     @State private var localOrder: [MainTab] = []
-    /// Working copy for the "Lainnya" menu rows (permission-filtered).
-    @State private var localMenuOrder: [MoreMenuItem] = []
+    /// Working copies for the "Lainnya" menu rows, one list per section
+    /// (permission-filtered) — mirrors MoreScreen's Pengaturan/Fitur cards, so
+    /// rows reorder within their section only.
+    @State private var localMenuOrders: [MoreMenuItem.Section: [MoreMenuItem]] = [:]
 
     var body: some View {
         NavigationStack {
@@ -57,20 +59,26 @@ struct EditNavigationScreen: View {
                         .foregroundStyle(.subtitle)
                 }
 
-                Section {
-                    ForEach(localMenuOrder, id: \.self) { item in
-                        menuRow(item)
+                ForEach(MoreMenuItem.Section.allCases, id: \.self) { section in
+                    Section {
+                        ForEach(localMenuOrders[section] ?? [], id: \.self) { item in
+                            menuRow(item)
+                        }
+                        .onMove { from, to in
+                            var rows = localMenuOrders[section] ?? []
+                            rows.move(fromOffsets: from, toOffset: to)
+                            localMenuOrders[section] = rows
+                            commitMenuOrder()
+                        }
+                    } header: {
+                        sectionHeader("Menu \(section.rawValue)")
+                    } footer: {
+                        if section == MoreMenuItem.Section.allCases.last {
+                            Text("Seret untuk mengubah urutan menu di Lainnya.")
+                                .customFont(.regular, Typography.caption2)
+                                .foregroundStyle(.subtitle)
+                        }
                     }
-                    .onMove { from, to in
-                        localMenuOrder.move(fromOffsets: from, toOffset: to)
-                        router.applyMenuOrder(localMenuOrder)
-                    }
-                } header: {
-                    sectionHeader("Menu Lainnya")
-                } footer: {
-                    Text("Seret untuk mengubah urutan menu di Lainnya.")
-                        .customFont(.regular, Typography.caption2)
-                        .foregroundStyle(.subtitle)
                 }
             }
             .listStyle(.insetGrouped)
@@ -92,12 +100,19 @@ struct EditNavigationScreen: View {
             }
             .onAppear {
                 if localOrder.isEmpty { localOrder = router.order }
-                if localMenuOrder.isEmpty {
-                    localMenuOrder = router.menuOrder.filter { $0.isVisible(session) }
+                if localMenuOrders.isEmpty {
+                    let visible = router.menuOrder.filter { $0.isVisible(session) }
+                    localMenuOrders = Dictionary(grouping: visible, by: \.section)
                 }
             }
         }
         .hotReloadable()
+    }
+
+    /// Flatten the per-section lists back into the router's single stored order
+    /// (sections concatenated in display order — rendering re-groups them anyway).
+    private func commitMenuOrder() {
+        router.applyMenuOrder(MoreMenuItem.Section.allCases.flatMap { localMenuOrders[$0] ?? [] })
     }
 
     private func tabRow(_ tab: MainTab) -> some View {

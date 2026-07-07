@@ -71,7 +71,10 @@ final class LaporanPresenter {
 
     var cashFlowPeriod: CashFlowPeriod = .bulanIni {
         didSet {
-            guard cashFlowPeriod != oldValue else { return }
+            // A custom range or stepped offset must clear even when the user
+            // re-picks the preset already stored here (an equal value would
+            // otherwise skip the reset below and strand the shifted period).
+            guard cashFlowPeriod != oldValue || customRange != nil || periodOffset != 0 else { return }
             customRange = nil
             periodOffset = 0
             recompute()
@@ -100,9 +103,6 @@ final class LaporanPresenter {
         return cashFlowPeriod.steppedLabel(offset: periodOffset)
     }
 
-    /// Dropdown label: the preset name, or "Custom" when a custom range is set.
-    var rangeLabel: String { hasCustomRange ? "Custom" : cashFlowPeriod.rawValue }
-
     func stepPeriod(by delta: Int) {
         guard !hasCustomRange else { return }
         periodOffset += delta
@@ -126,7 +126,10 @@ final class LaporanPresenter {
     private var accountNames: [String: String] = [:]
     private var branchNames: [String: String] = [:]
 
-    var statusLabel: String { statusFilter?.rawValue ?? "Semua Status" }
+    /// Display names for the ACTIVE branch/account filter, resolved from the full
+    /// name maps — used as a picker-option fallback when the filtered id vanishes
+    /// from the loaded records (e.g. after a refresh), so the row never shows a
+    /// bare placeholder while the filter still applies.
     var accountLabelText: String { accountFilter.flatMap { accountNames[$0] } ?? "Semua Akun" }
     var branchLabelText: String { branchFilter.flatMap { branchNames[$0] } ?? "Semua Cabang & Unit" }
 

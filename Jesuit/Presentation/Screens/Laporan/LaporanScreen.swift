@@ -11,62 +11,64 @@
 import SwiftUI
 
 struct LaporanScreen: View {
-    @Environment(\.dismiss) private var dismiss
     @Injected private var session: AuthSession
     @State private var presenter = AppDI.shared.resolver(LaporanPresenter.self)
     @State private var showCustomRange = false
     @State private var showFilters = false
-    @State private var activeFilter: FilterKind?
     @State private var exportItem: ExportItem?
     @State private var previewItem: ExportItem?
 
-    /// Identifiable wrapper so `sheet(item:)` can present the share/preview by URL.
-    private struct ExportItem: Identifiable { let id = UUID(); let url: URL }
-
-    /// Which filter's selection sheet is open.
-    private enum FilterKind: String, Identifiable { case status, branch, account; var id: String { rawValue } }
+    /// Identifiable+Hashable wrapper so the CSV share sheet and the pushed PDF
+    /// preview can both be driven by a URL item.
+    private struct ExportItem: Identifiable, Hashable { let id = UUID(); let url: URL }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    filtersSection
-
-                    if presenter.isLoading {
-                        ProgressView().tint(.accent)
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                    } else if let error = presenter.errorMessage {
-                        stateMessage(error, systemImage: "exclamationmark.triangle")
-                    } else if let summary = presenter.summary {
-                        reportHeader
-                        journalCard(summary)
-                    } else {
-                        stateMessage("Tidak ada transaksi pada periode ini.", systemImage: "tray")
-                    }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if presenter.isLoading {
+                    ProgressView().tint(.accent)
+                        .frame(maxWidth: .infinity, minHeight: 200)
+                } else if let error = presenter.errorMessage {
+                    stateMessage(error, systemImage: "exclamationmark.triangle")
+                } else if let summary = presenter.summary {
+                    reportHeader
+                    journalCard(summary)
+                } else {
+                    stateMessage("Tidak ada transaksi pada periode ini.", systemImage: "tray")
                 }
-                .padding(16)
             }
-            .refreshable { await presenter.load(forceReload: true) }
-            .background(Color.background1.ignoresSafeArea())
-            .navigationTitle("Laporan")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Tutup") { dismiss() }.foregroundStyle(.subtitle)
-                }
-                ToolbarItem(placement: .primaryAction) { filterButton }
+            .padding(16)
+        }
+        // Pinned period bar (Calendar/Health pattern) — the ledger scrolls under it.
+        .safeAreaInset(edge: .top, spacing: 0) { periodBar }
+        .refreshable { await presenter.load(forceReload: true) }
+        .background(Color.background1.ignoresSafeArea())
+        .navigationTitle("Laporan")
+        .navigationBarTitleDisplayMode(.inline)
+        // Tab bar is hidden by MoreScreen (the push root) while this page is up —
+        // owning the modifier here would blink the bar on pop-back.
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                filterButton
                 if let summary = presenter.summary {
-                    ToolbarItem(placement: .primaryAction) { exportMenu(summary) }
+                    exportMenu(summary)
                 }
             }
-            .sheet(isPresented: $showFilters) { filterSheet }
-            .sheet(item: $exportItem) { item in
-                ShareSheet(items: [item.url])
-            }
-            .fullScreenCover(item: $previewItem) { item in
-                PDFPreviewSheet(url: item.url) { previewItem = nil }
-                    .ignoresSafeArea()
-            }
+        }
+        .sheet(isPresented: $showFilters) { filterSheet }
+        .sheet(isPresented: $showCustomRange) {
+            // Shared with Home — detents applied at this call site only.
+            CashFlowRangeSheet(
+                initialRange: presenter.summaryRange,
+                onApply: { start, end in presenter.applyCustomRange(start: start, end: end) }
+            )
+            .presentationDetents([.medium])
+        }
+        .sheet(item: $exportItem) { item in
+            ShareSheet(items: [item.url])
+        }
+        .navigationDestination(item: $previewItem) { item in
+            PDFPreviewPage(url: item.url)
         }
         .task { await presenter.load() }
         .hotReloadable()
@@ -247,7 +249,7 @@ struct LaporanScreen: View {
         do {
             switch kind {
             case .pdf:
-                // Preview first (QuickLook's share button handles the actual print/share).
+                // Push the preview page first (its share button handles print/share).
                 let url = try ReportExporter.pdfURL(summary: summary, orgName: org, periodLabel: label)
                 previewItem = ExportItem(url: url)
             case .csv:
@@ -259,39 +261,153 @@ struct LaporanScreen: View {
         }
     }
 
-    // MARK: - Filters
+    // MARK: - Period bar
 
-    /// Inline: just the period dropdown field. Status / Cabang & Unit / Akun live
-    /// in the filter bottom sheet behind the toolbar button.
-    private var filtersSection: some View {
-        periodField.padding(.top, 6)  // room for the floating label
+    /// Pinned bar under the nav bar: a centered tight group — prev/next steppers
+    /// flanking the borderless period Menu (Fitness/Health pattern; edge-pinned
+    /// steppers stacked a second chevron under the nav back button). The fixed
+    /// label width keeps the steppers from jumping as the label changes. Steppers
+    /// hide under a custom range — stepping is a no-op there.
+    private var periodBar: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 16) {
+                if !presenter.hasCustomRange {
+                    stepperButton(systemImage: "chevron.left") { presenter.stepPeriod(by: -1) }
+                }
+                periodMenu
+                    .frame(minWidth: 150)
+                if !presenter.hasCustomRange {
+                    stepperButton(systemImage: "chevron.right") { presenter.stepPeriod(by: 1) }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            Divider().opacity(0.4)
+        }
+        .background(Color.background1)
+        .animation(.snappy, value: presenter.hasCustomRange)
     }
+
+    private var periodMenu: some View {
+        Menu {
+            // Optional selection: nothing is checked while a custom range is
+            // active — the checkmark moves to "Rentang Khusus…" below.
+            Picker("Periode", selection: Binding<CashFlowPeriod?>(
+                get: { presenter.hasCustomRange ? nil : presenter.cashFlowPeriod },
+                set: { if let period = $0 { presenter.cashFlowPeriod = period } }
+            )) {
+                ForEach(CashFlowPeriod.allCases) { period in
+                    Text(period.rawValue).tag(Optional(period))
+                }
+            }
+            .menuOrder(.fixed)
+            Divider()
+            Button {
+                showCustomRange = true
+            } label: {
+                Label("Rentang Khusus…", systemImage: presenter.hasCustomRange ? "checkmark" : "calendar")
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(presenter.steppedLabel)
+                    .customFont(.semibold, Typography.headline)
+                    .foregroundStyle(.title)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.subtitle)
+            }
+        }
+        .animation(.snappy, value: presenter.steppedLabel)
+    }
+
+    private func stepperButton(systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.subtitle)
+                .frame(width: 36, height: 36)
+                .background(Color.white.opacity(0.06))
+                .clipShape(Circle())
+        }
+    }
+
+    // MARK: - Filters
 
     private var filterButton: some View {
         Button { showFilters = true } label: {
-            Image(systemName: presenter.hasActiveFilters
-                  ? "line.3.horizontal.decrease.circle.fill"
-                  : "line.3.horizontal.decrease.circle")
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .symbolVariant(presenter.hasActiveFilters ? .fill : .none)
+                .contentTransition(.symbolEffect(.replace))
                 .foregroundStyle(.accent)
         }
     }
 
-    /// Bottom sheet holding the Status / Cabang & Unit / Akun fields. Tapping a
-    /// field opens its own selection sheet (FilterBySheet); changes apply live.
+    /// Branch/account picker options: "Semua" + the ids present in the loaded
+    /// records, plus the ACTIVE filter as a fallback row when a refresh dropped
+    /// its id from the record set — otherwise the row would show the "Pilih"
+    /// placeholder while the filter still silently applies.
+    private var branchPickerOptions: [SelectionOption] {
+        var options = [SelectionOption(id: "", title: "Semua Cabang & Unit")]
+            + presenter.branchOptions.map { SelectionOption(id: $0.id, title: $0.name) }
+        if let id = presenter.branchFilter, !options.contains(where: { $0.id == id }) {
+            options.append(SelectionOption(id: id, title: presenter.branchLabelText))
+        }
+        return options
+    }
+
+    private var accountPickerOptions: [SelectionOption] {
+        var options = [SelectionOption(id: "", title: "Semua Akun")]
+            + presenter.accountOptions.map { SelectionOption(id: $0.id, title: $0.name) }
+        if let id = presenter.accountFilter, !options.contains(where: { $0.id == id }) {
+            options.append(SelectionOption(id: id, title: presenter.accountLabelText))
+        }
+        return options
+    }
+
+    /// Bottom sheet with a grouped card of picker rows (same look as the create/
+    /// edit forms). Each row opens its own searchable SelectionSheet; changes
+    /// apply live, so "Selesai" is pure dismissal.
     private var filterSheet: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    filterField("Status", value: presenter.statusLabel) { activeFilter = .status }
+                // The prepended "Semua" row guarantees options.count >= 2, which
+                // keeps FormPickerRow's auto-select-single-option behavior from
+                // silently applying a filter when only one branch/account exists.
+                FormCard {
+                    FormPickerRow(
+                        label: "Status",
+                        options: [SelectionOption(id: "", title: "Semua Status")]
+                            + presenter.statusOptions.map { SelectionOption(id: $0.rawValue, title: $0.rawValue) },
+                        selectedId: presenter.statusFilter?.rawValue ?? "",
+                        sheetTitle: "Status",
+                        onSelect: { id in presenter.statusFilter = presenter.statusOptions.first { $0.rawValue == id } }
+                    )
                     if !presenter.branchOptions.isEmpty {
-                        filterField("Cabang & Unit", value: presenter.branchLabelText) { activeFilter = .branch }
+                        FormPickerRow(
+                            label: "Cabang & Unit",
+                            options: branchPickerOptions,
+                            selectedId: presenter.branchFilter ?? "",
+                            sheetTitle: "Cabang & Unit",
+                            searchPrompt: "Cari cabang…",
+                            onSelect: { id in presenter.branchFilter = id.isEmpty ? nil : id }
+                        )
                     }
                     if !presenter.accountOptions.isEmpty {
-                        filterField("Akun", value: presenter.accountLabelText) { activeFilter = .account }
+                        FormPickerRow(
+                            label: "Akun",
+                            options: accountPickerOptions,
+                            selectedId: presenter.accountFilter ?? "",
+                            sheetTitle: "Akun",
+                            searchPrompt: "Cari akun…",
+                            showDivider: false,
+                            onSelect: { id in presenter.accountFilter = id.isEmpty ? nil : id }
+                        )
                     }
                 }
-                .padding(.top, 14)
-                .padding(.horizontal, 16)
+                .padding(16)
             }
             .background(Color.background1.ignoresSafeArea())
             .navigationTitle("Filter")
@@ -299,146 +415,15 @@ struct LaporanScreen: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Atur Ulang") { presenter.resetFilters() }
-                        .foregroundStyle(presenter.hasActiveFilters ? .accent : .subtitle)
                         .disabled(!presenter.hasActiveFilters)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Selesai") { showFilters = false }.foregroundStyle(.accent)
+                    Button("Selesai") { showFilters = false }
                 }
             }
-            .sheet(item: $activeFilter) { kind in selectionSheet(kind) }
         }
-        .presentationDetents([.medium, .large])
-    }
-
-    // MARK: - Filter fields
-
-    /// A tappable outlined field (floating label + value) that opens a selection
-    /// sheet — the standard selector pattern, not an inline dropdown.
-    private func filterField(_ label: String, value: String,
-                             action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Text(value)
-                    .customFont(.semibold, Typography.body)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.subtitle)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 52)
-            .frame(maxWidth: .infinity)
-            .background(fieldBackground)
-            .overlay(floatingLabel(label), alignment: .topLeading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// The single-select bottom sheet for a given filter (id "" == "Semua").
-    @ViewBuilder
-    private func selectionSheet(_ kind: FilterKind) -> some View {
-        switch kind {
-        case .status:
-            FilterBySheet(
-                title: "Status",
-                options: [FilterOption(id: "", label: "Semua Status")]
-                    + presenter.statusOptions.map { FilterOption(id: $0.rawValue, label: $0.rawValue) },
-                selectedId: presenter.statusFilter?.rawValue ?? "",
-                onSelect: { id in presenter.statusFilter = presenter.statusOptions.first { $0.rawValue == id } }
-            )
-        case .branch:
-            FilterBySheet(
-                title: "Cabang & Unit",
-                options: [FilterOption(id: "", label: "Semua Cabang & Unit")]
-                    + presenter.branchOptions.map { FilterOption(id: $0.id, label: $0.name) },
-                selectedId: presenter.branchFilter ?? "",
-                onSelect: { id in presenter.branchFilter = id.isEmpty ? nil : id },
-                searchable: true
-            )
-        case .account:
-            FilterBySheet(
-                title: "Akun",
-                options: [FilterOption(id: "", label: "Semua Akun")]
-                    + presenter.accountOptions.map { FilterOption(id: $0.id, label: $0.name) },
-                selectedId: presenter.accountFilter ?? "",
-                onSelect: { id in presenter.accountFilter = id.isEmpty ? nil : id },
-                searchable: true
-            )
-        }
-    }
-
-    private var periodField: some View {
-        Menu {
-            ForEach(CashFlowPeriod.allCases) { period in
-                Button {
-                    presenter.cashFlowPeriod = period
-                } label: {
-                    if !presenter.hasCustomRange && presenter.cashFlowPeriod == period {
-                        Label(period.rawValue, systemImage: "checkmark")
-                    } else {
-                        Text(period.rawValue)
-                    }
-                }
-            }
-            Divider()
-            Button {
-                showCustomRange = true
-            } label: {
-                if presenter.hasCustomRange {
-                    Label("Rentang Khusus…", systemImage: "checkmark")
-                } else {
-                    Text("Rentang Khusus…")
-                }
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Text(presenter.steppedLabel)
-                    .customFont(.semibold, Typography.body)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 4)
-                Image(systemName: "calendar")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.accent)
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 52)
-            .frame(maxWidth: .infinity)
-            .background(fieldBackground)
-            .overlay(floatingLabel("Periode"), alignment: .topLeading)
-        }
-        .sheet(isPresented: $showCustomRange) {
-            CashFlowRangeSheet(
-                initialRange: presenter.summaryRange,
-                onApply: { start, end in presenter.applyCustomRange(start: start, end: end) }
-            )
-        }
-    }
-
-    /// A small caption that sits astride the field's top border, masking it with
-    /// the screen background — the outlined-text-field look from the reference.
-    private func floatingLabel(_ text: String) -> some View {
-        Text(text)
-            .customFont(.regular, Typography.caption2)
-            .foregroundStyle(.subtitle)
-            .padding(.horizontal, 4)
-            .background(Color.background1)
-            .offset(x: 12, y: -7)
-    }
-
-    private var fieldBackground: some View {
-        RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(Color.textFieldBG)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
-            )
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
     }
 
     // MARK: - Helpers

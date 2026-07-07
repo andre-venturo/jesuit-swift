@@ -72,6 +72,19 @@ enum MoreMenuItem: String, Hashable, Sendable, CaseIterable {
         self == .persetujuan ? session.can(Permission.cashApprove) : true
     }
 
+    /// The "Lainnya" menu is rendered as one card per section (in `Section.allCases`
+    /// order); the user-chosen `menuOrder` still decides row order *within* a section.
+    enum Section: String, CaseIterable {
+        case pengaturan = "Pengaturan", fitur = "Fitur"
+    }
+
+    var section: Section {
+        switch self {
+        case .persetujuan, .transferDana, .aset, .laporan: .fitur
+        case .ubahProfil, .ubahPassword, .aturNavigasi: .pengaturan
+        }
+    }
+
     /// Rows the user may reorder. "Atur Navigasi" is excluded — it's pinned in its
     /// own prominent card (you don't reorder the reorder button).
     static let reorderable: [MoreMenuItem] = allCases.filter { $0 != .aturNavigasi }

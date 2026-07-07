@@ -12,6 +12,10 @@ struct MainTabScreen: View {
     @State private var router = AppDI.shared.resolver(AppTabRouter.self)
     @Injected private var session: AuthSession
     @State private var approval = AppDI.shared.resolver(ApprovalInboxPresenter.self)
+    /// True once the first `.task` ran. `.task` re-fires every time a top-level
+    /// UIPilot route (Persetujuan/Transfer/Aset/Atur Navigasi) pops back and this
+    /// view's hosting VC reappears — without the guard that yanked the user to Home.
+    @State private var didResetToHome = false
 
     var body: some View {
         TabView(selection: $router.selection) {
@@ -34,8 +38,13 @@ struct MainTabScreen: View {
         .task {
             // AppTabRouter is a singleton, so the last-selected tab survives a
             // logout/login in the same process — a fresh tab bar (new sign-in or
-            // session restore) should always open on Home.
-            router.select(.home)
+            // session restore) should always open on Home. Only on the FIRST
+            // appearance though: login rebuilds this view (fresh @State), while a
+            // pop-back from a UIPilot route must keep the current tab.
+            if !didResetToHome {
+                didResetToHome = true
+                router.select(.home)
+            }
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
         }
         .hotReloadable()
