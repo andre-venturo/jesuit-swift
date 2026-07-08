@@ -33,6 +33,8 @@ enum AppURLConstants {
         static let cashTransactions = "/cash-transactions"
         static let cashTransactionsSubmit = "/cash-transactions/submit"
         static let accounts = "/accounts"
+        /// `/accounts/{id}` — PUT update, DELETE (Master Akun management).
+        static func account(_ id: String) -> String { "/accounts/\(id)" }
         static let dashboardDailyRevenue = "/dashboard/daily-revenue"
         static let dashboardProfitLossCashFlow = "/dashboard/profit-loss-cash-flow"
         static let dashboardCashAccounts = "/dashboard/cash-accounts"

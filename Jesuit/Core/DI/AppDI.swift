@@ -65,6 +65,11 @@ class AppDI {
             return AssetRepository(network: networkService)
         }.inObjectScope(.container)
 
+        container.register(AccountRepositoryProtocol.self) { resolver in
+            let networkService = resolver.resolve(NetworkServiceProtocol.self)!
+            return AccountRepository(network: networkService)
+        }.inObjectScope(.container)
+
         // Register Presenter
         container.register(LoginPresenter.self) { resolver in
             LoginPresenter(
@@ -127,6 +132,11 @@ class AppDI {
             AssetPresenter(
                 repository: resolver.resolve(AssetRepositoryProtocol.self)!,
                 lookups: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
+        container.register(MasterAkunPresenter.self) { resolver in
+            MasterAkunPresenter(
+                repository: resolver.resolve(AccountRepositoryProtocol.self)!
             )
         }
         // Shared singleton: the More-row badge, the tab-bar badge and the inbox

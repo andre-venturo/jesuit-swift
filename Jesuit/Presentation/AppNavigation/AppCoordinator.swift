@@ -52,6 +52,8 @@ struct AppCoordinator: View {
                     TransferScreen()
                 case .asset:
                     AssetScreen()
+                case .masterAkun:
+                    MasterAkunScreen()
                 case .approval:
                     ApprovalInboxScreen()
                 case .organizationSwitcher:

@@ -16,6 +16,7 @@ enum AppRoute: Equatable {
     case editNavigation
     case transfer
     case asset
+    case masterAkun
     case approval
     case organizationSwitcher
     case err

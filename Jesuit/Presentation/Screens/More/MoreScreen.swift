@@ -225,6 +225,7 @@ struct MoreScreen: View {
         case .persetujuan: navigation.navigate(to: .approval)
         case .transferDana: navigation.navigate(to: .transfer)
         case .aset: navigation.navigate(to: .asset)
+        case .masterAkun: navigation.navigate(to: .masterAkun)
         // Pushed as a top-level UIPilot route, NOT inside this tab's NavigationStack, so
         // the editor occludes the TabView while the reorder rebuilds the UITabBarController
         // (no tab-bar blink on close) with a native back chevron + swipe-back.

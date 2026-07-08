@@ -41,7 +41,7 @@ enum MainTab: String, Hashable, Sendable, CaseIterable {
 /// A row in the "Lainnya" (More) tab. String-backed so the chosen order persists.
 /// `allCases` order is the default (the original hardcoded order).
 enum MoreMenuItem: String, Hashable, Sendable, CaseIterable {
-    case ubahProfil, ubahPassword, persetujuan, transferDana, aset, laporan, aturNavigasi
+    case ubahProfil, ubahPassword, persetujuan, transferDana, aset, masterAkun, laporan, aturNavigasi
 
     var title: String {
         switch self {
@@ -50,6 +50,7 @@ enum MoreMenuItem: String, Hashable, Sendable, CaseIterable {
         case .persetujuan: "Persetujuan"
         case .transferDana: "Transfer Dana"
         case .aset: "Aset"
+        case .masterAkun: "Master Akun"
         case .laporan: "Laporan"
         case .aturNavigasi: "Atur Navigasi"
         }
@@ -62,6 +63,7 @@ enum MoreMenuItem: String, Hashable, Sendable, CaseIterable {
         case .persetujuan: "checkmark.seal"
         case .transferDana: "arrow.left.arrow.right"
         case .aset: "shippingbox"
+        case .masterAkun: "list.bullet.rectangle"
         case .laporan: "chart.bar.doc.horizontal"
         case .aturNavigasi: "arrow.up.arrow.down"
         }
@@ -80,7 +82,7 @@ enum MoreMenuItem: String, Hashable, Sendable, CaseIterable {
 
     var section: Section {
         switch self {
-        case .persetujuan, .transferDana, .aset, .laporan: .fitur
+        case .persetujuan, .transferDana, .aset, .masterAkun, .laporan: .fitur
         case .ubahProfil, .ubahPassword, .aturNavigasi: .pengaturan
         }
     }
