@@ -3,7 +3,10 @@
 ## Build 13 — 7 Juli 2026
 
 ### ✨ Fitur Baru
-- **Daftar Laporan.** Menu **Laporan** kini membuka katalog laporan: **Jurnal Umum** dan **Neraca** sudah tersedia; **Buku Besar**, **Laba Rugi**, dan **Arus Kas** menyusul (ditandai "Segera").
+- **Daftar Laporan.** Menu **Laporan** kini membuka katalog laporan lengkap: **Jurnal Umum**, **Buku Besar**, **Laba Rugi**, **Neraca**, dan **Arus Kas**.
+- **Buku Besar.** Buku besar per akun kas: saldo awal, mutasi dengan saldo berjalan, dan saldo akhir per periode.
+- **Laba Rugi.** Laporan pendapatan, beban, dan laba (rugi) bersih per periode, dengan perbandingan terhadap periode sebelumnya.
+- **Arus Kas.** Laporan arus kas: saldo awal, penerimaan, pengeluaran, kenaikan/penurunan kas, dan saldo akhir — plus rincian per akun kas.
 - **Master Akun.** Lihat dan tambah akun (bagan akun) dari tab **Lainnya**.
 - **Pemilih periode baru.** Pilih bulan langsung dari kisi 12 bulan dengan penggeser tahun — satu ketukan untuk satu bulan penuh. Rentang harian kini berupa kalender rentang: ketuk tanggal mulai, ketuk tanggal akhir, rentangnya tersorot.
 

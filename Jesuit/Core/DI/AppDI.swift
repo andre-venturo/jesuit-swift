@@ -159,6 +159,21 @@ class AppDI {
                 session: resolver.resolve(AuthSession.self)!
             )
         }
+        container.register(BukuBesarPresenter.self) { resolver in
+            BukuBesarPresenter(
+                repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
+        container.register(ArusKasPresenter.self) { resolver in
+            ArusKasPresenter(
+                repository: resolver.resolve(CashReceiptRepositoryProtocol.self)!
+            )
+        }
+        container.register(LabaRugiPresenter.self) { resolver in
+            LabaRugiPresenter(
+                repository: resolver.resolve(DashboardRepositoryProtocol.self)!
+            )
+        }
     }
 
     func resolver<T>(_ type: T.Type) -> T { container.resolve(type)! }
