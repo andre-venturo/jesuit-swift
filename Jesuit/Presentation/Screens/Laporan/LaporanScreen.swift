@@ -303,7 +303,7 @@ struct LaporanScreen: View {
                 Label("Rentang Khusus…", systemImage: presenter.hasCustomRange ? "checkmark" : "calendar")
             }
         } label: {
-            chipLabel("calendar", presenter.steppedLabel, active: false)
+            ReportChip(icon: "calendar", text: presenter.steppedLabel)
         }
         .animation(.snappy, value: presenter.steppedLabel)
     }
@@ -311,24 +311,9 @@ struct LaporanScreen: View {
     /// Accent-filled while any filter is active (same active look as list chips).
     private var filterChip: some View {
         Button { showFilters = true } label: {
-            chipLabel("line.3.horizontal.decrease", "Filter", active: presenter.hasActiveFilters)
+            ReportChip(icon: "line.3.horizontal.decrease", text: "Filter", active: presenter.hasActiveFilters)
         }
         .animation(.snappy, value: presenter.hasActiveFilters)
-    }
-
-    private func chipLabel(_ systemImage: String, _ text: String, active: Bool) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .medium))
-            Text(text)
-                .customFont(.medium, Typography.subhead)
-                .lineLimit(1)
-        }
-        .foregroundStyle(active ? .white : .title)
-        .padding(.horizontal, 14)
-        .frame(height: 32)
-        .background(active ? Color.accentColor : Color.white.opacity(0.06))
-        .clipShape(Capsule())
     }
 
     // MARK: - Filters
