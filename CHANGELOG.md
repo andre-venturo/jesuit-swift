@@ -1,5 +1,22 @@
 # Catatan Perubahan
 
+## Build 13 — 7 Juli 2026
+
+### ✨ Fitur Baru
+- **Daftar Laporan.** Menu **Laporan** kini membuka katalog laporan: **Jurnal Umum** dan **Neraca** sudah tersedia; **Buku Besar**, **Laba Rugi**, dan **Arus Kas** menyusul (ditandai "Segera").
+- **Master Akun.** Lihat dan tambah akun (bagan akun) dari tab **Lainnya**.
+- **Pemilih periode baru.** Pilih bulan langsung dari kisi 12 bulan dengan penggeser tahun — satu ketukan untuk satu bulan penuh. Rentang harian kini berupa kalender rentang: ketuk tanggal mulai, ketuk tanggal akhir, rentangnya tersorot.
+
+### 🚀 Peningkatan
+- **Tampilan Laporan lebih bersih.** Pemilih periode dan **Filter** kini tombol kapsul di atas isi laporan; bilah periode terpisah beserta panahnya dihapus.
+- **Tabel jurnal tampil utuh.** Lebar kolom menyesuaikan isi — tanggal, nomor transaksi, dan akun tidak lagi terpotong.
+- **Huruf laporan diselaraskan** dengan gaya daftar Penerimaan / Pengeluaran.
+- **Label periode lebih ringkas.** Rentang satu bulan penuh ditampilkan sebagai nama bulan (mis. "Juni 2026").
+- **Pemilih rentang tampil satu halaman penuh** (sebelumnya setengah layar).
+
+### 🐛 Perbaikan
+- **Pesan "tidak ada transaksi" kini berada di tengah layar**, tidak lagi menempel di atas.
+
 ## Build 12 — 3 Juli 2026
 
 ### ✨ Fitur Baru
