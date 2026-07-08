@@ -25,6 +25,7 @@ struct LaporanScreen: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                filterRow
                 if presenter.isLoading {
                     ProgressView().tint(.accent)
                         .frame(maxWidth: .infinity, minHeight: 200)
@@ -39,8 +40,6 @@ struct LaporanScreen: View {
             }
             .padding(16)
         }
-        // Pinned period bar (Calendar/Health pattern) — the ledger scrolls under it.
-        .safeAreaInset(edge: .top, spacing: 0) { periodBar }
         .refreshable { await presenter.load(forceReload: true) }
         .background(Color.background1.ignoresSafeArea())
         .navigationTitle("Laporan")
@@ -49,7 +48,6 @@ struct LaporanScreen: View {
         // owning the modifier here would blink the bar on pop-back.
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                filterButton
                 if let summary = presenter.summary {
                     exportMenu(summary)
                 }
@@ -57,12 +55,10 @@ struct LaporanScreen: View {
         }
         .sheet(isPresented: $showFilters) { filterSheet }
         .sheet(isPresented: $showCustomRange) {
-            // Shared with Home — detents applied at this call site only.
             CashFlowRangeSheet(
                 initialRange: presenter.summaryRange,
                 onApply: { start, end in presenter.applyCustomRange(start: start, end: end) }
             )
-            .presentationDetents([.medium])
         }
         .sheet(item: $exportItem) { item in
             ShareSheet(items: [item.url])
@@ -79,13 +75,13 @@ struct LaporanScreen: View {
     private var reportHeader: some View {
         VStack(spacing: 4) {
             Text(session.organization)
-                .customFont(.medium, Typography.subhead)
+                .customFont(.regular, ListMetrics.metaSize)
                 .foregroundStyle(.subtitle)
             Text(ReportExporter.title)
                 .customFont(.semibold, Typography.title2)
                 .foregroundStyle(.title)
             Text(rangeText)
-                .customFont(.regular, Typography.subhead)
+                .customFont(.regular, ListMetrics.metaSize)
                 .foregroundStyle(.subtitle)
         }
         .frame(maxWidth: .infinity)
@@ -104,119 +100,133 @@ struct LaporanScreen: View {
 
     // MARK: - Journal table
 
-    // Ledger columns — the whole table scrolls horizontally (no frozen column).
-    private let wTanggal: CGFloat = 84
-    private let wNumber: CGFloat = 152
-    private let wAkun: CGFloat = 124
-    private let wDeskripsi: CGFloat = 168
-    private let wAmount: CGFloat = 112
+    /// Column gap, applied as trailing padding inside each cell so the totals
+    /// bands (per-cell backgrounds) stay contiguous with zero grid spacing.
     private let colGap: CGFloat = 14
-    /// Single font size for the whole ledger table — hierarchy comes from weight/colour.
-    private let ledgerSize: CGFloat = Typography.body
+    /// Deskripsi is the one free-text column — cap it so a paragraph-length
+    /// description can't blow the table width out; everything else auto-sizes.
+    private let descMaxWidth: CGFloat = 260
 
-    private var labelSpan: CGFloat { wTanggal + wNumber + wAkun + wDeskripsi }
-
+    /// `Grid` sizes each column to its widest cell, so no cell ever truncates
+    /// (except capped Deskripsi) — the whole table scrolls horizontally.
     private func journalCard(_ summary: ReportSummary) -> some View {
         ScrollView(.horizontal, showsIndicators: true) {
-            VStack(spacing: 0) {
+            Grid(alignment: .leading, horizontalSpacing: 0, verticalSpacing: 0) {
                 columnHeader
                 Divider()
                 ForEach(summary.journalEntries) { entry in
                     journalRow(entry)
                     Divider().opacity(0.35)
                 }
+                Color.clear.frame(height: 8).gridCellUnsizedAxes(.horizontal)
                 totalsRow(summary)
+                Color.clear.frame(height: 4).gridCellUnsizedAxes(.horizontal)
                 saldoRow(summary)
             }
         }
     }
 
     private var columnHeader: some View {
-        HStack(spacing: 0) {
-            headerCell("Tanggal", width: wTanggal, align: .leading)
-            headerCell("No. Transaksi", width: wNumber, align: .leading)
-            headerCell("Akun", width: wAkun, align: .leading)
-            headerCell("Deskripsi", width: wDeskripsi, align: .leading)
-            headerCell("Debit", width: wAmount, align: .trailing)
-            headerCell("Kredit", width: wAmount, align: .trailing)
+        GridRow {
+            headerCell("Tanggal")
+            headerCell("No. Transaksi")
+            headerCell("Akun")
+            headerCell("Deskripsi")
+            headerCell("Debit", align: .trailing)
+            headerCell("Kredit", align: .trailing)
         }
-        .padding(.bottom, 8)
     }
 
-    private func headerCell(_ text: String, width: CGFloat, align: Alignment) -> some View {
+    /// `align` also fixes the whole column's alignment (amounts trail).
+    private func headerCell(_ text: String, align: HorizontalAlignment = .leading) -> some View {
         Text(text)
-            .font(.customFont(.semibold, ledgerSize))
+            .font(.customFont(.semibold, ListMetrics.metaSize))
             .foregroundStyle(.subtitle)
             .textCase(.uppercase)
             .lineLimit(1)
-            .frame(width: width - colGap, alignment: align)
             .padding(.trailing, colGap)
+            .padding(.bottom, 8)
+            .gridColumnAlignment(align)
     }
 
+    /// Same two-tier scale as the list rows (CashReceiptRow/ExpenseRow):
+    /// primary (number, amounts) = bold titleSize, meta = regular metaSize.
     private func journalRow(_ entry: JournalEntry) -> some View {
-        HStack(spacing: 0) {
-            textCell(dateText(entry.date), width: wTanggal, weight: .regular, color: .subtitle)
-            textCell(entry.number, width: wNumber, weight: .semibold, color: .title)
-            textCell(entry.account, width: wAkun, weight: .regular, color: .subtitle)
-            textCell(entry.description.isEmpty ? "–" : entry.description, width: wDeskripsi, weight: .regular, color: .subtitle)
-            amountCell(entry.debit, width: wAmount)
-            amountCell(entry.kredit, width: wAmount)
+        GridRow {
+            metaCell(dateText(entry.date))
+            primaryCell(entry.number)
+            metaCell(entry.account)
+            metaCell(entry.description.isEmpty ? "–" : entry.description, maxWidth: descMaxWidth)
+            amountCell(entry.debit)
+            amountCell(entry.kredit)
         }
-        .padding(.vertical, 14)
     }
 
-    private func textCell(_ text: String, width: CGFloat, weight: CustomFontWeight, color: Color) -> some View {
+    private func primaryCell(_ text: String) -> some View {
+        cell(text, weight: .bold, size: ListMetrics.titleSize, color: .title)
+    }
+
+    private func metaCell(_ text: String, maxWidth: CGFloat? = nil) -> some View {
+        cell(text, weight: .regular, size: ListMetrics.metaSize, color: .subtitle, maxWidth: maxWidth)
+    }
+
+    private func cell(_ text: String, weight: CustomFontWeight, size: CGFloat, color: Color, maxWidth: CGFloat? = nil) -> some View {
         Text(text)
-            .customFont(weight, ledgerSize)
+            .customFont(weight, size)
             .foregroundStyle(color)
             .lineLimit(1)
             .monospacedDigit()
-            .frame(width: width - colGap, alignment: .leading)
+            .frame(maxWidth: maxWidth, alignment: .leading)
             .padding(.trailing, colGap)
+            .padding(.vertical, ListMetrics.rowVerticalPadding)
     }
 
     /// One amount cell: the grouped number when non-zero, else a blank dash.
-    private func amountCell(_ amount: Double, width: CGFloat, bold: Bool = false) -> some View {
+    private func amountCell(_ amount: Double, bold: Bool = true) -> some View {
         Text(amount != 0 ? amount.asGrouped : "–")
-            .customFont(bold ? .bold : .regular, ledgerSize)
+            .customFont(bold ? .bold : .regular, ListMetrics.titleSize)
             .monospacedDigit()
             .foregroundStyle(amount == 0 ? Color.subtitle.opacity(0.5) : .title)
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .frame(width: width - colGap, alignment: .trailing)
             .padding(.trailing, colGap)
+            .padding(.vertical, ListMetrics.rowVerticalPadding)
     }
 
     /// Column subtotals on a soft shaded band (the reference's "Total" row).
+    /// Cells fill their columns so the per-cell backgrounds form one band.
     private func totalsRow(_ summary: ReportSummary) -> some View {
-        HStack(spacing: 0) {
+        GridRow {
             Text("Total")
-                .font(.customFont(.bold, ledgerSize))
+                .font(.customFont(.bold, ListMetrics.titleSize))
                 .foregroundStyle(.title)
-                .frame(width: labelSpan - colGap, alignment: .leading)
                 .padding(.trailing, colGap)
-            amountCell(summary.penerimaanTotal, width: wAmount, bold: true)
-            amountCell(summary.pengeluaranTotal, width: wAmount, bold: true)
+                .padding(.vertical, 12)
+                .gridCellColumns(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            amountCell(summary.penerimaanTotal, bold: true)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            amountCell(summary.pengeluaranTotal, bold: true)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(.vertical, 12)
         .background(Color.title.opacity(0.05))
-        .padding(.top, 8)
     }
 
     /// The balancing figure (Debit − Kredit) on a stronger band — the grand total.
     private func saldoRow(_ summary: ReportSummary) -> some View {
-        HStack(spacing: 0) {
+        GridRow {
             Text("Saldo")
-                .font(.customFont(.bold, ledgerSize))
+                .font(.customFont(.bold, ListMetrics.titleSize))
                 .textCase(.uppercase)
                 .foregroundStyle(.title)
-                .frame(width: labelSpan - colGap, alignment: .leading)
                 .padding(.trailing, colGap)
-            amountCell(summary.net, width: wAmount * 2, bold: true)
+                .padding(.vertical, 12)
+                .gridCellColumns(4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            amountCell(summary.net, bold: true)
+                .gridCellColumns(2)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(.vertical, 12)
         .background(Color.title.opacity(0.09))
-        .padding(.top, 4)
     }
 
     private func dateText(_ date: Date) -> String {
@@ -263,32 +273,16 @@ struct LaporanScreen: View {
 
     // MARK: - Period bar
 
-    /// Pinned bar under the nav bar: a centered tight group — prev/next steppers
-    /// flanking the borderless period Menu (Fitness/Health pattern; edge-pinned
-    /// steppers stacked a second chevron under the nav back button). The fixed
-    /// label width keeps the steppers from jumping as the label changes. Steppers
-    /// hide under a custom range — stepping is a no-op there.
-    private var periodBar: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 16) {
-                if !presenter.hasCustomRange {
-                    stepperButton(systemImage: "chevron.left") { presenter.stepPeriod(by: -1) }
-                }
-                periodMenu
-                    .frame(minWidth: 150)
-                if !presenter.hasCustomRange {
-                    stepperButton(systemImage: "chevron.right") { presenter.stepPeriod(by: 1) }
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            Divider().opacity(0.4)
+    /// Chip row at the top of the content — capsule buttons (same style as the
+    /// list tabs' filter chips) so the period/filter affordance is obvious.
+    private var filterRow: some View {
+        HStack(spacing: 8) {
+            periodMenu
+            filterChip
         }
-        .background(Color.background1)
-        .animation(.snappy, value: presenter.hasCustomRange)
     }
 
+    /// Period picker as a Menu whose label is a calendar chip.
     private var periodMenu: some View {
         Menu {
             // Optional selection: nothing is checked while a custom range is
@@ -309,41 +303,35 @@ struct LaporanScreen: View {
                 Label("Rentang Khusus…", systemImage: presenter.hasCustomRange ? "checkmark" : "calendar")
             }
         } label: {
-            HStack(spacing: 6) {
-                Text(presenter.steppedLabel)
-                    .customFont(.semibold, Typography.headline)
-                    .foregroundStyle(.title)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.subtitle)
-            }
+            chipLabel("calendar", presenter.steppedLabel, active: false)
         }
         .animation(.snappy, value: presenter.steppedLabel)
     }
 
-    private func stepperButton(systemImage: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.subtitle)
-                .frame(width: 36, height: 36)
-                .background(Color.white.opacity(0.06))
-                .clipShape(Circle())
+    /// Accent-filled while any filter is active (same active look as list chips).
+    private var filterChip: some View {
+        Button { showFilters = true } label: {
+            chipLabel("line.3.horizontal.decrease", "Filter", active: presenter.hasActiveFilters)
         }
+        .animation(.snappy, value: presenter.hasActiveFilters)
+    }
+
+    private func chipLabel(_ systemImage: String, _ text: String, active: Bool) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+            Text(text)
+                .customFont(.medium, Typography.subhead)
+                .lineLimit(1)
+        }
+        .foregroundStyle(active ? .white : .title)
+        .padding(.horizontal, 14)
+        .frame(height: 32)
+        .background(active ? Color.accentColor : Color.white.opacity(0.06))
+        .clipShape(Capsule())
     }
 
     // MARK: - Filters
-
-    private var filterButton: some View {
-        Button { showFilters = true } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .symbolVariant(presenter.hasActiveFilters ? .fill : .none)
-                .contentTransition(.symbolEffect(.replace))
-                .foregroundStyle(.accent)
-        }
-    }
 
     /// Branch/account picker options: "Semua" + the ids present in the loaded
     /// records, plus the ACTIVE filter as a fallback row when a refresh dropped
@@ -439,6 +427,8 @@ struct LaporanScreen: View {
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 60)
+        // Center in the visible scroll area (75% height ≈ optical center once
+        // the chip row above is accounted for).
+        .containerRelativeFrame(.vertical) { length, _ in length * 0.75 }
     }
 }

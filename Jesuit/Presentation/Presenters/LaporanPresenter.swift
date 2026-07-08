@@ -71,42 +71,44 @@ final class LaporanPresenter {
 
     var cashFlowPeriod: CashFlowPeriod = .bulanIni {
         didSet {
-            // A custom range or stepped offset must clear even when the user
-            // re-picks the preset already stored here (an equal value would
-            // otherwise skip the reset below and strand the shifted period).
-            guard cashFlowPeriod != oldValue || customRange != nil || periodOffset != 0 else { return }
+            // A custom range must clear even when the user re-picks the preset
+            // already stored here (an equal value would otherwise skip the
+            // reset below and strand the custom range).
+            guard cashFlowPeriod != oldValue || customRange != nil else { return }
             customRange = nil
-            periodOffset = 0
             recompute()
         }
     }
-    private(set) var periodOffset = 0
     /// User-picked `[start, end]` that overrides `cashFlowPeriod` when set.
     private(set) var customRange: (start: Date, end: Date)?
     var hasCustomRange: Bool { customRange != nil }
 
-    /// The active range: the custom range if set, else the preset shifted by offset.
+    /// The active range: the custom range if set, else the preset.
     private var effectiveRange: (start: Date, end: Date) {
-        customRange ?? cashFlowPeriod.dateRange(offset: periodOffset)
+        customRange ?? cashFlowPeriod.dateRange()
     }
 
     /// Current active range, for seeding the custom-range picker.
     var summaryRange: (start: Date, end: Date) { effectiveRange }
 
-    /// Center label for the stepper / custom range.
+    /// Period-chip label: the custom range if set, else the preset period.
+    /// A custom range spanning exactly one whole month (the month-grid picker's
+    /// output) reads as "Mei 2026" instead of "1 Mei – 31 Mei 2026".
     var steppedLabel: String {
         if let range = customRange {
+            let cal = Calendar.current
+            if let interval = cal.dateInterval(of: .month, for: range.start),
+               let lastDay = cal.date(byAdding: .second, value: -1, to: interval.end),
+               cal.isDate(range.start, inSameDayAs: interval.start),
+               cal.isDate(range.end, inSameDayAs: lastDay) {
+                let f = DateFormatter(); f.locale = Locale(identifier: "id_ID"); f.dateFormat = "MMMM yyyy"
+                return f.string(from: range.start)
+            }
             let f = DateFormatter(); f.locale = Locale(identifier: "id_ID"); f.dateFormat = "d MMM"
             let endF = DateFormatter(); endF.locale = Locale(identifier: "id_ID"); endF.dateFormat = "d MMM yyyy"
             return "\(f.string(from: range.start)) – \(endF.string(from: range.end))"
         }
-        return cashFlowPeriod.steppedLabel(offset: periodOffset)
-    }
-
-    func stepPeriod(by delta: Int) {
-        guard !hasCustomRange else { return }
-        periodOffset += delta
-        recompute()
+        return cashFlowPeriod.steppedLabel()
     }
 
     func applyCustomRange(start: Date, end: Date) {
