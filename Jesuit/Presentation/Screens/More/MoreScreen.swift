@@ -127,7 +127,7 @@ struct MoreScreen: View {
             ChangePasswordSheet(onSuccess: { showPasswordChanged = true })
         }
         .navigationDestination(isPresented: $showLaporan) {
-            LaporanScreen()
+            LaporanIndexScreen()
         }
         .task {
             if session.can(Permission.cashApprove) { await approval.loadBadge() }
